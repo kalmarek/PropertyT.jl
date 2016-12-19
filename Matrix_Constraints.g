@@ -26,6 +26,17 @@ Products := function(elts, n)
   fi;
 end;
 
+IsSupportedOn := function(basis, elt)
+    local elt_supp, x;
+    elt_supp := Support(elt);
+    for x in elt_supp do
+        if not x in basis then
+            return false;
+        fi;
+    od;
+    return true;
+end;
+
 Laplacian := function(G, generating_set)
   local QG, emb, result, S, g, elt;
   QG := GroupRing(Rationals, G);;
@@ -71,21 +82,6 @@ Constraints := function(basis)
      od;
   od;
   return result;
-end;
-
-USupport := function(x)
-    return Unique(Support(x));
-end;
-
-IsSupportedOn := function(basis, elt)
-    local elt_supp, x;
-    elt_supp := USupport(elt);
-    for x in elt_supp do
-        if not x in basis then
-            return x;
-        fi;
-    od;
-    return true;
 end;
 
 SDPGenerateAll := function(G, S, basis, name)
