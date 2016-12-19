@@ -86,15 +86,26 @@ end;
 
 SDPGenerateAll := function(G, S, basis, name)
   local QG, emb, delta, delta_sq, delta_vec, delta_sq_vec, product_constr;
+  Print("Initializing GroupAlgebra");
   QG := GroupRing(Rationals, G);;
+  Print(".");
   emb := Embedding(G,QG);;
+  Print("\n");
 
+  Print("Initializing GroupAlgebra elements: ");
   delta := Laplacian(G, S);;
+  Print("delta! ");
   delta_sq := delta^2;;
+  Print("delta_sq! ");
+  Print("\n");
+
+  Print("Check if delta_sq is supported on the given basis: ");
   if not IsSupportedOn(basis, delta_sq) then
-    #   Print("delta_sq is not supported on basis\n");
+      Print("delta_sq is not supported on basis\n");
       return fail;
   else
+      Print("it is!\n");
+      
       PrintTo(Concatenation("./basis.", name), basis);
       Print("Written basis to ", Concatenation("./basis.", name), "\n");
       delta_vec := Vectorise(delta, basis);;
