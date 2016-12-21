@@ -48,7 +48,7 @@ end
 (==)(X::GroupAlgebraElement, Y::GroupAlgebraElement) = isequal(X,Y)
 
 function add{T<:Number}(X::GroupAlgebraElement{T}, Y::GroupAlgebraElement{T})
-    X.product_matrix == Y.product_matrix || throw(DomainError(
+    X.product_matrix == Y.product_matrix || throw(ArgumentError(
     "Elements don't seem to belong to the same Group Algebra!"))
     return GroupAlgebraElement(X.coordinates+Y.coordinates, X.product_matrix)
 end
@@ -66,7 +66,7 @@ end
 
 function group_star_multiplication{T<:Number}(X::GroupAlgebraElement{T},
     Y::GroupAlgebraElement{T})
-    X.product_matrix == Y.product_matrix || DomainError(
+    X.product_matrix == Y.product_matrix || ArgumentError(
     "Elements don't seem to belong to the same Group Algebra!")
 
     result = zeros(X.coordinates)
@@ -76,7 +76,7 @@ function group_star_multiplication{T<:Number}(X::GroupAlgebraElement{T},
         else
             index = X.product_matrix[i,j]
             if index == 0
-                throw(DomainError("The product don't seem to belong to the span of basis!"))
+                throw(ArgumentError("The product don't seem to belong to the span of basis!"))
             else
                 result[index]+= x*y
             end
