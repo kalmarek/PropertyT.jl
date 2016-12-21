@@ -15,9 +15,9 @@ immutable GroupAlgebraElement{T<:Number}
     function GroupAlgebraElement(coordinates::Vector{T},
         product_matrix::Array{Int,2})
 
-        length(coordinates) == size(product_matrix,1) ||
-            throw(ArgumentError("Matrix has to represent products of basis
-                                elements"))
+        # length(coordinates) == size(product_matrix,1) ||
+        #     throw(ArgumentError("Matrix has to represent products of basis
+        #                         elements"))
         size(product_matrix, 1) == size(product_matrix, 2) ||
             throw(ArgumentError("Product matrix has to be square"))
         # length(coordinates) == length(basis) || throw(ArgumentError("Coordinates must be given in the given basis"))
