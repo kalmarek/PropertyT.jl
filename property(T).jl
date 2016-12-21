@@ -52,6 +52,26 @@ function create_product_matrix(basis::Array{Array{Float64,2},1}, limit::Int)
     return product_matrix, constraints
 end
 
+function Laplacian_sparse(S::Array{Array{Float64,2},1},
+    basis::Array{Array{Float64,2},1})
+
+    squares = unique(vcat([basis[1]], S, products(S,S)))
+
+    result = spzeros(length(basis))
+    result[1] = length(S)
+    for s in S
+        ind = find(x -> x==s, basis)
+        result[ind] += -1
+    end
+    return result
+end
+
+function Laplacian(S::Array{Array{Float64,2},1},
+    basis:: Array{Array{Float64,2},1})
+
+    return full(Laplacian_sparse(S,basis))
+end
+
 function create_SDP_problem(matrix_constraints,
                             Δ²::GroupAlgebraElement, Δ::GroupAlgebraElement)
     N = length(Δ)
