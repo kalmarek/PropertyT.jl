@@ -1,5 +1,14 @@
 using JuMP
 
+function products{T<:Real}(S1::Array{Array{T,2},1}, S2::Array{Array{T,2},1})
+    result = [0*similar(S1[1])]
+    for x in S1
+        for y in S2
+            push!(result, x*y)
+        end
+    end
+    return unique(result[2:end])
+end
 
 function read_GAP_raw_list(filename::String)
     return eval(parse(String(read(filename))))
@@ -16,19 +25,31 @@ function create_product_matrix(matrix_constraints)
     return product_matrix
 end
 
-function create_sparse_product_matrix(matrix_constraints)
-    row_indices = Int[]
-    column_indices = Int[]
-    values = Int[]
-    for (index, pairs) in enumerate(matrix_constraints)
-        for (i,j) in pairs
-            push!(row_indices, i)
-            push!(column_indices, j)
-            push!(values, index)
+function create_product_matrix(basis::Array{Array{Float64,2},1}, limit::Int)
+
+    product_matrix = Array{Int}(limit,limit)
+    constraints = constraints = [Array{Int,1}[] for x in 1:121]
+
+    for i in 1:limit
+        x_inv = inv(basis[i])
+        for j in 1:limit
+            w::Array{Float64,2} = x_inv*basis[j]
+
+            function f(x::Array{Float64,2})
+                if x == w
+                    return true
+                else
+                    return false
+                end
+            end
+            index = findfirst(f, basis)
+            product_matrix[i,j] = index
+            if index ≤ limit
+                push!(constraints[index],[i,j])
+            end
         end
     end
-    sparse_product_matrix = sparse(row_indices, column_indices, values)
-    return sparse_product_matrix
+    return product_matrix, constraints
 end
 
 function create_SDP_problem(matrix_constraints,
