@@ -28,7 +28,7 @@ end
 function create_product_matrix(basis::Array{Array{Float64,2},1}, limit::Int)
 
     product_matrix = Array{Int}(limit,limit)
-    constraints = constraints = [Array{Int,1}[] for x in 1:121]
+    constraints = [Array{Int,1}[] for x in 1:length(basis)]
 
     for i in 1:limit
         x_inv = inv(basis[i])
@@ -44,9 +44,7 @@ function create_product_matrix(basis::Array{Array{Float64,2},1}, limit::Int)
             end
             index = findfirst(f, basis)
             product_matrix[i,j] = index
-            if index ≤ limit
-                push!(constraints[index],[i,j])
-            end
+            push!(constraints[index],[i,j])
         end
     end
     return product_matrix, constraints
@@ -74,7 +72,7 @@ end
 
 function create_SDP_problem(matrix_constraints,
                             Δ²::GroupAlgebraElement, Δ::GroupAlgebraElement)
-    N = length(Δ)
+    N = size(Δ.product_matrix,1)
     @assert length(Δ) == length(Δ²)
     @assert length(Δ) == length(matrix_constraints)
     m = Model();
