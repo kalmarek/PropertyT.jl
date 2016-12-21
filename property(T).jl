@@ -88,7 +88,7 @@ function create_SDP_problem(matrix_constraints,
 end
 
 function resulting_SOS{T<:Number, S<:Number}(sqrt_matrix::Array{T,2}, elt::GroupAlgebraElement{S})
-    zzz = zeros(T, size(sqrt_matrix)[1])
+    zzz = zeros(T, length(elt))
     result::GroupAlgebraElement{T} = GroupAlgebraElement(zzz, elt.product_matrix)
     for i in 1:length(result)
         new_base = GroupAlgebraElement(sqrt_matrix[:,i], elt.product_matrix)
