@@ -64,15 +64,17 @@ function group_star_multiplication{T<:Number}(X::GroupAlgebraElement{T},
     X.product_matrix == Y.product_matrix || ArgumentError(
     "Elements don't seem to belong to the same Group Algebra!")
     result = zeros(X.coordinates)
-    for (i,x) in enumerate(X.coordinates), (j,y) in enumerate(Y.coordinates)
-        if x*y == 0
-            nothing
-        else
-            index = X.product_matrix[i,j]
-            if index == 0
-                throw(ArgumentError("The product don't seem to belong to the span of basis!"))
-            else
-                result[index]+= x*y
+    for (i,x) in enumerate(X.coordinates)
+        if x != 0
+            for (j,y) in enumerate(Y.coordinates)
+                if y != 0
+                    index = X.product_matrix[i,j]
+                    if index == 0
+                        throw(ArgumentError("The product don't seem to belong to the span of basis!"))
+                    else
+                        result[index]+= x*y
+                    end
+                end
             end
         end
     end
