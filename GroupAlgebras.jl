@@ -33,7 +33,7 @@ convert{T<:Number}(::Type{T}, X::GroupAlgebraElement) =
     GroupAlgebraElement(convert(Vector{T}, X.coordinates), X.product_matrix)
 
 show{T}(io::IO, X::GroupAlgebraElement{T}) = print(io,
-    "Element of Group Algebra over ", T, "\n", X.coordinates)
+    "Element of Group Algebra over ", T, "of length $(length(X)):\n", X.coordinates)
 
 
 function isequal{T, S}(X::GroupAlgebraElement{T}, Y::GroupAlgebraElement{S})
@@ -68,7 +68,6 @@ function group_star_multiplication{T<:Number}(X::GroupAlgebraElement{T},
     Y::GroupAlgebraElement{T})
     X.product_matrix == Y.product_matrix || ArgumentError(
     "Elements don't seem to belong to the same Group Algebra!")
-
     result = zeros(X.coordinates)
     for (i,x) in enumerate(X.coordinates), (j,y) in enumerate(Y.coordinates)
         if x*y == 0
