@@ -81,20 +81,20 @@ function create_SDP_problem(matrix_constraints,
     @variable(m, κ >= 0.0)
     @objective(m, Max, κ)
 
-    for (pairs, δ², δ) in zip(matrix_constraints, Δ².coordinates, Δ.coordinates)
+    for (pairs, δ², δ) in zip(matrix_constraints, Δ².coefficients, Δ.coefficients)
         @constraint(m, sum(A[i,j] for (i,j) in pairs) == δ² - κ*δ)
     end
     return m
 end
 
 function resulting_SOS{T<:Number}(sqrt_matrix::Array{T,2}, elt::GroupAlgebraElement{T})
-    result = zeros(elt.coordinates)
-    zzz = zeros(elt.coordinates)
+    result = zeros(elt.coefficients)
+    zzz = zeros(elt.coefficients)
     L = size(sqrt_matrix,2)
     for i in 1:L
         zzz[1:L] = view(sqrt_matrix, :,i)
         new_base = GroupAlgebraElement(zzz, elt.product_matrix)
-        result += (new_base*new_base).coordinates
+        result += (new_base*new_base).coefficients
     end
     return GroupAlgebraElement{T}(result, elt.product_matrix)
 end
