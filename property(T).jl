@@ -87,7 +87,7 @@ function create_SDP_problem(matrix_constraints,
     return m
 end
 
-function resulting_SOS{T<:Number}(sqrt_matrix::Array{T,2}, elt::GroupAlgebraElement)
+function resulting_SOS{T<:Number}(sqrt_matrix::Array{T,2}, elt::GroupAlgebraElement{T})
     result = zeros(elt.coordinates)
     zzz = zeros(elt.coordinates)
     L = size(sqrt_matrix,2)
@@ -96,7 +96,7 @@ function resulting_SOS{T<:Number}(sqrt_matrix::Array{T,2}, elt::GroupAlgebraElem
         new_base = GroupAlgebraElement(zzz, elt.product_matrix)
         result += (new_base*new_base).coordinates
     end
-    return GroupAlgebraElement(result, elt.product_matrix)
+    return GroupAlgebraElement{T}(result, elt.product_matrix)
 end
 
 function correct_to_augmentation_ideal{T<:Rational}(sqrt_matrix::Array{T,2})
