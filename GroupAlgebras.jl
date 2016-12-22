@@ -6,13 +6,14 @@ import Base: size, length, norm
 
 export GroupAlgebraElement
 
+typealias CoordinateVector{T<:Number} AbstractVector{T}
 
-immutable GroupAlgebraElement{T<:Number}
-    coordinates::Vector{T}
+immutable GroupAlgebraElement{T<:CoordinateVector}
+    coordinates::T
     product_matrix::Array{Int,2}
     # basis::Array{Any,1}
 
-    function GroupAlgebraElement(coordinates::Vector{T},
+    function GroupAlgebraElement(coordinates::T,
         product_matrix::Array{Int,2})
 
         size(product_matrix, 1) == size(product_matrix, 2) ||
@@ -22,13 +23,13 @@ immutable GroupAlgebraElement{T<:Number}
 end
 
 # GroupAlgebraElement(c,pm,b) = GroupAlgebraElement(c,pm)
-GroupAlgebraElement{T}(c::Vector{T},pm) = GroupAlgebraElement{T}(c,pm)
+GroupAlgebraElement{T}(c::T,pm) = GroupAlgebraElement{T}(c,pm)
 
 convert{T<:Number}(::Type{T}, X::GroupAlgebraElement) =
-    GroupAlgebraElement(convert(Vector{T}, X.coordinates), X.product_matrix)
+    GroupAlgebraElement(convert(CoordinateVector{T}, X.coordinates), X.product_matrix)
 
 show{T}(io::IO, X::GroupAlgebraElement{T}) = print(io,
-    "Element of Group Algebra over ", T, "of length $(length(X)):\n", X.coordinates)
+    "Element of Group Algebra over $(typeofelt(X)), of length $(length(X)):\n", X.coordinates)
 
 
 function isequal{T, S}(X::GroupAlgebraElement{T}, Y::GroupAlgebraElement{S})
@@ -42,13 +43,13 @@ end
 
 (==)(X::GroupAlgebraElement, Y::GroupAlgebraElement) = isequal(X,Y)
 
-function add{T<:Number}(X::GroupAlgebraElement{T}, Y::GroupAlgebraElement{T})
+function add{T<:CoordinateVector}(X::GroupAlgebraElement{T}, Y::GroupAlgebraElement{T})
     X.product_matrix == Y.product_matrix || throw(ArgumentError(
     "Elements don't seem to belong to the same Group Algebra!"))
     return GroupAlgebraElement(X.coordinates+Y.coordinates, X.product_matrix)
 end
 
-function add{T<:Number, S<:Number}(X::GroupAlgebraElement{T},
+function add{T<:CoordinateVector, S<:CoordinateVector}(X::GroupAlgebraElement{T},
     Y::GroupAlgebraElement{S})
     warn("Adding elements with different base rings!")
     return GroupAlgebraElement(+(promote(X.coordinates, Y.coordinates)...),
@@ -59,7 +60,7 @@ end
 (-)(X::GroupAlgebraElement) = GroupAlgebraElement(-X.coordinates, X.product_matrix)
 (-)(X::GroupAlgebraElement, Y::GroupAlgebraElement) = add(X,-Y)
 
-function group_star_multiplication{T<:Number}(X::GroupAlgebraElement{T},
+function group_star_multiplication{T<:CoordinateVector}(X::GroupAlgebraElement{T},
     Y::GroupAlgebraElement{T})
     X.product_matrix == Y.product_matrix || ArgumentError(
     "Elements don't seem to belong to the same Group Algebra!")
@@ -81,33 +82,37 @@ function group_star_multiplication{T<:Number}(X::GroupAlgebraElement{T},
     return GroupAlgebraElement(result, X.product_matrix)
 end
 
-function group_star_multiplication{T<:Number, S<:Number}(
+function group_star_multiplication{T<:CoordinateVector, S<:CoordinateVector}(
     X::GroupAlgebraElement{T},
     Y::GroupAlgebraElement{S})
     S == T || warn("Multiplying elements with different base rings!")
     return group_star_multiplication(promote(X,Y)...)
 end
 
-(*){T<:Number, S<:Number}(X::GroupAlgebraElement{T},
+(*){T<:CoordinateVector, S<:CoordinateVector}(X::GroupAlgebraElement{T},
     Y::GroupAlgebraElement{S}) = group_star_multiplication(X,Y);
 
-(*){T<:Number}(a::T, X::GroupAlgebraElement{T}) = GroupAlgebraElement(
-    a*X.coordinates, X.product_matrix)
+typeofelt{T<:Number}(X::AbstractVector{T}) = T
+typeofelt{S<:CoordinateVector}(X::GroupAlgebraElement{S}) = typeofelt(X.coordinates)
 
-function scalar_multiplication{T<:Number, S<:Number}(a::T,
-    X::GroupAlgebraElement{S})
-    if  T!=S
-        warn("Scalars and coefficients ring are not the same! Trying to promote...")
-    end
+function (*){T<:Number, S<:CoordinateVector}(a::T, X::GroupAlgebraElement{S})
+    W = typeofelt(X)
+    promote_type(T,W) == W || warn("Scalar and coordinates are in different rings! Promoting result to $(promote_type(T,W))")
     return GroupAlgebraElement(a*X.coordinates, X.product_matrix)
 end
-(*){T<:Number}(a::T,X::GroupAlgebraElement) = scalar_multiplication(a, X)
 
-//{T<:Rational, S<:Rational}(X::GroupAlgebraElement{T}, a::S) =
-    GroupAlgebraElement(X.coordinates//a, X.product_matrix)
+(*){T<:Number, S<:CoordinateVector}(X::GroupAlgebraElement{S}, a::T) = (*)(a, X)
 
-//{T<:Rational, S<:Integer}(X::GroupAlgebraElement{T}, a::S) =
-    X//convert(T,a)
+function rational_division{T<:CoordinateVector, S<:Rational}(X::GroupAlgebraElement{T}, a::S)
+    if typeofelt(X) <: Rational
+        return GroupAlgebraElement(X.coordinates//a, X.product_matrix)
+    else
+        throw(ArgumentError("Rational division attempt on a GroupAlgebraElement of non-rational coefficients!"))
+    end
+end
+
+(//)(X,a) = rational_division(X,a)
+(//){S<:Integer}(X::GroupAlgebraElement, a::S) = //(X, Rational{S}(a))
 
 length(X::GroupAlgebraElement) = length(X.coordinates)
 size(X::GroupAlgebraElement) = size(X.coordinates)
