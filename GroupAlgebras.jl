@@ -28,7 +28,7 @@ convert{T<:Number}(::Type{T}, X::GroupAlgebraElement) =
     GroupAlgebraElement(convert(Vector{T}, X.coefficients), X.product_matrix)
 
 show{T}(io::IO, X::GroupAlgebraElement{T}) = print(io,
-    "Element of Group Algebra over ", T, "of length $(length(X)):\n", X.coefficients)
+    "Element of Group Algebra over $T of length $(length(X)):\n $(X.coefficients)")
 
 
 function isequal{T, S}(X::GroupAlgebraElement{T}, Y::GroupAlgebraElement{S})
