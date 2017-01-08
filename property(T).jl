@@ -1,4 +1,5 @@
 using JuMP
+import Base: rationalize
 
 function products{T<:Real}(S1::Array{Array{T,2},1}, S2::Array{Array{T,2},1})
     result = [0*similar(S1[1])]
@@ -108,4 +109,10 @@ function correct_to_augmentation_ideal{T<:Rational}(sqrt_matrix::Array{T,2})
 #         @assert sum(sqrt_corrected[:,i]) == 0
     end
     return sqrt_corrected
+end
+function rationalize{T<:Integer, S<:Real}(::Type{T},
+    X::AbstractArray{S}; tol::Real=eps(eltype(X)))
+
+    r(x) = rationalize(T, x, tol=tol)
+    return r.(X)
 end

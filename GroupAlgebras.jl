@@ -2,7 +2,7 @@ module GroupAlgebras
 
 import Base: convert, show, isequal, ==
 import Base: +, -, *, //
-import Base: size, length, norm
+import Base: size, length, norm, rationalize
 
 export GroupAlgebraElement
 
@@ -111,5 +111,11 @@ end
 length(X::GroupAlgebraElement) = length(X.coefficients)
 size(X::GroupAlgebraElement) = size(X.coefficients)
 norm(X::GroupAlgebraElement, p=2) = norm(X.coefficients, p)
+
+rationalize{T<:Integer, S<:Number}(::Type{T}, X::GroupAlgebraElement{S};
+    tol=eps(S)) =
+    GroupAlgebraElement(
+        rationalize(T, X.coefficients, tol=tol), X.product_matrix)
+
 
 end
