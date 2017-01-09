@@ -11,6 +11,17 @@ function products{T<:Real}(S1::Array{Array{T,2},1}, S2::Array{Array{T,2},1})
     return unique(result[2:end])
 end
 
+function generate_B₂_and_B₄(identity, S₁)
+    S₂ = products(S₁, S₁);
+    S₃ = products(S₁, S₂);
+    S₄ = products(S₂, S₂);
+
+    B₂ = unique(vcat([identity],S₁,S₂));
+    B₄ = unique(vcat(B₂, S₃, S₄));
+    @assert B₄[1:length(B₂)] == B₂
+    return B₂, B₄;
+end
+
 function read_GAP_raw_list(filename::String)
     return eval(parse(String(read(filename))))
 end
@@ -71,10 +82,22 @@ function Laplacian(S::Array{Array{Float64,2},1},
     return full(Laplacian_sparse(S,basis))
 end
 
-function create_SDP_problem(matrix_constraints,
-                            Δ²::GroupAlgebraElement, Δ::GroupAlgebraElement)
+function prepare_Laplacian_and_constraints{T}(S::Vector{Array{T,2}};)
+
+    identity = eye(S[1])
+    B₂, B₄ = generate_B₂_and_B₄(identity, S)
+
+    product_matrix, matrix_constraints = create_product_matrix(B₄,length(B₂));
+
+    L= Laplacian(S, B₄);
+    const Δ = GroupAlgebraElement(L, product_matrix)
+
+    return Δ, matrix_constraints
+end
+
+function create_SDP_problem(matrix_constraints, Δ::GroupAlgebraElement)
     N = size(Δ.product_matrix,1)
-    @assert length(Δ) == length(Δ²)
+    const Δ² = Δ*Δ
     @assert length(Δ) == length(matrix_constraints)
     m = Model();
     @variable(m, A[1:N, 1:N], SDP)
@@ -88,7 +111,35 @@ function create_SDP_problem(matrix_constraints,
     return m
 end
 
-function resulting_SOS{T<:Number}(sqrt_matrix::Array{T,2}, elt::GroupAlgebraElement{T})
+function solve_for_property_T{T}(S₁::Vector{Array{T,2}}, solver; verbose=true)
+
+    Δ, matrix_constraints = prepare_Laplacian_and_constraints(S₁)
+
+    problem = create_SDP_problem(matrix_constraints, Δ);
+    @show solver
+
+    setsolver(problem, solver);
+    verbose && @show problem
+
+    solution_status = solve(problem);
+    verbose && @show solution_status
+
+    if solution_status != :Optimal
+        throw(ExceptionError("The solver did not solve the problem successfully!"))
+    else
+        κ = SL_3ZZ.objVal;
+        A = getvalue(getvariable(SL_3ZZ, :A));;
+    end
+
+    return κ, A
+end
+
+function EOI{T<:Number}(Δ::GroupAlgebraElement{T}, κ::T)
+    return Δ*Δ - κ*Δ
+end
+
+function resulting_SOS{T<:Number}(sqrt_matrix::Array{T,2},
+                                  elt::GroupAlgebraElement{T})
     result = zeros(elt.coefficients)
     zzz = zeros(elt.coefficients)
     L = size(sqrt_matrix,2)
@@ -106,10 +157,19 @@ function correct_to_augmentation_ideal{T<:Rational}(sqrt_matrix::Array{T,2})
     for i in 1:l
         col = view(sqrt_matrix,:,i)
         sqrt_corrected[:,i] = col - sum(col)//l
-#         @assert sum(sqrt_corrected[:,i]) == 0
+        # @assert sum(sqrt_corrected[:,i]) == 0
     end
     return sqrt_corrected
 end
+
+function check_solution{T<:Number}(κ::T,
+                                   sqrt_matrix::Array{T,2},
+                                   Δ::GroupAlgebraElement{T})
+    eoi = EOI(Δ, κ)
+    result = resulting_SOS(sqrt_matrix, Δ)
+    return sum(abs.((result - eoi).coefficients)), sum(result.coefficients)
+end
+
 function rationalize{T<:Integer, S<:Real}(::Type{T},
     X::AbstractArray{S}; tol::Real=eps(eltype(X)))
 
