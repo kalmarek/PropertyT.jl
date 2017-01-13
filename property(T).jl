@@ -81,13 +81,11 @@ function prepare_Laplacian_and_constraints{T}(S::Vector{Array{T,2}};)
 
     identity = eye(S[1])
     B₂, B₄ = generate_B₂_and_B₄(identity, S)
-
     product_matrix, matrix_constraints = create_product_matrix(B₄,length(B₂));
 
     L= Laplacian(S, B₄);
-    const Δ = GroupAlgebraElement(L, product_matrix)
 
-    return Δ, matrix_constraints
+    return GroupAlgebraElement(L, product_matrix), matrix_constraints
 end
 
 function create_SDP_problem(matrix_constraints, Δ::GroupAlgebraElement)
