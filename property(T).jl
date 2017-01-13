@@ -45,18 +45,13 @@ function create_product_matrix(basis::Array{Array{Float64,2},1}, limit::Int)
     for i in 1:limit
         x_inv = inv(basis[i])
         for j in 1:limit
-            w::Array{Float64,2} = x_inv*basis[j]
+            w = x_inv*basis[j]
 
-            function f(x::Array{Float64,2})
-                if x == w
-                    return true
-                else
-                    return false
-                end
+            index = findfirst(basis, w)
+            if 0 < index ≤ limit
+                product_matrix[i,j] = index
+                push!(constraints[index],[i,j])
             end
-            index = findfirst(f, basis)
-            product_matrix[i,j] = index
-            push!(constraints[index],[i,j])
         end
     end
     return product_matrix, constraints
