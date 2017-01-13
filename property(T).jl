@@ -44,6 +44,7 @@ function create_product_matrix(basis::Array{Array{Float64,2},1}, limit::Int)
 
     for i in 1:limit
         x_inv = inv(basis[i])
+        # info("$i of $limit")
         for j in 1:limit
             w = x_inv*basis[j]
 
@@ -137,6 +138,7 @@ function resulting_SOS{T<:Number}(sqrt_matrix::Array{T,2},
     zzz = zeros(elt.coefficients)
     L = size(sqrt_matrix,2)
     for i in 1:L
+        info("$i of $L")
         zzz[1:L] = view(sqrt_matrix, :,i)
         new_base = GroupAlgebraElement(zzz, elt.product_matrix)
         result += (new_base*new_base).coefficients
