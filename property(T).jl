@@ -39,7 +39,7 @@ end
 
 function create_product_matrix(basis::Array{Array{Float64,2},1}, limit::Int)
 
-    product_matrix = Array{Int}(limit,limit)
+    product_matrix = zeros(Int, (limit,limit))
     constraints = [Array{Int,1}[] for x in 1:length(basis)]
 
     for i in 1:limit
