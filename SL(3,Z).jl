@@ -8,9 +8,6 @@ using GroupAlgebras
 include("property(T).jl")
 
 
-const VERBOSE=true
-
-
 function E(i::Int, j::Int, N::Int=3)
     @assert i≠j
     k = eye(N)
@@ -31,15 +28,16 @@ const S₁ = SL_3ZZ_generating_set()
 
 
 const TOL=10.0^-7
-#solver = SCSSolver(eps=10.0^-TOL, max_iters=ITERATIONS, verbose=true);
-solver = MosekSolver(MSK_DPAR_INTPNT_CO_TOL_REL_GAP=TOL,
-#                      MSK_DPAR_INTPNT_CO_TOL_PFEAS=1e-15,
-#                      MSK_DPAR_INTPNT_CO_TOL_DFEAS=1e-15,
-#                      MSK_IPAR_PRESOLVE_USE=0,
-                  QUIET=!VERBOSE)
+# const VERBOSE=true
+#solver = SCSSolver(eps=TOL, max_iters=ITERATIONS, verbose=VERBOSE);
+# solver = MosekSolver(MSK_DPAR_INTPNT_CO_TOL_REL_GAP=TOL,
+# #                      MSK_DPAR_INTPNT_CO_TOL_PFEAS=1e-15,
+# #                      MSK_DPAR_INTPNT_CO_TOL_DFEAS=1e-15,
+# #                      MSK_IPAR_PRESOLVE_USE=0,
+#                   QUIET=!VERBOSE)
 
 # κ, A = solve_for_property_T(S₁, solver, verbose=VERBOSE)
-# Δ, = prepare_Laplacian_and_constraints(S₁)
+
 
 product_matrix = readdlm("SL3Z.product_matrix", Int)
 L = readdlm("SL3Z.delta.coefficients")[:, 1]
@@ -48,10 +46,8 @@ L = readdlm("SL3Z.delta.coefficients")[:, 1]
 A = readdlm("SL3Z.SDPmatrixA.Mosek")
 κ = readdlm("SL3Z.kappa.Mosek")[1]
 
-# @show eigvals(A)
 @assert isapprox(eigvals(A), abs(eigvals(A)), atol=TOL)
 @assert A == Symmetric(A)
-
 
 const A_sqrt = real(sqrtm(A))
 
@@ -69,3 +65,7 @@ SOS_rational_diff, SOS_rat_L₁_distance = check_solution(κ_rational, A_sqrt_ra
 @assert isa(SOS_rat_L₁_distance, Rational{BigInt})
 @show float(SOS_rat_L₁_distance)
 @show float(GroupAlgebras.ɛ(SOS_rational_diff))
+
+A_sqrt_augmented = correct_to_augmentation_ideal(A_sqrt_rational)
+
+SOS_rational_diff_aug, SOS_rat_L₁_distance_aug = check_solution(κ_rational, A_sqrt_augmented, Δ_rational)
