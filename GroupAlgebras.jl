@@ -59,25 +59,26 @@ end
 (-)(X::GroupAlgebraElement) = GroupAlgebraElement(-X.coefficients, X.product_matrix)
 (-)(X::GroupAlgebraElement, Y::GroupAlgebraElement) = add(X,-Y)
 
-function group_star_multiplication{T<:Number}(X::GroupAlgebraElement{T},
-    Y::GroupAlgebraElement{T})
-    X.product_matrix == Y.product_matrix || ArgumentError(
-    "Elements don't seem to belong to the same Group Algebra!")
-    result = zeros(X.coefficients)
-    for (i,x) in enumerate(X.coefficients)
+function algebra_multiplication{T<:Number}(X::Vector{T}, Y::Vector{T}, pm::Array{Int,2})
+    result = zeros(X)
+    for (i,x) in enumerate(X)
         if x != 0
-            for (j,y) in enumerate(Y.coefficients)
-                if y != 0
-                    index = X.product_matrix[i,j]
-                    if index == 0
-                        throw(ArgumentError("The product don't seem to belong to the span of basis!"))
-                    else
-                        result[index]+= x*y
-                    end
+            for (j, index) in enumerate(pm[i,:])
+                if Y[j] != 0
+                    index == 0 && throw(ArgumentError("The product don't seem to belong to the span of basis!"))
+                    result[index] += x*Y[j]
                 end
             end
         end
     end
+    return result
+end
+
+function group_star_multiplication{T<:Number}(X::GroupAlgebraElement{T},
+    Y::GroupAlgebraElement{T})
+    X.product_matrix == Y.product_matrix || ArgumentError(
+    "Elements don't seem to belong to the same Group Algebra!")
+    result = algebra_multiplication(X.coefficients, Y.coefficients, X.product_matrix)
     return GroupAlgebraElement(result, X.product_matrix)
 end
 
