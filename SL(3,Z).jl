@@ -55,10 +55,17 @@ A = readdlm("matrix.A.Mosek")
 
 const A_sqrt = real(sqrtm(A))
 
-SOS_EOI_fp_L₁, Ω_fp_dist = check_solution(κ, A_sqrt, Δ)
+SOS_fp_diff, SOS_fp_L₁_distance = check_solution(κ, A_sqrt, Δ)
+
+@show SOS_fp_L₁_distance
+@show GroupAlgebras.ɛ(SOS_fp_diff)
 
 κ_rational = rationalize(BigInt, κ;)
 A_sqrt_rational = rationalize(BigInt, A_sqrt)
 Δ_rational = rationalize(BigInt, Δ)
 
-SOS_EOI_rat_L₁, Ω_rat_dist = check_solution(κ_rational, A_sqrt_rational, Δ_rational)
+SOS_rational_diff, SOS_rat_L₁_distance = check_solution(κ_rational, A_sqrt_rational, Δ_rational)
+
+@assert isa(SOS_rat_L₁_distance, Rational{BigInt})
+@show float(SOS_rat_L₁_distance)
+@show float(GroupAlgebras.ɛ(SOS_rational_diff))

@@ -160,7 +160,8 @@ function check_solution{T<:Number}(κ::T,
                                    Δ::GroupAlgebraElement{T})
     eoi = EOI(Δ, κ)
     result = resulting_SOS(sqrt_matrix, Δ)
-    return sum(abs.((result - eoi).coefficients)), sum(result.coefficients)
+    L₁_dist = norm(result - eoi,1)
+    return eoi - result, L₁_dist
 end
 
 function rationalize{T<:Integer, S<:Real}(::Type{T},
@@ -168,4 +169,4 @@ function rationalize{T<:Integer, S<:Real}(::Type{T},
 
     r(x) = rationalize(T, x, tol=tol)
     return r.(X)
-end
+end;
