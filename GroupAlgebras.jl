@@ -112,6 +112,7 @@ end
 length(X::GroupAlgebraElement) = length(X.coefficients)
 size(X::GroupAlgebraElement) = size(X.coefficients)
 norm(X::GroupAlgebraElement, p=2) = norm(X.coefficients, p)
+ɛ(X::GroupAlgebraElement) = sum(X.coefficients)
 
 rationalize{T<:Integer, S<:Number}(::Type{T}, X::GroupAlgebraElement{S};
     tol=eps(S)) =
