@@ -39,14 +39,14 @@ solver = MosekSolver(MSK_DPAR_INTPNT_CO_TOL_REL_GAP=TOL,
                   QUIET=!VERBOSE)
 
 # κ, A = solve_for_property_T(S₁, solver, verbose=VERBOSE)
+# Δ, = prepare_Laplacian_and_constraints(S₁)
 
-product_matrix = readdlm("SL₃Z.product_matrix", Int)
-L = readdlm("SL₃Z.Δ.coefficients")[:, 1]
+product_matrix = readdlm("SL3Z.product_matrix", Int)
+L = readdlm("SL3Z.delta.coefficients")[:, 1]
 Δ = GroupAlgebraElement(L, product_matrix)
-# @show Δ
 
-A = readdlm("matrix.A.Mosek")
-κ = readdlm("kappa.Mosek")[1]
+A = readdlm("SL3Z.SDPmatrixA.Mosek")
+κ = readdlm("SL3Z.kappa.Mosek")[1]
 
 # @show eigvals(A)
 @assert isapprox(eigvals(A), abs(eigvals(A)), atol=TOL)
