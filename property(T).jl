@@ -12,9 +12,9 @@ function products{T<:Real}(S1::Array{Array{T,2},1}, S2::Array{Array{T,2},1})
 end
 
 function generate_B₂_and_B₄(identity, S₁)
-    S₂ = products(S₁, S₁);
-    S₃ = products(S₁, S₂);
-    S₄ = products(S₂, S₂);
+    S₂ = unique(products(S₁, S₁));
+    S₃ = unique(products(S₁, S₂));
+    S₄ = unique(products(S₂, S₂));
 
     B₂ = unique(vcat([identity],S₁,S₂));
     B₄ = unique(vcat(B₂, S₃, S₄));
