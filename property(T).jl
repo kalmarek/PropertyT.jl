@@ -23,7 +23,7 @@ function generate_B₂_and_B₄(identity, S₁)
     return B₂, B₄;
 end
 
-function read_GAP_raw_list(filename::String)
+function read_GAP_raw_list(filename)
     return eval(parse(String(read(filename))))
 end
 
@@ -38,7 +38,7 @@ function create_product_matrix(matrix_constraints)
     return product_matrix
 end
 
-function create_product_matrix(basis::Array{Array{Float64,2},1}, limit::Int)
+function create_product_matrix(basis::Array{Array{Float64,2},1}, limit)
 
     product_matrix = zeros(Int, (limit,limit))
     constraints = [Array{Int,1}[] for x in 1:length(basis)]
@@ -67,7 +67,7 @@ function Laplacian_sparse(S::Array{Array{Float64,2},1},
     result = spzeros(length(basis))
     result[1] = length(S)
     for s in S
-        ind = find(x -> x==s, basis)
+        ind = find(basis, s)
         result[ind] += -1
     end
     return result
@@ -79,7 +79,7 @@ function Laplacian(S::Array{Array{Float64,2},1},
     return full(Laplacian_sparse(S,basis))
 end
 
-function prepare_Laplacian_and_constraints{T}(S::Vector{Array{T,2}};)
+function prepare_Laplacian_and_constraints{T}(S::Vector{Array{T,2}})
 
     identity = eye(S[1])
     B₂, B₄ = generate_B₂_and_B₄(identity, S)
