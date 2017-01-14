@@ -1,5 +1,6 @@
 using JuMP
 import Base: rationalize
+using GroupAlgebras
 
 function products{T<:Real}(S1::Array{Array{T,2},1}, S2::Array{Array{T,2},1})
     result = [0*similar(S1[1])]
@@ -132,16 +133,19 @@ function EOI{T<:Number}(Δ::GroupAlgebraElement{T}, κ::T)
     return Δ*Δ - κ*Δ
 end
 
-function resulting_SOS{T<:Number}(sqrt_matrix::Array{T,2},
-                                  elt::GroupAlgebraElement{T})
-    result = zeros(elt.coefficients)
+@everywhere function square(vector, elt)
     zzz = zeros(elt.coefficients)
+    zzz[1:length(vector)] = vector
+#     new_base_elt = GroupAlgebraElement(zzz, elt.product_matrix)
+#     return (new_base_elt*new_base_elt).coefficients
+    return GroupAlgebras.algebra_multiplication(zzz, zzz, elt.product_matrix)
+end
+
+function compute_SOS{T<:Number}(sqrt_matrix::Array{T,2},
+                                  elt::GroupAlgebraElement{T})
     L = size(sqrt_matrix,2)
-    for i in 1:L
-        info("$i of $L")
-        zzz[1:L] = view(sqrt_matrix, :,i)
-        new_base = GroupAlgebraElement(zzz, elt.product_matrix)
-        result += (new_base*new_base).coefficients
+    result = @parallel (+) for i in 1:L
+        square(sqrt_matrix[:,i], elt)
     end
     return GroupAlgebraElement{T}(result, elt.product_matrix)
 end
@@ -161,14 +165,13 @@ function check_solution{T<:Number}(κ::T,
                                    sqrt_matrix::Array{T,2},
                                    Δ::GroupAlgebraElement{T})
     eoi = EOI(Δ, κ)
-    result = resulting_SOS(sqrt_matrix, Δ)
+    result = compute_SOS(sqrt_matrix, Δ)
     L₁_dist = norm(result - eoi,1)
     return eoi - result, L₁_dist
 end
 
 function rationalize{T<:Integer, S<:Real}(::Type{T},
     X::AbstractArray{S}; tol::Real=eps(eltype(X)))
-
     r(x) = rationalize(T, x, tol=tol)
     return r.(X)
 end;

@@ -2,11 +2,11 @@ using JuMP
 import SCS: SCSSolver
 import Mosek: MosekSolver
 
-push!(LOAD_PATH, "./")
+workers_processes = addprocs()
 
+@everywhere push!(LOAD_PATH, "./")
 using GroupAlgebras
-include("property(T).jl")
-
+@everywhere include("property(T).jl")
 
 function E(i::Int, j::Int, N::Int=3)
     @assert i≠j
@@ -39,33 +39,41 @@ const TOL=10.0^-7
 # κ, A = solve_for_property_T(S₁, solver, verbose=VERBOSE)
 
 
-product_matrix = readdlm("SL3Z.product_matrix", Int)
-L = readdlm("SL3Z.delta.coefficients")[:, 1]
-Δ = GroupAlgebraElement(L, product_matrix)
+const product_matrix = readdlm("SL3Z.product_matrix", Int)
+const L = readdlm("SL3Z.delta.coefficients")[:, 1]
+const Δ = GroupAlgebraElement(L, product_matrix)
 
-A = readdlm("SL3Z.SDPmatrixA.Mosek")
-κ = readdlm("SL3Z.kappa.Mosek")[1]
+const A = readdlm("SL3Z.SDPmatrixA.Mosek")
+const κ = readdlm("SL3Z.kappa.Mosek")[1]
 
 @assert isapprox(eigvals(A), abs(eigvals(A)), atol=TOL)
 @assert A == Symmetric(A)
 
 const A_sqrt = real(sqrtm(A))
 
-SOS_fp_diff, SOS_fp_L₁_distance = check_solution(κ, A_sqrt, Δ)
+const SOS_fp_diff, SOS_fp_L₁_distance = check_solution(κ, A_sqrt, Δ)
 
 @show SOS_fp_L₁_distance
 @show GroupAlgebras.ɛ(SOS_fp_diff)
 
-κ_rational = rationalize(BigInt, κ;)
-A_sqrt_rational = rationalize(BigInt, A_sqrt)
-Δ_rational = rationalize(BigInt, Δ)
+const κ_rational = rationalize(BigInt, κ, tol=TOL)
+const A_sqrt_rational = rationalize(BigInt, A_sqrt, tol=TOL)
+const Δ_rational = rationalize(BigInt, Δ, tol=TOL)
 
-SOS_rational_diff, SOS_rat_L₁_distance = check_solution(κ_rational, A_sqrt_rational, Δ_rational)
+const SOS_rational_diff, SOS_rat_L₁_distance = check_solution(κ_rational, A_sqrt_rational, Δ_rational)
 
 @assert isa(SOS_rat_L₁_distance, Rational{BigInt})
 @show float(SOS_rat_L₁_distance)
 @show float(GroupAlgebras.ɛ(SOS_rational_diff))
 
-A_sqrt_augmented = correct_to_augmentation_ideal(A_sqrt_rational)
+const A_sqrt_augmented = correct_to_augmentation_ideal(A_sqrt_rational)
 
-SOS_rational_diff_aug, SOS_rat_L₁_distance_aug = check_solution(κ_rational, A_sqrt_augmented, Δ_rational)
+const SOS_rational_aug_diff, SOS_aug_rat_L₁_distance = check_solution(κ_rational, A_sqrt_augmented, Δ_rational)
+
+@assert isa(SOS_aug_rat_L₁_distance, Rational{BigInt})
+@assert GroupAlgebras.ɛ(SOS_rational_aug_diff) == 0//1
+
+@show float(SOS_aug_rat_L₁_distance)
+@show float(κ_rational - 2^3*SOS_aug_rat_L₁_distance)
+
+rmprocs(workers_processes)
