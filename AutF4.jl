@@ -13,7 +13,6 @@ const N = 4
 
 const VERBOSE = true
 
-
 function permutation_matrix(p::Vector{Int})
     n = length(p)
     sort(p) == collect(1:n) || throw(ArgumentError("Input array must be a permutation of 1:n"))
@@ -21,18 +20,18 @@ function permutation_matrix(p::Vector{Int})
     return A[p,:]
 end
 
-SymmetricGroup(n::Int) = [nthperm(collect(1:n), k) for k in 1:factorial(n)]
+SymmetricGroup(n) = [nthperm(collect(1:n), k) for k in 1:factorial(n)]
 
 # const SymmetricGroup = [permutation_matrix(x) for x in SymmetricGroup_perms]
 
-function E(i::Int, j::Int; dim::Int=N)
+function E(i, j; dim::Int=N)
     @assert i≠j
     k = eye(dim)
     k[i,j] = 1
     return k
 end
 
-function eltary_basis_vector(i::Int; dim::Int=N)
+function eltary_basis_vector(i; dim::Int=N)
     result = zeros(dim)
     if 0 < i ≤ dim
         result[i] = 1
@@ -40,12 +39,12 @@ function eltary_basis_vector(i::Int; dim::Int=N)
     return result
 end
 
-v(i::Int; dim=N) = eltary_basis_vector(i,dim=dim)
+v(i; dim=N) = eltary_basis_vector(i,dim=dim)
 
-ϱ(i::Int,j::Int,n=N) = SemiDirectProductElement(E(i,j,dim=n), v(j,dim=n))
-λ(i::Int,j::Int,n=N) = SemiDirectProductElement(E(i,j,dim=n), -v(j,dim=n))
+ϱ(i,j::Int,n=N) = SemiDirectProductElement(E(i,j,dim=n), v(j,dim=n))
+λ(i,j::Int,n=N) = SemiDirectProductElement(E(i,j,dim=n), -v(j,dim=n))
 
-function ɛ(i::Int, n::Int=N)
+function ɛ(i, n::Int=N)
     result = eye(n)
     result[i,i] = -1
     return SemiDirectProductElement(result)
@@ -54,7 +53,9 @@ end
 σ(permutation::Vector{Int}) =
      SemiDirectProductElement(permutation_matrix(permutation))
 
-function AutF_generating_set(n::Int=N)
+# Standard generating set: 103 elements
+
+function generatingset_ofAutF(n::Int=N)
     indexing = [[i,j] for i in 1:n for j in 1:n if i≠j]
     ϱs = [ϱ(ij...) for ij in indexing]
     λs = [λ(ij...) for ij in indexing]
@@ -67,7 +68,7 @@ end
 
 const ID = eye(N+1)
 
-const S₁ = AutF_generating_set(N)
+const S₁ = generatingset_ofAutF(N)
 
 matrix_S₁ = [matrix_repr(x) for x in S₁]
 
