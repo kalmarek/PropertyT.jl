@@ -66,6 +66,16 @@ function generatingset_ofAutF(n::Int=N)
     return S
 end
 
+#=
+Note that the element
+    α(i,j,k) = ϱ(i,j)*ϱ(i,k)*inv(ϱ(i,j))*inv(ϱ(i,k)),
+which surely belongs to ball of radius 4 in Aut(F₄) becomes trivial under the representation
+    Aut(F₄) → GL₄(ℤ)⋉ℤ⁴ → GL₅(ℂ).
+Moreover, due to work of Potapchik and Rapinchuk [1] every real representation of Aut(Fₙ) into GLₘ(ℂ) (for m ≤ 2n-2) factors through GLₙ(ℤ)⋉ℤⁿ, so will have the same problem.
+
+We need a different approach!
+=#
+
 const ID = eye(N+1)
 
 const S₁ = generatingset_ofAutF(N)
