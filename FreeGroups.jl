@@ -1,25 +1,31 @@
 module FreeGroups
 
-export FGSymbol, FGWord, FGAutomorphism
+export GSymbol, Word, FGSymbol, GWord, FGAutomorphism
 
 import Base: length, ==, show, convert
+import Base: *, ^, convert
 
-immutable FGSymbol
+abstract GSymbol
+abstract Word
+
+immutable FGSymbol <: GSymbol
     gen::String
     pow::Int
 end
 
-(==)(s::FGSymbol, t::FGSymbol) = s.gen == t.gen && s.pow == t.pow
-
-immutable FGWord
-    symbols::Vector{FGSymbol}
+immutable GWord{T<:GSymbol} <:Word
+    symbols::Vector{T}
 end
 
-length(s::FGSymbol) = (s.pow == 0 ? 0 : 1)
+length(s::GSymbol) = (s.pow == 0 ? 0 : 1)
 
-length(W::FGWord) = length(W.symbols)
+(==)(s::FGSymbol, t::FGSymbol) = s.gen == t.gen && s.pow == t.pow
 
-function show(io::IO, s::FGSymbol)
+function length(W::GWord)
+    return sum([abs(s.pow) for s in W.symbols])
+end
+
+function show(io::IO, s::GSymbol)
     if s.pow == 1
         print(io, (s.gen))
     elseif s.pow == 0
@@ -30,41 +36,56 @@ function show(io::IO, s::FGSymbol)
 end
 
 FGSymbol(x::String) = FGSymbol(x,1)
-FGWord() = FGWord(Vector{FGSymbol}())
-FGWord(s::FGSymbol) = FGWord([s])
+GWord{T}(s::T) = GWord{T}([s])
 
-convert(::Type{FGWord}, s::FGSymbol) = FGWord(s)
-
+convert(::Type{FGSymbol}, y::String) = FGSymbol(y)
 
 import Base: one, inv, reduce, push!, unshift!
 
 one(s::FGSymbol) = FGSymbol(s.gen, 0)
-one(::Type{FGWord}) = FGWord()
-one(w::FGWord) = FGWord()
+one{T}(::Type{GWord{T}}) = GWord(Vector{T}())
+one{T}(w::GWord{T}) = one(GWord{T})
 
 inv(s::FGSymbol) = FGSymbol(s.gen, -s.pow)
-inv(W::FGWord) = FGWord(reverse([inv(s) for s in W.symbols]))
 
-reduce!(s::FGSymbol) = s
-
-function reduce!(W::FGWord)
-    for i in 1:length(W)-1
-        if W.symbols[i].gen == W.symbols[i+1].gen
-            p1 = W.symbols[i].pow
-            p2 = W.symbols[i+1].pow
-            W.symbols[i+1] = FGSymbol(W.symbols[i].gen, p1 + p2)
-            W.symbols[i] = one(W.symbols[i])
-        end
+function inv{T}(W::GWord{T})
+    if length(W) == 0
+        return W
+    else
+        return prod(reverse([inv(s) for s in W.symbols]))
     end
-    deleteat!(W.symbols, find(x -> x.pow == 0, W.symbols))
+end
+
+reduce!(s::GSymbol) = s
+
+function reduce!(W::GWord{FGSymbol})
+    if length(W) < 2
+        deleteat!(W.symbols, find(x -> x.pow == 0, W.symbols))
+        return W
+    end
+
+    reduced = false
+    while !reduced
+        reduced = true
+        for i in 1:length(W.symbols) - 1
+            if W.symbols[i].gen == W.symbols[i+1].gen
+                reduced = false
+                p1 = W.symbols[i].pow
+                p2 = W.symbols[i+1].pow
+                W.symbols[i+1] = FGSymbol(W.symbols[i].gen, p1 + p2)
+                W.symbols[i] = one(W.symbols[i])
+            end
+        end
+        deleteat!(W.symbols, find(x -> x.pow == 0, W.symbols))
+    end
     return W
 end
 
-reduce(W::FGWord) = reduce!(deepcopy(W))
+reduce(W::GWord) = reduce!(deepcopy(W))
 
-(==)(W::FGWord, Z::FGWord) = reduce(W).symbols == reduce(Z).symbols
+(==)(W::GWord{FGSymbol}, Z::GWord{FGSymbol}) = reduce!(W).symbols == reduce!(Z).symbols
 
-function show(io::IO, W::FGWord)
+function show(io::IO, W::GWord)
     if length(W) == 0
         print(io, "(id)")
     else
@@ -72,12 +93,12 @@ function show(io::IO, W::FGWord)
     end
 end;
 
-push!(W::FGWord, x...) = push!(W.symbols, x...)
-unshift!(W::FGWord, x...) = unshift!(W.symbols, reverse(x)...)
+push!(W::GWord, x) = push!(W.symbols, x...)
+unshift!(W::GWord, x) = unshift!(W.symbols, reverse(x)...)
 
-function r_multiply!(W::FGWord, x...; reduced::Bool=true)
+function r_multiply!(W::GWord, x; reduced::Bool=true)
     if length(x) > 0
-        push!(W, x...)
+        push!(W, x)
     end
     if reduced
         reduce!(W)
@@ -85,9 +106,9 @@ function r_multiply!(W::FGWord, x...; reduced::Bool=true)
     return W
 end
 
-function l_multiply!(W::FGWord, x...; reduced::Bool=true)
+function l_multiply!(W::GWord, x; reduced::Bool=true)
     if length(x) > 0
-        unshift!(W, x...)
+        unshift!(W, x)
     end
     if reduced
         reduce!(W)
@@ -95,21 +116,24 @@ function l_multiply!(W::FGWord, x...; reduced::Bool=true)
     return W
 end
 
-r_multiply(W::FGWord, x...; reduced::Bool=true) =
-    r_multiply!(deepcopy(W),x..., reduced=reduced)
-l_multiply(W::FGWord, x...; reduced::Bool=true) =
-    l_multiply!(deepcopy(W),x..., reduced=reduced)
+r_multiply(W::GWord, x; reduced::Bool=true) =
+    r_multiply!(deepcopy(W),x, reduced=reduced)
+l_multiply(W::GWord, x; reduced::Bool=true) =
+    l_multiply!(deepcopy(W),x, reduced=reduced)
 
-import Base: *, ^
+(*){T}(W::GWord{T}, Z::GWord{T}) = FreeGroups.r_multiply(W, Z.symbols)
 
-(*)(W::FGWord, Z::FGWord) = r_multiply(W, Z.symbols...)
-(*)(s::FGSymbol, t::FGSymbol) = FGWord(s)*FGWord(t)
-(*)(W::FGWord, s::FGSymbol) = W*FGWord(s)
-(*)(s::FGSymbol, W::FGWord) = FGWord(s)*W
+function (*)(s::GSymbol, t::GSymbol)
+    W = promote_type(typeof(s), typeof(t))
+    return GWord{W}([s])*t
+end
+
+(*)(W::GWord, s::GSymbol) = W*GWord(s)
+(*)(s::GSymbol, W::GWord) = GWord(s)*W
 
 (^)(x::FGSymbol, n::Integer) = FGSymbol(x.gen, x.pow*n)
 
-function power_by_squaring(x::FGWord, p::Integer)
+function power_by_squaring{T}(x::GWord{T}, p::Integer)
     if p < 0
         return power_by_squaring(inv(x), -p)
     elseif p == 0
@@ -136,14 +160,14 @@ function power_by_squaring(x::FGWord, p::Integer)
     return reduce!(y)
 end
 
-(^)(x::FGWord, n::Integer) = power_by_squaring(x,n)
+(^)(x::GWord, n::Integer) = power_by_squaring(x,n)
 
 type FGAutomorphism
-    domain::Vector{FGSymbol}
-    image::Vector{FGWord}
+    domain::Vector{GSymbol}
+    image::Vector{GWord}
     map::Function
 
-    function FGAutomorphism(domain::Vector{FGSymbol}, image::Vector{FGWord}, map::Function)
+    function FGAutomorphism(domain::Vector{FGSymbol}, image::Vector{GWord}, map::Function)
         length(domain) == length(unique(domain)) ||
             throw(ArgumentError("The elements of $domain are not unique"))
         length(domain) == length(image) ||
@@ -172,7 +196,7 @@ function aut_func_from_table(table::Vector{Tuple{Int,Int}}, GroupIdentity=one(FG
     return v->reduce(*,GroupIdentity, v[idx]^power for (idx, power) in table)
 end
 
-function aut_func_from_word(domain, w::FGWord)
+function aut_func_from_word(domain, w::GWord)
     table = Vector{Tuple{Int, Int}}()
     for s in w.symbols
         pair = (findfirst([x.gen for x in domain], s.gen), s.pow)
@@ -181,7 +205,7 @@ function aut_func_from_word(domain, w::FGWord)
     return aut_func_from_table(table)
 end
 
-function FGMap(domain::Vector{FGSymbol}, image::Vector{FGWord})
+function FGMap(domain::Vector{FGSymbol}, image::Vector{GWord})
 
     function_vector = Vector{Function}()
 
@@ -192,14 +216,14 @@ function FGMap(domain::Vector{FGSymbol}, image::Vector{FGWord})
     return v -> Vector{FGWord}([f(v) for f in function_vector])
 end
 
-FGAutomorphism(domain::Vector{FGSymbol}, image::Vector{FGWord}) =
+FGAutomorphism(domain::Vector{FGSymbol}, image::Vector{GWord}) =
     FGAutomorphism(domain, image, FGMap(domain, image))
 
 FGAutomorphism(domain::Vector{FGSymbol}, image::Vector{FGSymbol}) =
-    FGAutomorphism(domain, Vector{FGWord}(image))
+    FGAutomorphism(domain, Vector{GWord}(image))
 
 function FGAutomorphism(domain::Vector, image::Vector)
-    FGAutomorphism(Vector{FGSymbol}(domain), Vector{FGWord}(image))
+    FGAutomorphism(Vector{FGSymbol}(domain), Vector{GWord}(image))
 end
 
 function FGAutomorphism(domain, image)
