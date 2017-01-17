@@ -167,12 +167,14 @@ end
 
 (^)(x::GWord, n::Integer) = power_by_squaring(x,n)
 
-type FGAutomorphism
-    domain::Vector{GSymbol}
-    image::Vector{GWord}
+
+
+type FGAutomorphism{T<:GSymbol}
+    domain::Vector{T}
+    image::Vector{GWord{T}}
     map::Function
 
-    function FGAutomorphism(domain::Vector{FGSymbol}, image::Vector{GWord}, map::Function)
+    function FGAutomorphism{T}(domain::Vector{T}, image::Vector{GWord{T}}, map::Function)
         length(domain) == length(unique(domain)) ||
             throw(ArgumentError("The elements of $domain are not unique"))
         length(domain) == length(image) ||
