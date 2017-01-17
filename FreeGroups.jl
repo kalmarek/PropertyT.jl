@@ -1,29 +1,19 @@
 module FreeGroups
 
-export GSymbol, Word, FGSymbol, GWord, FGAutomorphism
+export GSymbol, FGSymbol, Word, GWord, FGWord, FGAutomorphism
 
 import Base: length, ==, show, convert
 import Base: *, ^, convert
+import Base: one, inv, reduce, push!, unshift!
 
 abstract GSymbol
-abstract Word
 
 immutable FGSymbol <: GSymbol
     gen::String
     pow::Int
 end
 
-immutable GWord{T<:GSymbol} <:Word
-    symbols::Vector{T}
-end
-
-length(s::GSymbol) = (s.pow == 0 ? 0 : 1)
-
-(==)(s::FGSymbol, t::FGSymbol) = s.gen == t.gen && s.pow == t.pow
-
-function length(W::GWord)
-    return sum([abs(s.pow) for s in W.symbols])
-end
+FGSymbol(x::String) = FGSymbol(x,1)
 
 function show(io::IO, s::GSymbol)
     if s.pow == 1
@@ -35,18 +25,43 @@ function show(io::IO, s::GSymbol)
     end
 end
 
-FGSymbol(x::String) = FGSymbol(x,1)
-GWord{T}(s::T) = GWord{T}([s])
-
-convert(::Type{FGSymbol}, y::String) = FGSymbol(y)
-
-import Base: one, inv, reduce, push!, unshift!
+(==)(s::GSymbol, t::GSymbol) = s.gen == t.gen && s.pow == t.pow
+length(s::GSymbol) = (s.pow == 0 ? 0 : 1)
 
 one(s::FGSymbol) = FGSymbol(s.gen, 0)
+inv(s::FGSymbol) = FGSymbol(s.gen, -s.pow)
+
+convert(::Type{FGSymbol}, x::String) = FGSymbol(x)
+
+reduce!(s::GSymbol) = s
+change_pow(s::FGSymbol, n::Int) = FGSymbol(s.gen, n)
+
+(^)(x::FGSymbol, n::Integer) = FGSymbol(x.gen, x.pow*n)
+
+function (*)(s::GSymbol, t::GSymbol)
+    W = promote_type(typeof(s), typeof(t))
+    return GWord{W}([s])*t
+end
+
+
+abstract Word
+
+immutable GWord{T<:GSymbol} <: Word
+    symbols::Vector{T}
+end
+
+typealias FGWord GWord{FGSymbol}
+
+GWord{T<:GSymbol}(s::T) = GWord{T}([s])
+FGWord(s::FGSymbol) = FGWord([s])
+# FGWord() = FGWord(Vector{FGSymbol}())
+
+function length(W::GWord)
+    return sum([abs(s.pow) for s in W.symbols])
+end
+
 one{T}(::Type{GWord{T}}) = GWord(Vector{T}())
 one{T}(w::GWord{T}) = one(GWord{T})
-
-inv(s::FGSymbol) = FGSymbol(s.gen, -s.pow)
 
 function inv{T}(W::GWord{T})
     if length(W) == 0
@@ -55,8 +70,6 @@ function inv{T}(W::GWord{T})
         return prod(reverse([inv(s) for s in W.symbols]))
     end
 end
-
-reduce!(s::GSymbol) = s
 
 function reduce!(W::GWord{FGSymbol})
     if length(W) < 2
@@ -72,7 +85,7 @@ function reduce!(W::GWord{FGSymbol})
                 reduced = false
                 p1 = W.symbols[i].pow
                 p2 = W.symbols[i+1].pow
-                W.symbols[i+1] = FGSymbol(W.symbols[i].gen, p1 + p2)
+                W.symbols[i+1] = change_pow(W.symbols[i], p1 + p2)
                 W.symbols[i] = one(W.symbols[i])
             end
         end
@@ -91,10 +104,10 @@ function show(io::IO, W::GWord)
     else
         join(io, [string(s) for s in W.symbols], "*")
     end
-end;
+end
 
 push!(W::GWord, x) = push!(W.symbols, x...)
-unshift!(W::GWord, x) = unshift!(W.symbols, reverse(x)...)
+unshift!(W::GWord, x) = unshift!(W.symbols, x...)
 
 function r_multiply!(W::GWord, x; reduced::Bool=true)
     if length(x) > 0
@@ -108,7 +121,7 @@ end
 
 function l_multiply!(W::GWord, x; reduced::Bool=true)
     if length(x) > 0
-        unshift!(W, x)
+        unshift!(W, reverse(x))
     end
     if reduced
         reduce!(W)
@@ -122,16 +135,8 @@ l_multiply(W::GWord, x; reduced::Bool=true) =
     l_multiply!(deepcopy(W),x, reduced=reduced)
 
 (*){T}(W::GWord{T}, Z::GWord{T}) = FreeGroups.r_multiply(W, Z.symbols)
-
-function (*)(s::GSymbol, t::GSymbol)
-    W = promote_type(typeof(s), typeof(t))
-    return GWord{W}([s])*t
-end
-
 (*)(W::GWord, s::GSymbol) = W*GWord(s)
 (*)(s::GSymbol, W::GWord) = GWord(s)*W
-
-(^)(x::FGSymbol, n::Integer) = FGSymbol(x.gen, x.pow*n)
 
 function power_by_squaring{T}(x::GWord{T}, p::Integer)
     if p < 0
