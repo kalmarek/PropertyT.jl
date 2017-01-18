@@ -101,7 +101,21 @@ function inv{T}(W::GWord{T})
     end
 end
 
-function reduce!(W::GWord{FGSymbol})
+function free_group_reduction!(W::GWord)
+    reduced = true
+    for i in 1:length(W.symbols) - 1
+        if W.symbols[i].gen == W.symbols[i+1].gen
+            reduced = false
+            p1 = W.symbols[i].pow
+            p2 = W.symbols[i+1].pow
+            W.symbols[i+1] = change_pow(W.symbols[i], p1 + p2)
+            W.symbols[i] = one(W.symbols[i])
+        end
+    end
+    return reduced
+end
+
+function reduce!{T}(W::GWord{T}, reduce_func::Function=free_group_reduction!)
     if length(W) < 2
         deleteat!(W.symbols, find(x -> x.pow == 0, W.symbols))
         return W
@@ -109,16 +123,7 @@ function reduce!(W::GWord{FGSymbol})
 
     reduced = false
     while !reduced
-        reduced = true
-        for i in 1:length(W.symbols) - 1
-            if W.symbols[i].gen == W.symbols[i+1].gen
-                reduced = false
-                p1 = W.symbols[i].pow
-                p2 = W.symbols[i+1].pow
-                W.symbols[i+1] = change_pow(W.symbols[i], p1 + p2)
-                W.symbols[i] = one(W.symbols[i])
-            end
-        end
+        reduced = reduce_func(W)
         deleteat!(W.symbols, find(x -> x.pow == 0, W.symbols))
     end
     return W
