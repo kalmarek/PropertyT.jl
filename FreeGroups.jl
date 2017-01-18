@@ -1,6 +1,6 @@
 module FreeGroups
 
-export GSymbol, FGSymbol, Word, GWord, FGWord, FGAutomorphism
+export GSymbol, AutSymbol, Word, GWord, FGWord, AutWord, FGAutomorphism
 
 import Base: length, ==, show, convert
 import Base: *, ^, convert
@@ -13,6 +13,14 @@ immutable FGSymbol <: GSymbol
     pow::Int
 end
 
+immutable AutSymbol <: GSymbol
+    gen::String
+    pow::Int
+    ex::Expr
+end
+
+IDSymbol(::Type{FGSymbol}) = FGSymbol("(id)", 0)
+IDSymbol(::Type{AutSymbol}) = AutSymbol("(id)", 0, :(IDAutomorphism(N)))
 FGSymbol(x::String) = FGSymbol(x,1)
 
 function show(io::IO, s::GSymbol)
@@ -28,19 +36,38 @@ end
 (==)(s::GSymbol, t::GSymbol) = s.gen == t.gen && s.pow == t.pow
 length(s::GSymbol) = (s.pow == 0 ? 0 : 1)
 
-one(s::FGSymbol) = FGSymbol(s.gen, 0)
+one{T<:GSymbol}(::Type{T}) = IDSymbol(T)
+one(s::GSymbol) = one(typeof(s))
 inv(s::FGSymbol) = FGSymbol(s.gen, -s.pow)
 
 convert(::Type{FGSymbol}, x::String) = FGSymbol(x)
 
-reduce!(s::GSymbol) = s
-change_pow(s::FGSymbol, n::Int) = FGSymbol(s.gen, n)
+reduce(s::GSymbol) = (s.pow == 0 ? one(s) : s)
+change_pow(s::FGSymbol, n::Int) = reduce(FGSymbol(s.gen, n))
+change_pow(s::AutSymbol, n::Int) = reduce(AutSymbol(s.gen, n, s.ex))
 
-(^)(x::FGSymbol, n::Integer) = FGSymbol(x.gen, x.pow*n)
+(^)(s::GSymbol, n::Integer) = change_pow(s, s.pow*n)
 
-function (*)(s::GSymbol, t::GSymbol)
-    W = promote_type(typeof(s), typeof(t))
-    return GWord{W}([s])*t
+
+function inv(f::AutSymbol)
+    symbol = f.ex.args[1]
+    if symbol == :ɛ
+        return FreeGroups.change_pow(f, f.pow % 2)
+    elseif symbol == :σ
+        perm = invperm(f.ex.args[2])
+        gen = string('σ', [Char(8320 + i) for i in perm]...)
+        return AutSymbol(gen, f.pow, :(σ($perm)))
+    elseif symbol == :(ϱ) || symbol == :λ
+        return AutSymbol(f.gen, -f.pow, f.ex)
+    elseif symbol == :IDAutomorphism
+        return f
+    else
+        throw(ArgumentError("Don't know how to invert $f (of type $symbol)"))
+    end
+end
+
+function (*){T<:GSymbol}(s::T, t::T)
+    return GWord{T}([s])*t
 end
 
 
@@ -51,16 +78,19 @@ immutable GWord{T<:GSymbol} <: Word
 end
 
 typealias FGWord GWord{FGSymbol}
+typealias AutWord GWord{AutSymbol}
 
 GWord{T<:GSymbol}(s::T) = GWord{T}([s])
 FGWord(s::FGSymbol) = FGWord([s])
-# FGWord() = FGWord(Vector{FGSymbol}())
+
+IDWord{T<:GSymbol}(::Type{T}) = GWord(one(T))
+IDWord{T<:GSymbol}(W::GWord{T}) = IDWord(T)
 
 function length(W::GWord)
     return sum([abs(s.pow) for s in W.symbols])
 end
 
-one{T}(::Type{GWord{T}}) = GWord(Vector{T}())
+one{T}(::Type{GWord{T}}) = IDWord(T)
 one{T}(w::GWord{T}) = one(GWord{T})
 
 function inv{T}(W::GWord{T})
