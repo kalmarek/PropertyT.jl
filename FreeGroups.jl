@@ -2,7 +2,7 @@ module FreeGroups
 
 export GSymbol, AutSymbol, Word, GWord, FGWord, AutWord, FGAutomorphism
 
-import Base: length, ==, show, convert
+import Base: length, ==, hash, show, convert
 import Base: *, ^, convert
 import Base: one, inv, reduce, push!, unshift!
 
@@ -73,6 +73,36 @@ end
 
 abstract Word
 
+#=
+@ScottPJones
+
+If so, I'd recommend
+    1) making GWord a type, not an immutable
+    2) add fields
+        savedhash::UInt and
+        modified::Bool
+    3) make any function that modifies the contents of .symbols set the modified flag,
+    4) make the hash function
+        a) check that flag:
+            if false, return the savedhash field,
+            otherwise, call reduce!,
+        b) clear the modified flag, and
+        c) calculate a hash value simply by calling hash(symbols)
+        d) save that back into the savedhash field
+
+    5) for ==, I don't think you need to do all that checking for length or length == 0, that will already be handled by comparing the symbols vectors (possibly faster)
+
+function (==){T}(W::GWord{T}, Z::GWord{T})
+     W.modified && reduce!(W) # reduce could actually clear the flag and recalculate the hash
+     Z.modified && reduce!(Z)
+     W.hash == Z.hash && W.symbols == Z.symbols
+end
+
+hash{T}(W::GWord{T}) = (W.modified && reduce!(W); W.hash)
+
+(and last lines of reduce! would have W.modified = false ; W.hash = hash(W.symbols))
+=#
+
 immutable GWord{T<:GSymbol} <: Word
     symbols::Vector{T}
 end
@@ -131,7 +161,17 @@ end
 
 reduce(W::GWord) = reduce!(deepcopy(W))
 
-(==)(W::GWord{FGSymbol}, Z::GWord{FGSymbol}) = reduce!(W).symbols == reduce!(Z).symbols
+function (==){T}(W::GWord{T}, Z::GWord{T})
+  reduce!(W)
+  reduce!(Z)
+  if length(W) != length(Z)
+    return false
+  elseif length(W) == 0
+    return true
+  else
+    return W.symbols == Z.symbols
+  end
+end
 
 function show(io::IO, W::GWord)
     if length(W) == 0

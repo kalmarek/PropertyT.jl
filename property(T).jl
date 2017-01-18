@@ -2,20 +2,20 @@ using JuMP
 import Base: rationalize
 using GroupAlgebras
 
-function products{T<:Real}(S1::Array{Array{T,2},1}, S2::Array{Array{T,2},1})
-    result = [0*similar(S1[1])]
+function products(S1, S2)
+    result = Vector{eltype(S1[1]*S2[1])}()
     for x in S1
         for y in S2
             push!(result, x*y)
         end
     end
-    return unique(result[2:end])
+    return unique(result)
 end
 
 function generate_B₂_and_B₄(identity, S₁)
-    S₂ = unique(products(S₁, S₁));
-    S₃ = unique(products(S₁, S₂));
-    S₄ = unique(products(S₂, S₂));
+    S₂ = products(S₁, S₁);
+    S₃ = products(S₁, S₂);
+    S₄ = products(S₂, S₂);
 
     B₂ = unique(vcat([identity],S₁,S₂));
     B₄ = unique(vcat(B₂, S₃, S₄));
