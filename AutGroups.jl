@@ -73,6 +73,39 @@ function symmetric_AutSymbol(perm::Vector{Int}; pow::Int=1)
     return AutSymbol(gen, 1, :(σ($(array(perm)))))
 end
 
+function getperm(s::AutSymbol)
+    if s.ex.args[1] == :σ
+        return s.ex.args[2]
+    else
+        throw(ArgumentError("$s is not a permutation automorphism!"))
+    end
+end
+
+
+
 typealias AutWord GWord{AutSymbol}
 
+function simplify_perms!(W::AutWord)
+    reduced = true
+    for i in 1:length(W.symbols) - 1
+        current = W.symbols[i]
+        if current.ex.args[1] == :σ
+            if current.pow != 1
+                current = symmetric_AutSymbol(perm(current), pow=current.pow)
+            end
+            next_s = W.symbols[i+1]
+            if  next_s.ex.args[1] == :σ
+                reduced = false
+                if next_s.pow != 1
+                    next_s = symmetric_AutSymbol(perm(next_s), pow=next_s.pow)
+                end
+                p1 = Permutation(getperm(current))
+                p2 = Permutation(getperm(next_s))
+                W.symbols[i] = one(AutSymbol)
+                W.symbols[i+1] = symmetric_AutSymbol(array(p1*p2))
+            end
+        end
+    end
+    return reduced
+end
 end #end of module AutGroups
