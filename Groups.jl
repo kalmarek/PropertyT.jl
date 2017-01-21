@@ -76,7 +76,7 @@ function inv{T}(W::GWord{T})
     if length(W) == 0
         return W
     else
-        return prod(reverse([inv(s) for s in W.symbols]))
+        return reduceGWord{T}(reverse([inv(s) for s in W.symbols]))
     end
 end
 
