@@ -3,10 +3,10 @@ module AutGroups
 using Groups
 using Permutations
 
-import Base: inv
+import Base: inv, ^
 import Groups: IdSymbol, change_pow, GWord,  ==, hash, reduce!
 
-export IDSymbol, AutSymbol, AutWord
+export AutSymbol, AutWord, GWord
 export rmul_AutSymbol, lmul_AutSymbol, flip_AutSymbol, symmetric_AutSymbol
 
 immutable AutSymbol <: GSymbol

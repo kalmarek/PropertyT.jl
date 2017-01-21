@@ -1,11 +1,12 @@
 module Groups
 
-export GSymbol, GWord
-export reduce!, reduce
-
 import Base: length, ==, hash, show
 import Base: one, inv, reduce, *, ^
 
+export GSymbol, GWord
+export reduce!, reduce
+
+export IDSymbol, change_pow, reduce!, reduce
 
 abstract GSymbol
 
@@ -18,6 +19,8 @@ function show(io::IO, s::GSymbol)
 end
 
 length(s::GSymbol) = (s.pow == 0 ? 0 : 1)
+
+IDSymbol(T::Type{GSymbol}) = throw(ArgumentError("Define IDSymbol(::Type{$T}) which is the identity element for Your type!"))
 
 one{T<:GSymbol}(::Type{T}) = IDSymbol(T)
 one(s::GSymbol) = one(typeof(s))
@@ -154,7 +157,7 @@ r_multiply(W::GWord, x; reduced::Bool=true) =
 l_multiply(W::GWord, x; reduced::Bool=true) =
     l_multiply!(deepcopy(W),x, reduced=reduced)
 
-(*){T}(W::GWord{T}, Z::GWord{T}) = FreeGroups.r_multiply(W, Z.symbols)
+(*){T}(W::GWord{T}, Z::GWord{T}) = r_multiply(W, Z.symbols)
 (*)(W::GWord, s::GSymbol) = W*GWord(s)
 (*)(s::GSymbol, W::GWord) = GWord(s)*W
 
