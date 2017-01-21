@@ -17,17 +17,14 @@ function show(io::IO, s::GSymbol)
     end
 end
 
-(==)(s::GSymbol, t::GSymbol) = s.gen == t.gen && s.pow == t.pow
-
 length(s::GSymbol) = (s.pow == 0 ? 0 : 1)
 
 one{T<:GSymbol}(::Type{T}) = IDSymbol(T)
 one(s::GSymbol) = one(typeof(s))
 
-reduce(s::GSymbol) = (s.pow == 0 ? one(s) : s)
-
-(^)(s::GSymbol, n::Integer) = change_pow(s, s.pow*n)
 (*){T<:GSymbol}(s::T, t::T) = return GWord{T}([s])*t
+
+change_pow(s::GSymbol, n::Int) = throw(ArgumentError("Define change_pow function for $(typeof(s))!"))
 
 
 abstract Word
@@ -51,19 +48,16 @@ If so, I'd recommend
 
     5) for ==, I don't think you need to do all that checking for length or length == 0, that will already be handled by comparing the symbols vectors (possibly faster)
 
-function (==){T}(W::GWord{T}, Z::GWord{T})
-     W.modified && reduce!(W) # reduce could actually clear the flag and recalculate the hash
-     Z.modified && reduce!(Z)
-     W.hash == Z.hash && W.symbols == Z.symbols
-end
-
-hash{T}(W::GWord{T}) = (W.modified && reduce!(W); W.hash)
-
-(and last lines of reduce! would have W.modified = false ; W.hash = hash(W.symbols))
 =#
 
-immutable GWord{T<:GSymbol} <: Word
+type GWord{T<:GSymbol} <: Word
     symbols::Vector{T}
+    savedhash::UInt
+    modified::Bool
+
+    function GWord(symbols::Vector{T})
+        return new(symbols, hash(symbols), false)
+    end
 end
 
 GWord{T<:GSymbol}(s::T) = GWord{T}([s])
@@ -103,29 +97,28 @@ end
 function reduce!{T}(W::GWord{T}, reduce_func::Function=free_group_reduction!)
     if length(W) < 2
         deleteat!(W.symbols, find(x -> x.pow == 0, W.symbols))
-        return W
+    else
+
+        reduced = false
+        while !reduced
+            reduced = reduce_func(W)
+            deleteat!(W.symbols, find(x -> x.pow == 0, W.symbols))
+        end
     end
 
-    reduced = false
-    while !reduced
-        reduced = reduce_func(W)
-        deleteat!(W.symbols, find(x -> x.pow == 0, W.symbols))
-    end
+    W.modified = false
+    W.savedhash = hash(W.symbols,hash(typeof(W)))
     return W
 end
 
 reduce(W::GWord) = reduce!(deepcopy(W))
 
+hash{T}(W::GWord{T}) = (W.modified && reduce!(W); W.savedhash)
+
 function (==){T}(W::GWord{T}, Z::GWord{T})
-  reduce!(W)
-  reduce!(Z)
-  if length(W) != length(Z)
-    return false
-  elseif length(W) == 0
-    return true
-  else
-    return W.symbols == Z.symbols
-  end
+     W.modified && reduce!(W) # reduce could actually clear the flag and recalculate the hash
+     Z.modified && reduce!(Z)
+     return W.savedhash == Z.savedhash && W.symbols == Z.symbols
 end
 
 function show(io::IO, W::GWord)
