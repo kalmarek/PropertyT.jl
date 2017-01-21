@@ -17,8 +17,8 @@ end
 
 (==)(s::AutSymbol, t::AutSymbol) = s.gen == t.gen && s.pow == t.pow
 hash(s::AutSymbol, h::UInt) = hash(s.gen, hash(s.pow, hash(:AutSymbol, h)))
-IDSymbol(::Type{AutSymbol}) = AutSymbol("(id)", 0, :(IDAutomorphism(N)))
 
+IdSymbol(::Type{AutSymbol}) = AutSymbol("(id)", 0, :(IdAutomorphism(N)))
 change_pow(s::AutSymbol, n::Int) = reduce(AutSymbol(s.gen, n, s.ex))
 
 function inv(f::AutSymbol)
