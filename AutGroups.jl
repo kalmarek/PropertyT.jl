@@ -4,6 +4,7 @@ using Groups
 using Permutations
 
 import Base: inv
+import Groups: IdSymbol, change_pow, GWord,  ==, hash, reduce!
 
 export IDSymbol, AutSymbol, AutWord
 export rmul_AutSymbol, lmul_AutSymbol, flip_AutSymbol, symmetric_AutSymbol
@@ -14,6 +15,8 @@ immutable AutSymbol <: GSymbol
     ex::Expr
 end
 
+(==)(s::AutSymbol, t::AutSymbol) = s.gen == t.gen && s.pow == t.pow
+hash(s::AutSymbol, h::UInt) = hash(s.gen, hash(s.pow, hash(:AutSymbol, h)))
 IDSymbol(::Type{AutSymbol}) = AutSymbol("(id)", 0, :(IDAutomorphism(N)))
 
 change_pow(s::AutSymbol, n::Int) = reduce(AutSymbol(s.gen, n, s.ex))
