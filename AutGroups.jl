@@ -19,22 +19,27 @@ end
 hash(s::AutSymbol, h::UInt) = hash(s.gen, hash(s.pow, hash(:AutSymbol, h)))
 
 IdSymbol(::Type{AutSymbol}) = AutSymbol("(id)", 0, :(IdAutomorphism(N)))
-change_pow(s::AutSymbol, n::Int) = reduce(AutSymbol(s.gen, n, s.ex))
 
-function inv(f::AutSymbol)
-    symbol = f.ex.args[1]
+function change_pow(s::AutSymbol, n::Int)
+
+    if n == 0
+        return one(s)
+    end
+
+    symbol = s.ex.args[1]
     if symbol == :ɛ
-        return change_pow(f, f.pow % 2)
+        return flip_AutSymbol(s.ex.args[2], pow=n)
     elseif symbol == :σ
-        perm = invperm(f.ex.args[2])
-        gen = string('σ', [Char(8320 + i) for i in perm]...)
-        return AutSymbol(gen, f.pow, :(σ($perm)))
-    elseif symbol == :(ϱ) || symbol == :λ
-        return AutSymbol(f.gen, -f.pow, f.ex)
-    elseif symbol == :IDAutomorphism
-        return f
+        return symmetric_AutSymbol(s.ex.args[2], pow=n)
+    elseif symbol == :ϱ
+        return rmul_AutSymbol(s.ex.args[2], s.ex.args[3], pow=n)
+    elseif symbol == :λ
+        return lmul_AutSymbol(s.ex.args[2], s.ex.args[3], pow=n)
+    elseif symbol == :IdAutomorphism
+        return s
     else
-        throw(ArgumentError("Don't know how to invert $f (of type $symbol)"))
+        warn("Changing an unknown type of symbol! $s")
+        return AutSymbol(s.gen, n, s.ex)
     end
 end
 
