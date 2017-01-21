@@ -43,22 +43,28 @@ function change_pow(s::AutSymbol, n::Int)
     end
 end
 
-function rmul_AutSymbol(i,j, pow::Int=1)
+inv(f::AutSymbol) = change_pow(f, -1*f.pow)
+(^)(s::AutSymbol, n::Integer) = change_pow(s, s.pow*n)
+
+function rmul_AutSymbol(i,j; pow::Int=1)
     gen = string('ϱ',Char(8320+i), Char(8320+j)...)
     return AutSymbol(gen, pow, :(ϱ($i,$j)))
 end
 
-function lmul_AutSymbol(i,j, pow::Int=1)
+function lmul_AutSymbol(i,j; pow::Int=1)
     gen = string('λ',Char(8320+i), Char(8320+j)...)
     return AutSymbol(gen, pow, :(λ($i,$j)))
 end
 
-function flip_AutSymbol(j, pow::Int=1)
+function flip_AutSymbol(j; pow::Int=1)
     gen = string('ɛ', Char(8320 + j))
-    return AutSymbol(gen, pow%2, :(ɛ($j)))
+    return AutSymbol(gen, (2+ pow%2)%2, :(ɛ($j)))
 end
 
-function symmetric_AutSymbol(perm::Vector{Int}, pow::Int=1)
+function symmetric_AutSymbol(perm::Vector{Int}; pow::Int=1)
+    # if perm == collect(1:length(perm))
+    #     return one(AutSymbol)
+    # end
     perm = Permutation(perm)
     ord = order(perm)
     pow = pow % ord
