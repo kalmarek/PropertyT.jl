@@ -10,7 +10,9 @@ export IdSymbol, change_pow
 abstract GSymbol
 
 function show(io::IO, s::GSymbol)
-    if s.pow == 0 || s.pow == 1
+    if s.pow == 0
+        print(io, "(id)")
+    elseif s.pow == 1
         print(io, s.gen)
     else
         print(io, (s.gen)*"^$(s.pow)")
