@@ -4,9 +4,8 @@ import Base: length, ==, hash, show
 import Base: one, inv, reduce, *, ^
 
 export GSymbol, GWord
-export reduce!, reduce
 
-export IDSymbol, change_pow, reduce!, reduce
+export IdSymbol, change_pow
 
 abstract GSymbol
 
@@ -20,9 +19,9 @@ end
 
 length(s::GSymbol) = (s.pow == 0 ? 0 : 1)
 
-IDSymbol(T::Type{GSymbol}) = throw(ArgumentError("Define IDSymbol(::Type{$T}) which is the identity element for Your type!"))
+IdSymbol(T::Type{GSymbol}) = throw(ArgumentError("Define IdSymbol(::Type{$T}) which is the identity element for Your type!"))
 
-one{T<:GSymbol}(::Type{T}) = IDSymbol(T)
+one{T<:GSymbol}(::Type{T}) = IdSymbol(T)
 one(s::GSymbol) = one(typeof(s))
 
 (*){T<:GSymbol}(s::T, t::T) = return GWord{T}([s])*t
