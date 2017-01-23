@@ -78,11 +78,11 @@ function inv{T}(W::GWord{T})
     if length(W) == 0
         return W
     else
-        return reduceGWord{T}(reverse([inv(s) for s in W.symbols]))
+        return freegroup_reduce!(GWord{T}(reverse([inv(s) for s in W.symbols])))
     end
 end
 
-function free_group_reduction!(W::GWord)
+function join_free_symbols!(W::GWord)
     reduced = true
     for i in 1:length(W.symbols) - 1
         if W.symbols[i].gen == W.symbols[i+1].gen
@@ -96,14 +96,13 @@ function free_group_reduction!(W::GWord)
     return reduced
 end
 
-function reduce!{T}(W::GWord{T}, reduce_func::Function=free_group_reduction!)
+function freegroup_reduce!{T}(W::GWord{T})
     if length(W) < 2
         deleteat!(W.symbols, find(x -> x.pow == 0, W.symbols))
     else
-
         reduced = false
         while !reduced
-            reduced = reduce_func(W)
+            reduced = join_free_symbols!(W)
             deleteat!(W.symbols, find(x -> x.pow == 0, W.symbols))
         end
     end
@@ -113,13 +112,13 @@ function reduce!{T}(W::GWord{T}, reduce_func::Function=free_group_reduction!)
     return W
 end
 
-reduce(W::GWord) = reduce!(deepcopy(W))
+freegroup_reduce(W::GWord) = freegroup_reduce!(deepcopy(W))
 
-hash{T}(W::GWord{T}) = (W.modified && reduce!(W); W.savedhash)
+hash{T}(W::GWord{T}) = (W.modified && freegroup_reduce!(W); W.savedhash)
 
 function (==){T}(W::GWord{T}, Z::GWord{T})
-     W.modified && reduce!(W) # reduce could actually clear the flag and recalculate the hash
-     Z.modified && reduce!(Z)
+     W.modified && freegroup_reduce!(W) # reduce could actually clear the flag and recalculate the hash
+     Z.modified && freegroup_reduce!(Z)
      return W.savedhash == Z.savedhash && W.symbols == Z.symbols
 end
 
@@ -136,7 +135,7 @@ function r_multiply!(W::GWord, x; reduced::Bool=true)
         push!(W.symbols, x...)
     end
     if reduced
-        reduce!(W)
+        freegroup_reduce!(W)
     end
     return W
 end
@@ -146,7 +145,7 @@ function l_multiply!(W::GWord, x; reduced::Bool=true)
         unshift!(W.symbols, reverse(x)...)
     end
     if reduced
-        reduce!(W)
+        freegroup_reduce!(W)
     end
     return W
 end
@@ -184,7 +183,7 @@ function power_by_squaring{T}(x::GWord{T}, p::Integer)
         end
         y *= x
     end
-    return reduce!(y)
+    return freegroup_reduce!(y)
 end
 
 (^)(x::GWord, n::Integer) = power_by_squaring(x,n)
