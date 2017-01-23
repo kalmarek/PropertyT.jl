@@ -31,27 +31,6 @@ change_pow(s::GSymbol, n::Int) = throw(ArgumentError("Define change_pow function
 
 abstract Word
 
-#=
-@ScottPJones
-
-If so, I'd recommend
-    1) making GWord a type, not an immutable
-    2) add fields
-        savedhash::UInt and
-        modified::Bool
-    3) make any function that modifies the contents of .symbols set the modified flag,
-    4) make the hash function
-        a) check that flag:
-            if false, return the savedhash field,
-            otherwise, call reduce!,
-        b) clear the modified flag, and
-        c) calculate a hash value simply by calling hash(symbols)
-        d) save that back into the savedhash field
-
-    5) for ==, I don't think you need to do all that checking for length or length == 0, that will already be handled by comparing the symbols vectors (possibly faster)
-
-=#
-
 type GWord{T<:GSymbol} <: Word
     symbols::Vector{T}
     savedhash::UInt
