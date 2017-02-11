@@ -76,8 +76,6 @@ function compute_κ_A(name::String, Δ, sdp_constraints;
     return κ, A
 end
 
-
-workers_processes = addprocs()
 @everywhere push!(LOAD_PATH, "./")
 using GroupAlgebras
 @everywhere include("property(T).jl")
@@ -100,5 +98,3 @@ if κ > 0
 else
     println("$κ < 0: $NAME may NOT HAVE property (T)!")
 end
-
-rmprocs(workers_processes)
