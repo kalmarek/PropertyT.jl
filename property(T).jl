@@ -27,16 +27,6 @@ function read_GAP_raw_list(filename)
     return eval(parse(String(read(filename))))
 end
 
-function create_product_matrix(matrix_constraints)
-    l = length(matrix_constraints)
-    product_matrix = zeros(Int, (l, l))
-    for (index, pairs) in enumerate(matrix_constraints)
-        for (i,j) in pairs
-            product_matrix[i,j] = index
-        end
-    end
-    return product_matrix
-end
 
 function create_product_matrix(basis::Array{Array{Float64,2},1}, limit)
 
@@ -59,6 +49,17 @@ function create_product_matrix(basis::Array{Array{Float64,2},1}, limit)
     return product_matrix, constraints
 end
 
+function constraints_from_pm(pm, total_length=maximum(pm))
+    n = size(pm,1)
+    constraints = constraints = [Array{Int,1}[] for x in 1:total_length]
+    for j in 1:n
+        Threads.@threads for i in 1:n
+            idx = pm[i,j]
+            push!(constraints[idx], [i,j])
+        end
+    end
+    return constraints
+end
 function Laplacian_sparse(S::Array{Array{Float64,2},1},
     basis::Array{Array{Float64,2},1})
 
