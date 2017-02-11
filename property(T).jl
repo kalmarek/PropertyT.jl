@@ -2,11 +2,11 @@ using JuMP
 import Base: rationalize
 using GroupAlgebras
 
-function products(S1, S2)
-    result = Vector{eltype(S1[1]*S2[1])}()
-    for x in S1
-        for y in S2
-            push!(result, x*y)
+function products{T}(U::AbstractVector{T}, V::AbstractVector{T})
+    result = Vector{T}()
+    for u in U
+        for v in V
+            push!(result, u*v)
         end
     end
     return unique(result)
