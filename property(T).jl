@@ -150,3 +150,6 @@ function rationalize{T<:Integer, S<:Real}(::Type{T},
     r(x) = rationalize(T, x, tol=tol)
     return r.(X)
 end;
+
+ℚ(x, tol::Real) = rationalize(BigInt, x, tol=tol)
+
