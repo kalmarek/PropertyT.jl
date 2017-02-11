@@ -153,3 +153,46 @@ end;
 
 ℚ(x, tol::Real) = rationalize(BigInt, x, tol=tol)
 
+
+function ℚ_distance_to_positive_cone(Δ::GroupAlgebraElement,
+    κ::Float64,
+    A::Array{Float64,2};
+    tol=10.0^-7,
+    verbose=true)
+
+    @show maximum(A)
+    if maximum(A) < 1e-2
+        warn("Solver might not solved the problem successfully and what You're seeing is due to floating-point error, proceeding anyway...")
+    end
+
+    @assert isapprox(eigvals(A), abs(eigvals(A)), atol=TOL)
+    @assert A == Symmetric(A)
+    println("")
+    A_sqrt = real(sqrtm(A))
+    println("Checking in floating-point arithmetic...")
+    @show κ
+    fp_distance = check_solution(κ, A_sqrt, Δ, verbose=VERBOSE)
+    println("Distance to positive cone ≈ $(Float64(trunc(fp_distance,8)))")
+    println("-------------------------------------------------------------")
+    println("")
+    println("Checking in rational arithmetic...")
+
+    κ_ℚ = ℚ(trunc(κ,Int(abs(log10(tol)))), TOL)
+    @show κ_ℚ
+    @assert κ - κ_ℚ ≥ 0
+    A_sqrt_ℚ, Δ_ℚ = ℚ(A_sqrt, TOL), ℚ(Δ, TOL)
+
+    ℚ_distance = check_solution(κ_ℚ, A_sqrt_ℚ, Δ_ℚ, verbose=VERBOSE)
+    @assert isa(ℚ_distance, Rational)
+    println("Distance to positive cone ≈ $(Float64(trunc(ℚ_distance,8)))")
+    println("-------------------------------------------------------------")
+    println("")
+    println("Projecting columns of A_sqrt to the augmentation ideal...")
+    A_sqrt_ℚ_aug = correct_to_augmentation_ideal(A_sqrt_ℚ)
+    ℚ_dist_to_Σ² = check_solution(κ_ℚ, A_sqrt_ℚ_aug, Δ_ℚ, verbose=VERBOSE, augmented=true)
+    @assert isa(ℚ_dist_to_Σ², Rational)
+    s = (ℚ_dist_to_Σ² < 0? "≤": "≥")
+    println("Distance to positive cone $s $(Float64(trunc(ℚ_dist_to_Σ²,8)))")
+
+    return ℚ_dist_to_Σ²
+end
