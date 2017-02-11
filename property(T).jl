@@ -12,16 +12,6 @@ function products{T}(U::AbstractVector{T}, V::AbstractVector{T})
     return unique(result)
 end
 
-function generate_B₂_and_B₄(identity, S₁)
-    S₂ = products(S₁, S₁);
-    S₃ = products(S₁, S₂);
-    S₄ = products(S₂, S₂);
-
-    B₂ = unique(vcat([identity],S₁,S₂));
-    B₄ = unique(vcat(B₂, S₃, S₄));
-    @assert B₄[1:length(B₂)] == B₂
-    return B₂, B₄;
-end
 
 function read_GAP_raw_list(filename)
     return eval(parse(String(read(filename))))
@@ -80,16 +70,6 @@ function Laplacian(S::Array{Array{Float64,2},1},
     return full(Laplacian_sparse(S,basis))
 end
 
-function prepare_Laplacian_and_constraints{T}(S::Vector{Array{T,2}})
-
-    identity = eye(S[1])
-    B₂, B₄ = generate_B₂_and_B₄(identity, S)
-    product_matrix, matrix_constraints = create_product_matrix(B₄,length(B₂));
-
-    L= Laplacian(S, B₄);
-
-    return GroupAlgebraElement(L, product_matrix), matrix_constraints
-end
 
 function create_SDP_problem(matrix_constraints, Δ::GroupAlgebraElement)
     N = size(Δ.product_matrix,1)
