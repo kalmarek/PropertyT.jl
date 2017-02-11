@@ -39,8 +39,6 @@ function constraints_from_pm(pm, total_length=maximum(pm))
 end
 
 function splaplacian_coeff(S, basis, n=length(basis))
-    squares = unique(vcat([basis[1]], S, products(S,S)))
-
     result = spzeros(n)
     result[1] = length(S)
     for s in S
