@@ -124,9 +124,10 @@ end
 
 ɛ(X::GroupAlgebraElement) = sum(X.coefficients)
 
-rationalize{T<:Integer, S<:Number}(::Type{T}, X::GroupAlgebraElement{S};
-    tol=eps(S)) =
-    GroupAlgebraElement(
-        rationalize(T, X.coefficients, tol=tol), X.product_matrix)
+function rationalize{T<:Integer, S<:Number}(
+    ::Type{T}, X::GroupAlgebraElement{S}; tol=eps(S))
+    v = rationalize(T, X.coefficients, tol=tol)
+    return GroupAlgebraElement(v, X.product_matrix)
+end
 
 end
