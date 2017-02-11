@@ -121,13 +121,28 @@ function correct_to_augmentation_ideal{T<:Rational}(sqrt_matrix::Array{T,2})
     return sqrt_corrected
 end
 
-function check_solution{T<:Number}(κ::T,
-                                   sqrt_matrix::Array{T,2},
-                                   Δ::GroupAlgebraElement{T})
-    eoi = EOI(Δ, κ)
+function check_solution(κ, sqrt_matrix, Δ; verbose=true, augmented=false)
     result = compute_SOS(sqrt_matrix, Δ)
-    L₁_dist = norm(result - eoi,1)
-    return eoi - result, L₁_dist
+    if augmented
+        @assert GroupAlgebras.ɛ(result) == 0//1
+    end
+    SOS_diff = EOI(Δ, κ) - result
+
+    eoi_SOS_L₁_dist = norm(SOS_diff,1)
+
+    if verbose
+        if augmented
+            println("ɛ(Δ² - κΔ - ∑ξᵢ*ξᵢ) = ", GroupAlgebras.ɛ(SOS_diff))
+        else
+            ɛ_dist = Float64(round(GroupAlgebras.ɛ(SOS_diff),12))
+            println("ɛ(Δ² - κΔ - ∑ξᵢ*ξᵢ) ≈ $ɛ_dist")
+        end
+        L₁_dist = Float64(round(eoi_SOS_L₁_dist, 12))
+        println("‖Δ² - κΔ - ∑ξᵢ*ξᵢ‖₁ ≈ $L₁_dist")
+    end
+
+    distance_to_cone = 2^3*eoi_SOS_L₁_dist - κ
+    return distance_to_cone
 end
 
 function rationalize{T<:Integer, S<:Real}(::Type{T},
