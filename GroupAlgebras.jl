@@ -8,11 +8,11 @@ export GroupAlgebraElement
 
 
 immutable GroupAlgebraElement{T<:Number}
-    coefficients::Vector{T}
+    coefficients::AbstractVector{T}
     product_matrix::Array{Int,2}
     # basis::Array{Any,1}
 
-    function GroupAlgebraElement(coefficients::Vector{T},
+    function GroupAlgebraElement(coefficients::AbstractVector,
         product_matrix::Array{Int,2})
 
         size(product_matrix, 1) == size(product_matrix, 2) ||
@@ -22,10 +22,10 @@ immutable GroupAlgebraElement{T<:Number}
 end
 
 # GroupAlgebraElement(c,pm,b) = GroupAlgebraElement(c,pm)
-GroupAlgebraElement{T}(c::Vector{T},pm) = GroupAlgebraElement{T}(c,pm)
+GroupAlgebraElement{T}(c::AbstractVector{T},pm) = GroupAlgebraElement{T}(c,pm)
 
 convert{T<:Number}(::Type{T}, X::GroupAlgebraElement) =
-    GroupAlgebraElement(convert(Vector{T}, X.coefficients), X.product_matrix)
+    GroupAlgebraElement(convert(AbstractVector{T}, X.coefficients), X.product_matrix)
 
 show{T}(io::IO, X::GroupAlgebraElement{T}) = print(io,
     "Element of Group Algebra over $T of length $(length(X)):\n $(X.coefficients)")
@@ -59,7 +59,7 @@ end
 (-)(X::GroupAlgebraElement) = GroupAlgebraElement(-X.coefficients, X.product_matrix)
 (-)(X::GroupAlgebraElement, Y::GroupAlgebraElement) = add(X,-Y)
 
-function algebra_multiplication{T<:Number}(X::Vector{T}, Y::Vector{T}, pm::Array{Int,2})
+function algebra_multiplication{T<:Number}(X::AbstractVector{T}, Y::AbstractVector{T}, pm::Array{Int,2})
     result = zeros(X)
     for (i,x) in enumerate(X)
         if x != 0
