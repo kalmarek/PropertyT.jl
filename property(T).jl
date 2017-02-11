@@ -13,11 +13,6 @@ function products{T}(U::AbstractVector{T}, V::AbstractVector{T})
 end
 
 
-function read_GAP_raw_list(filename)
-    return eval(parse(String(read(filename))))
-end
-
-
 function create_product_matrix(basis::Array{Array{Float64,2},1}, limit)
 
     product_matrix = zeros(Int, (limit,limit))
