@@ -102,9 +102,10 @@ end
 
 function compute_SOS{T<:Number}(sqrt_matrix::Array{T,2},
                                   elt::GroupAlgebraElement{T})
-    L = size(sqrt_matrix,2)
-    result = @parallel (+) for i in 1:L
-        square(sqrt_matrix[:,i], elt)
+    n = size(sqrt_matrix,2)
+    # result = zeros(T, length(elt.coefficients))
+    result = @parallel (+) for i in 1:n
+        square_as_elt(sqrt_matrix[:,i], elt)
     end
     return GroupAlgebraElement{T}(result, elt.product_matrix)
 end
