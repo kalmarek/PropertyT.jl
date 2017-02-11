@@ -69,26 +69,22 @@ function create_SDP_problem(matrix_constraints, Δ::GroupAlgebraElement)
     return m
 end
 
-function solve_for_property_T{T}(S₁::Vector{Array{T,2}}, solver; verbose=true)
+function solve_SDP(sdp_constraints, Δ, solver; verbose=true)
+    SDP_problem = create_SDP_problem(sdp_constraints, Δ);
+    verbose && @show solver
 
-    Δ, matrix_constraints = prepare_Laplacian_and_constraints(S₁)
-
-    problem = create_SDP_problem(matrix_constraints, Δ);
-    @show solver
-
-    setsolver(problem, solver);
-    verbose && @show problem
-
-    solution_status = solve(problem);
+    JuMP.setsolver(SDP_problem, solver);
+    verbose && @show SDP_problem
+    # @time MathProgBase.writeproblem(SDP_problem, "/tmp/SDP_problem")
+    solution_status = JuMP.solve(SDP_problem);
     verbose && @show solution_status
 
     if solution_status != :Optimal
         throw(ExceptionError("The solver did not solve the problem successfully!"))
     else
-        κ = SL_3ZZ.objVal;
-        A = getvalue(getvariable(SL_3ZZ, :A));;
+        κ = SDP_problem.objVal;
+        A = JuMP.getvalue(JuMP.getvariable(SDP_problem, :A));;
     end
-
     return κ, A
 end
 
