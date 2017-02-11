@@ -57,14 +57,14 @@ function create_SDP_problem(matrix_constraints, Δ::GroupAlgebraElement)
     N = size(Δ.product_matrix,1)
     const Δ² = Δ*Δ
     @assert length(Δ) == length(matrix_constraints)
-    m = Model();
-    @variable(m, A[1:N, 1:N], SDP)
-    @SDconstraint(m, A >= zeros(size(A)))
-    @variable(m, κ >= 0.0)
-    @objective(m, Max, κ)
+    m = JuMP.Model();
+    JuMP.@variable(m, A[1:N, 1:N], SDP)
+    JuMP.@SDconstraint(m, A >= zeros(size(A)))
+    JuMP.@variable(m, κ >= 0.0)
+    JuMP.@objective(m, Max, κ)
 
     for (pairs, δ², δ) in zip(matrix_constraints, Δ².coefficients, Δ.coefficients)
-        @constraint(m, sum(A[i,j] for (i,j) in pairs) == δ² - κ*δ)
+        JuMP.@constraint(m, sum(A[i,j] for (i,j) in pairs) == δ² - κ*δ)
     end
     return m
 end
