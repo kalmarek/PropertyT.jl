@@ -37,24 +37,21 @@ function constraints_from_pm(pm, total_length=maximum(pm))
     end
     return constraints
 end
-function Laplacian_sparse(S::Array{Array{Float64,2},1},
-    basis::Array{Array{Float64,2},1})
 
+function splaplacian_coeff(S, basis, n=length(basis))
     squares = unique(vcat([basis[1]], S, products(S,S)))
 
-    result = spzeros(length(basis))
+    result = spzeros(n)
     result[1] = length(S)
     for s in S
-        ind = find(basis, s)
+        ind = findfirst(basis, s)
         result[ind] += -1
     end
     return result
 end
 
-function Laplacian(S::Array{Array{Float64,2},1},
-    basis:: Array{Array{Float64,2},1})
-
-    return full(Laplacian_sparse(S,basis))
+function laplacian_coeff(S, basis)
+    return full(splaplacian_coeff(S,basis))
 end
 
 
