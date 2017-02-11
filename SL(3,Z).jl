@@ -1,79 +1,104 @@
-using JuMP
-import SCS: SCSSolver
-import Mosek: MosekSolver
+function SL₃ℤ_generatingset()
 
-workers_processes = addprocs()
+    function E(i::Int, j::Int, N::Int=3)
+        @assert i≠j
+        k = eye(N)
+        k[i,j] = 1
+        return k
+    end
 
-@everywhere push!(LOAD_PATH, "./")
-using GroupAlgebras
-@everywhere include("property(T).jl")
-
-function E(i::Int, j::Int, N::Int=3)
-    @assert i≠j
-    k = eye(N)
-    k[i,j] = 1
-    return k
-end
-
-function SL_3ZZ_generating_set()
     S = [E(1,2), E(1,3), E(2,3)];
     S = vcat(S, [x' for x in S]);
     S = vcat(S, [inv(x) for x in S]);
     return S
 end
 
-const ID = eye(3)
+function generate_B₂_and_B₄(B₁)
+    B₂ = products(B₁, B₁);
+    B₃ = products(B₁, B₂);
+    B₄ = products(B₁, B₃);
 
-const S₁ = SL_3ZZ_generating_set()
+    @assert B₄[1:length(B₂)] == B₂
+    return B₂, B₄;
+end
+
+function prepare_Laplacian_and_constraints(S, identity)
+
+    B₂, B₄ = generate_B₂_and_B₄(vcat([identity], S))
+    product_matrix = create_product_matrix(B₄,length(B₂));
+    sdp_constraints = constraints_from_pm(product_matrix, length(B₄))
+    L_coeff = splaplacian_coeff(S, B₄);
+
+    return GroupAlgebraElement(L_coeff, product_matrix), sdp_constraints
+end
+
+function prepare_Δ_sdp_constraints(name::String;cached=true)
+    f₁ = isfile("$name.product_matrix")
+    f₂ = isfile("$name.delta.coefficients")
+    if cached && f₁ && f₂
+        println("Loading precomputed pm, Δ, sdp_constraints...")
+        product_matrix = readdlm("$name.product_matrix", Int)
+        L = readdlm("$name.delta.coefficients")[:, 1]
+        Δ = GroupAlgebraElement(L, product_matrix)
+        sdp_constraints = constraints_from_pm(product_matrix)
+    else
+        println("Computing pm, Δ, sdp_constraints...")
+        ID = eye(Int, 3)
+        S₁ = SL₃ℤ_generatingset()
+        Δ, sdp_constraints = prepare_Laplacian_and_constraints(S₁, ID)
+        writedlm("$name.delta.coefficients", Δ.coefficients)
+        writedlm("$name.product_matrix", Δ.product_matrix)
+    end
+    return Δ, sdp_constraints
+end
 
 
-const TOL=10.0^-7
-# const VERBOSE=true
-#solver = SCSSolver(eps=TOL, max_iters=ITERATIONS, verbose=VERBOSE);
-# solver = MosekSolver(MSK_DPAR_INTPNT_CO_TOL_REL_GAP=TOL,
-# #                      MSK_DPAR_INTPNT_CO_TOL_PFEAS=1e-15,
-# #                      MSK_DPAR_INTPNT_CO_TOL_DFEAS=1e-15,
-# #                      MSK_IPAR_PRESOLVE_USE=0,
-#                   QUIET=!VERBOSE)
+function compute_κ_A(name::String, Δ, sdp_constraints;
+    cached = true,
+    tol = TOL,
+    verbose = VERBOSE,
+    solver = MosekSolver(INTPNT_CO_TOL_REL_GAP=tol, QUIET=!verbose))
+    # solver = SCSSolver(eps=TOL, max_iters=ITERATIONS, verbose=VERBOSE))
 
-# κ, A = solve_for_property_T(S₁, solver, verbose=VERBOSE)
+    f₁ = isfile("$name.kappa")
+    f₂ = isfile("$name.SDPmatrixA")
+
+    if cached && f₁ && f₂
+        println("Loading precomputed κ, A...")
+        A = readdlm("$name.SDPmatrixA")
+        κ = readdlm("$name.kappa")[1]
+    else
+        println("Solving SDP problem maximizing κ...")
+        κ, A = solve_SDP(sdp_constraints, Δ, solver, verbose=verbose)
+        writedlm("$name.kappa", kappa)
+        writedlm("$name.SDPmatrixA", A)
+    end
+    return κ, A
+end
 
 
-const product_matrix = readdlm("SL3Z.product_matrix", Int)
-const L = readdlm("SL3Z.delta.coefficients")[:, 1]
-const Δ = GroupAlgebraElement(L, product_matrix)
+workers_processes = addprocs()
+@everywhere push!(LOAD_PATH, "./")
+using GroupAlgebras
+@everywhere include("property(T).jl")
 
-const A = readdlm("SL3Z.SDPmatrixA.Mosek")
-const κ = readdlm("SL3Z.kappa.Mosek")[1]
+const NAME = "SL3Z"
+const VERBOSE = true
+const TOL=1e-7
+const Δ, sdp_constraints = prepare_Δ_sdp_constraints(NAME)
+const κ, A = compute_κ_A(NAME, Δ, sdp_constraints)
 
-@assert isapprox(eigvals(A), abs(eigvals(A)), atol=TOL)
-@assert A == Symmetric(A)
+if κ > 0
+    @time T = ℚ_distance_to_positive_cone(Δ, κ, A, tol=TOL, verbose=VERBOSE)
 
-const A_sqrt = real(sqrtm(A))
+    if T < 0
+        println("$NAME HAS property (T)!")
+    else
+        println("$NAME may NOT HAVE property (T)!")
+    end
 
-const SOS_fp_diff, SOS_fp_L₁_distance = check_solution(κ, A_sqrt, Δ)
-
-@show SOS_fp_L₁_distance
-@show GroupAlgebras.ɛ(SOS_fp_diff)
-
-const κ_rational = rationalize(BigInt, κ, tol=TOL)
-const A_sqrt_rational = rationalize(BigInt, A_sqrt, tol=TOL)
-const Δ_rational = rationalize(BigInt, Δ, tol=TOL)
-
-const SOS_rational_diff, SOS_rat_L₁_distance = check_solution(κ_rational, A_sqrt_rational, Δ_rational)
-
-@assert isa(SOS_rat_L₁_distance, Rational{BigInt})
-@show float(SOS_rat_L₁_distance)
-@show float(GroupAlgebras.ɛ(SOS_rational_diff))
-
-const A_sqrt_augmented = correct_to_augmentation_ideal(A_sqrt_rational)
-
-const SOS_rational_aug_diff, SOS_aug_rat_L₁_distance = check_solution(κ_rational, A_sqrt_augmented, Δ_rational)
-
-@assert isa(SOS_aug_rat_L₁_distance, Rational{BigInt})
-@assert GroupAlgebras.ɛ(SOS_rational_aug_diff) == 0//1
-
-@show float(SOS_aug_rat_L₁_distance)
-@show float(κ_rational - 2^3*SOS_aug_rat_L₁_distance)
+else
+    println("$κ < 0: $NAME may NOT HAVE property (T)!")
+end
 
 rmprocs(workers_processes)
