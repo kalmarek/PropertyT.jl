@@ -12,26 +12,18 @@ function products{T}(U::AbstractVector{T}, V::AbstractVector{T})
     return unique(result)
 end
 
-
-function create_product_matrix(basis::Array{Array{Float64,2},1}, limit)
-
+function create_product_matrix(basis, limit)
     product_matrix = zeros(Int, (limit,limit))
-    constraints = [Array{Int,1}[] for x in 1:length(basis)]
-
     for i in 1:limit
-        x_inv = inv(basis[i])
-        # info("$i of $limit")
+        x_inv::eltype(basis) = inv(basis[i])
         for j in 1:limit
             w = x_inv*basis[j]
-
             index = findfirst(basis, w)
-            if 0 < index ≤ limit
-                product_matrix[i,j] = index
-                push!(constraints[index],[i,j])
-            end
+            index ≠ 0 || throw(ArgumentError("Product is not supported on basis: $w"))
+            product_matrix[i,j] = index
         end
     end
-    return product_matrix, constraints
+    return product_matrix
 end
 
 function constraints_from_pm(pm, total_length=maximum(pm))
