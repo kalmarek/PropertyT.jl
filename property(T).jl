@@ -80,11 +80,11 @@ function solve_SDP(sdp_constraints, Δ, solver; verbose=true)
     verbose && @show solution_status
 
     if solution_status != :Optimal
-        throw(ExceptionError("The solver did not solve the problem successfully!"))
-    else
-        κ = SDP_problem.objVal;
-        A = JuMP.getvalue(JuMP.getvariable(SDP_problem, :A));;
+        warn("The solver did not solve the problem successfully!")
     end
+
+    κ = SDP_problem.objVal;
+    A = JuMP.getvalue(JuMP.getvariable(SDP_problem, :A));;
     return κ, A
 end
 
