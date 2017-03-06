@@ -61,7 +61,9 @@ function create_SDP_problem(matrix_constraints, Δ::GroupAlgebraElement)
     JuMP.@variable(m, A[1:N, 1:N], SDP)
     JuMP.@SDconstraint(m, A >= zeros(size(A)))
     JuMP.@variable(m, κ >= 0.0)
+    JuMP.@constraint(m, κ <= 0.26)
     JuMP.@objective(m, Max, κ)
+    JuMP.@constraint(m, sum(A[i] for i in eachindex(A)) == 0)
 
     for (pairs, δ², δ) in zip(matrix_constraints, Δ².coefficients, Δ.coefficients)
         JuMP.@constraint(m, sum(A[i,j] for (i,j) in pairs) == δ² - κ*δ)
@@ -83,8 +85,9 @@ function solve_SDP(sdp_constraints, Δ, solver; verbose=true)
         warn("The solver did not solve the problem successfully!")
     end
 
-    κ = SDP_problem.objVal;
-    A = JuMP.getvalue(JuMP.getvariable(SDP_problem, :A));;
+    κ = JuMP.getvalue(JuMP.getvariable(SDP_problem, :κ))
+    A = JuMP.getvalue(JuMP.getvariable(SDP_problem, :A))
+    @show sum(A)
     return κ, A
 end
 
