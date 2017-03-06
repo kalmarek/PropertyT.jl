@@ -95,7 +95,7 @@ function EOI{T<:Number}(Δ::GroupAlgebraElement{T}, κ::T)
     return Δ*Δ - κ*Δ
 end
 
-function square_as_elt(vector, elt)
+@everywhere function square_as_elt(vector, elt)
     zzz = zeros(elt.coefficients)
     zzz[1:length(vector)] = vector
 #     new_base_elt = GroupAlgebraElement(zzz, elt.product_matrix)
