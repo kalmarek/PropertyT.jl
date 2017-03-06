@@ -145,7 +145,7 @@ function check_solution{T<:Number}(κ::T, sqrt_matrix::Array{T,2}, Δ::GroupAlge
         println("‖Δ² - κΔ - ∑ξᵢ*ξᵢ‖₁ ≈ $L₁_dist")
     end
 
-    distance_to_cone = 2^3*eoi_SOS_L₁_dist - κ
+    distance_to_cone = κ - 2^3*eoi_SOS_L₁_dist
     return distance_to_cone
 end
 
@@ -169,25 +169,32 @@ function ℚ_distance_to_positive_cone(Δ::GroupAlgebraElement, κ, A;
     println("")
     println("Checking in floating-point arithmetic...")
     @time fp_distance = check_solution(κ, A_sqrt, Δ, verbose=verbose)
-    println("Distance to positive cone ≈ $(Float64(trunc(fp_distance,8)))")
+    println("Floating point distance (to positive cone) ≈ $(Float64(trunc(fp_distance,8)))")
     println("-------------------------------------------------------------")
     println("")
+
+    if fp_distance ≤ 0
+        return fp_distance
+    end
 
     println("Checking in rational arithmetic...")
     κ_ℚ = ℚ(trunc(κ,Int(abs(log10(tol)))), tol)
     A_sqrt_ℚ, Δ_ℚ = ℚ(A_sqrt, tol), ℚ(Δ, tol)
     @time ℚ_distance = check_solution(κ_ℚ, A_sqrt_ℚ, Δ_ℚ, verbose=verbose)
     @assert isa(ℚ_distance, Rational)
-    println("Distance to positive cone ≈ $(Float64(trunc(ℚ_distance,8)))")
+    println("Rational distance (to positive cone) ≈ $(Float64(trunc(ℚ_distance,8)))")
     println("-------------------------------------------------------------")
     println("")
+    if ℚ_distance ≤ 0
+        return ℚ_distance
+    end
 
     println("Projecting columns of A_sqrt to the augmentation ideal...")
     A_sqrt_ℚ_aug = correct_to_augmentation_ideal(A_sqrt_ℚ)
     @time ℚ_dist_to_Σ² = check_solution(κ_ℚ, A_sqrt_ℚ_aug, Δ_ℚ, verbose=verbose, augmented=true)
     @assert isa(ℚ_dist_to_Σ², Rational)
-    s = (ℚ_dist_to_Σ² < 0? "≤": "≥")
-    println("Distance to positive cone $s $(Float64(trunc(ℚ_dist_to_Σ²,8)))")
-
+    println("Augmentation-projected rational distance (to positive cone)")
+    println("$(Float64(trunc(ℚ_dist_to_Σ²,8))) ≤ κ(G,S)")
+    println("-------------------------------------------------------------")
     return ℚ_dist_to_Σ²
 end
