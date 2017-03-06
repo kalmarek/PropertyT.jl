@@ -16,7 +16,7 @@ function create_product_matrix(basis, limit)
     product_matrix = zeros(Int, (limit,limit))
     for i in 1:limit
         x_inv::eltype(basis) = inv(basis[i])
-        for j in 1:limit
+        Threads.@threads for j in 1:limit
             w = x_inv*basis[j]
             index = findfirst(basis, w)
             index ≠ 0 || throw(ArgumentError("Product is not supported on basis: $w"))
