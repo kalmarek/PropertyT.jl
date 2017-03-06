@@ -145,7 +145,7 @@ function check_solution{T<:Number}(κ::T, sqrt_matrix::Array{T,2}, Δ::GroupAlge
         println("‖Δ² - κΔ - ∑ξᵢ*ξᵢ‖₁ ≈ $L₁_dist")
     end
 
-    distance_to_cone = κ - 2^3*eoi_SOS_L₁_dist
+    distance_to_cone = κ - 2^2*eoi_SOS_L₁_dist
     return distance_to_cone
 end
 
