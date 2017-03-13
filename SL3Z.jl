@@ -79,9 +79,8 @@ function inv(M::Array{Mod,2})
     return adjugate(M)
 end
 
-function prepare_Δ_sdp_constraints(identity, S)
-    @show length(S)
 
+function ΔandSDPconstraints(identity, S)
     B₁ = vcat([identity], S)
     B₂ = products(B₁, B₁);
     B₃ = products(B₁, B₂);
