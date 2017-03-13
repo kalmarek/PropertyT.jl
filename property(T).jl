@@ -363,12 +363,4 @@ function check_property_T(name::String, ID, generate_B₄::Function;
     else
         println("κ($name, S) ≥ $κ < 0: Tells us nothing about property (T)")
     end
-    println("Projecting columns of A_sqrt to the augmentation ideal...")
-    A_sqrt_ℚ_aug = correct_to_augmentation_ideal(A_sqrt_ℚ)
-    @time ℚ_dist_to_Σ² = check_solution(κ_ℚ, A_sqrt_ℚ_aug, Δ_ℚ, verbose=verbose, augmented=true)
-    @assert isa(ℚ_dist_to_Σ², Rational)
-    println("Augmentation-projected rational distance (to positive cone)")
-    println("$(Float64(trunc(ℚ_dist_to_Σ²,8))) ≤ κ(G,S)")
-    println("-------------------------------------------------------------")
-    return ℚ_dist_to_Σ²
 end
