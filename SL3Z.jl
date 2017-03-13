@@ -119,6 +119,9 @@ end
 
 
 
+@everywhere push!(LOAD_PATH, "./")
+using GroupAlgebras
+include("property(T).jl")
 
 
 
