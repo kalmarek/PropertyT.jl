@@ -186,6 +186,78 @@ function ℚ_distance_to_positive_cone(Δ::GroupAlgebraElement, κ, A;
         return ℚ_distance
     end
 
+function pmΔfilenames(name::String)
+    if !isdir(name)
+        mkdir(name)
+    end
+    prefix = name
+    pm_filename = joinpath(prefix, "product_matrix.jld")
+    Δ_coeff_filename = joinpath(prefix, "delta.coefficients.jld")
+    return pm_filename, Δ_coeff_filename
+end
+
+function κSDPfilenames(name::String)
+    if !isdir(name)
+        mkdir(name)
+    end
+    prefix = name
+    κ_filename = joinpath(prefix, "kappa.jld")
+    SDP_filename = joinpath(prefix, "SDPmatrixA.jld")
+    return κ_filename, SDP_filename
+end
+
+function ΔandSDPconstraints(name::String)
+    pm_fname, Δ_fname = pmΔfilenames(name)
+    f₁ = isfile(pm_fname)
+    f₂ = isfile(Δ_fname)
+    if f₁ && f₂
+        println("Loading precomputed pm, Δ, sdp_constraints...")
+        product_matrix = load(pm_fname, "pm")
+        L = load(Δ_fname, "Δ")[:, 1]
+        Δ = GroupAlgebraElement(L, Array{Int,2}(product_matrix))
+        sdp_constraints = constraints_from_pm(product_matrix)
+    else
+        throw(ArgumentError("You need to precompute pm and Δ to load it!"))
+    end
+    return Δ, sdp_constraints
+end
+
+function ΔandSDPconstraints(name::String, ID, generating_func::Function)
+    pm_fname, Δ_fname = pmΔfilenames(name)
+    Δ, sdp_constraints = ΔandSDPconstraints(ID, generating_func())
+    save(pm_fname, "pm", Δ.product_matrix)
+    save(Δ_fname, "Δ", Δ.coefficients)
+    return Δ, sdp_constraints
+end
+
+function κandA(name::String)
+    κ_fname, SDP_fname = κSDPfilenames(name)
+    f₁ = isfile(κ_fname)
+    f₂ = isfile(SDP_fname)
+    if f₁ && f₂
+        println("Loading precomputed κ, A...")
+        κ = load(κ_fname, "κ")
+        A = load(SDP_fname, "A")
+    else
+        throw(ArgumentError("You need to precompute κ and SDP matrix A to load it!"))
+    end
+    return κ, A
+end
+
+function κandA(name::String, sdp_constraints, Δ::GroupAlgebraElement, solver::AbstractMathProgSolver; upper_bound=Inf)
+    println("Creating SDP problem...")
+    @time SDP_problem = create_SDP_problem(sdp_constraints, Δ; upper_bound=upper_bound)
+    println("Solving SDP problem maximizing κ...")
+    κ, A = solve_SDP(SDP_problem, solver)
+    κ_fname, A_fname = κSDPfilenames(name)
+    if κ > 0
+        save(κ_fname, "κ", κ)
+        save(A_fname, "A", A)
+    else
+        throw(ErrorException("Solver $solver did not produce a valid solution!: κ = $κ"))
+    end
+    return κ, A
+end
     println("Projecting columns of A_sqrt to the augmentation ideal...")
     A_sqrt_ℚ_aug = correct_to_augmentation_ideal(A_sqrt_ℚ)
     @time ℚ_dist_to_Σ² = check_solution(κ_ℚ, A_sqrt_ℚ_aug, Δ_ℚ, verbose=verbose, augmented=true)
