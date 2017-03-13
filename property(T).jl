@@ -2,6 +2,7 @@ using JuMP
 import Base: rationalize
 using GroupAlgebras
 
+using ProgressMeter
 
 function create_product_matrix(basis, limit)
     product_matrix = zeros(Int, (limit,limit))
@@ -89,7 +90,7 @@ function EOI{T<:Number}(Δ::GroupAlgebraElement{T}, κ::T)
     return Δ*Δ - κ*Δ
 end
 
-@everywhere function square_as_elt(vector, elt)
+function square_as_elt(vector, elt)
     zzz = zeros(elt.coefficients)
     zzz[1:length(vector)] = vector
 #     new_base_elt = GroupAlgebraElement(zzz, elt.product_matrix)
@@ -100,9 +101,11 @@ end
 function compute_SOS{T<:Number}(sqrt_matrix::Array{T,2},
                                   elt::GroupAlgebraElement{T})
     n = size(sqrt_matrix,2)
-    # result = zeros(T, length(elt.coefficients))
-    result = @parallel (+) for i in 1:n
-        square_as_elt(sqrt_matrix[:,i], elt)
+    result = zeros(T, length(elt.coefficients))
+    p = Progress(n, 1, "Checking SOS decomposition...", 50)
+    for i in 1:n
+        result .+= square_as_elt(sqrt_matrix[:,i], elt)
+        next!(p)
     end
     return GroupAlgebraElement{T}(result, elt.product_matrix)
 end
