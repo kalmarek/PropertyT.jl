@@ -138,4 +138,5 @@ const upper_bound=0.27
 # const ID = [Mod(x,p) for x in eye(Int,N)]
 # S() = SL_generatingset(N, p)
 
+BLAS.set_num_threads(4)
 @time check_property_T(name, ID, S; verbose=true, tol=1e-10, upper_bound=upper_bound)
