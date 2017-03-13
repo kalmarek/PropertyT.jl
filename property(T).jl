@@ -5,13 +5,16 @@ using GroupAlgebras
 
 function create_product_matrix(basis, limit)
     product_matrix = zeros(Int, (limit,limit))
+    basis_dict = Dict{Array, Int}(x => i
+        for (i,x) in enumerate(basis))
     for i in 1:limit
         x_inv::eltype(basis) = inv(basis[i])
-        Threads.@threads for j in 1:limit
+        for j in 1:limit
             w = x_inv*basis[j]
-            index = findfirst(basis, w)
-            index ≠ 0 || throw(ArgumentError("Product is not supported on basis: $w"))
-            product_matrix[i,j] = index
+            product_matrix[i,j] = basis_dict[w]
+            # index = findfirst(basis, w)
+            # index ≠ 0 || throw(ArgumentError("Product is not supported on basis: $w"))
+            # product_matrix[i,j] = index
         end
     end
     return product_matrix
