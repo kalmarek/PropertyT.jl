@@ -34,10 +34,10 @@ end
 
 function splaplacian_coeff(S, basis, n=length(basis))
     result = spzeros(n)
-    result[1] = length(S)
+    result[1] = float(length(S))
     for s in S
         ind = findfirst(basis, s)
-        result[ind] += -1
+        result[ind] += -1.0
     end
     return result
 end
