@@ -61,12 +61,12 @@ end
 
 function algebra_multiplication{T<:Number}(X::AbstractVector{T}, Y::AbstractVector{T}, pm::Array{Int,2})
     result = zeros(X)
-    for (i,x) in enumerate(X)
-        if x != 0
-            for (j, index) in enumerate(pm[i,:])
-                if Y[j] != 0
+    for (j,y) in enumerate(Y)
+        if y != zero(T)
+            for (i, index) in enumerate(pm[:,j])
+                if X[i] != zero(T)
                     index == 0 && throw(ArgumentError("The product don't seem to belong to the span of basis!"))
-                    result[index] += x*Y[j]
+                    result[index] += X[i]*y
                 end
             end
         end
