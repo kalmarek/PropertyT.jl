@@ -1,4 +1,5 @@
 using JuMP
+import MathProgBase: AbstractMathProgSolver
 import Base: rationalize
 using GroupAlgebras
 
@@ -258,6 +259,58 @@ function κandA(name::String, sdp_constraints, Δ::GroupAlgebraElement, solver::
     end
     return κ, A
 end
+
+function check_property_T(name::String, ID, generate_B₄::Function;
+    verbose=true, tol=1e-6, upper_bound=Inf)
+
+    # solver = MosekSolver(INTPNT_CO_TOL_REL_GAP=tol, QUIET=!verbose)
+    solver = SCSSolver(eps=tol, max_iters=100000, verbose=verbose)
+
+    @show name
+    @show verbose
+    @show tol
+
+
+    Δ, sdp_constraints = try
+        ΔandSDPconstraints(name)
+    catch err
+        if isa(err, ArgumentError)
+            ΔandSDPconstraints(name, ID, generate_B₄)
+        else
+            throw(err)
+        end
+    end
+    println("|S| = $(countnz(Δ.coefficients) -1)")
+    @show length(Δ)
+    @show size(Δ.product_matrix)
+
+    κ, A = try
+        κandA(name)
+    catch err
+        if isa(err, ArgumentError)
+            κandA(name, sdp_constraints, Δ, solver; upper_bound=upper_bound)
+        else
+            throw(err)
+        end
+    end
+
+    @show κ
+    @show sum(A)
+    @show maximum(A)
+    @show minimum(A)
+
+    if κ > 0
+
+        true_kappa = ℚ_distance_to_positive_cone(Δ, κ, A, tol=tol, verbose=verbose, rational=true)
+        true_kappa = Float64(trunc(true_kappa,12))
+        if true_kappa > 0
+            println("κ($name, S) ≥ $true_kappa: Group HAS property (T)!")
+        else
+            println("κ($name, S) ≥ $true_kappa: Group may NOT HAVE property (T)!")
+        end
+    else
+        println("κ($name, S) ≥ $κ < 0: Tells us nothing about property (T)")
+    end
     println("Projecting columns of A_sqrt to the augmentation ideal...")
     A_sqrt_ℚ_aug = correct_to_augmentation_ideal(A_sqrt_ℚ)
     @time ℚ_dist_to_Σ² = check_solution(κ_ℚ, A_sqrt_ℚ_aug, Δ_ℚ, verbose=verbose, augmented=true)
