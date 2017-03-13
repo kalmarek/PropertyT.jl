@@ -53,7 +53,7 @@ function create_SDP_problem(matrix_constraints, Δ::GroupAlgebraElement)
     @assert length(Δ) == length(matrix_constraints)
     m = JuMP.Model();
     JuMP.@variable(m, A[1:N, 1:N], SDP)
-    JuMP.@SDconstraint(m, A >= zeros(size(A)))
+    JuMP.@SDconstraint(m, A >= 0)
     JuMP.@variable(m, κ >= 0.0)
     JuMP.@constraint(m, κ <= 0.26)
     JuMP.@objective(m, Max, κ)
