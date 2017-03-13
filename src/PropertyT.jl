@@ -1,4 +1,4 @@
-module Property(T)
+module PropertyT
 
 using GroupAlgebras
 import SCS.SCSSolver
