@@ -67,23 +67,21 @@ function create_SDP_problem(matrix_constraints, Δ::GroupAlgebraElement; upper_b
     return m
 end
 
-function solve_SDP(sdp_constraints, Δ, solver; verbose=true)
-    SDP_problem = create_SDP_problem(sdp_constraints, Δ);
-    verbose && @show solver
+function solve_SDP(SDP_problem, solver)
+    @show SDP_problem
+    @show solver
 
     JuMP.setsolver(SDP_problem, solver);
-    verbose && @show SDP_problem
     # @time MathProgBase.writeproblem(SDP_problem, "/tmp/SDP_problem")
     solution_status = JuMP.solve(SDP_problem);
-    verbose && @show solution_status
 
     if solution_status != :Optimal
         warn("The solver did not solve the problem successfully!")
     end
+    @show solution_status
 
     κ = JuMP.getvalue(JuMP.getvariable(SDP_problem, :κ))
     A = JuMP.getvalue(JuMP.getvariable(SDP_problem, :A))
-    @show sum(A)
     return κ, A
 end
 
