@@ -7,8 +7,6 @@ import Mosek: MosekSolver
 using Mods
 
 using Groups
-using ProgressMeter
-
 
 function SL_generatingset(n::Int)
 
