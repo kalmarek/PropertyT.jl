@@ -131,6 +131,11 @@ S() = SL_generatingset(N)
 const upper_bound=0.27
 
 
+# const p = 7
+# const upper_bound=0.738 # (N,p) = (3,7)
 
+# const name = "SL($N,$p)"
+# const ID = [Mod(x,p) for x in eye(Int,N)]
+# S() = SL_generatingset(N, p)
 
 @time check_property_T(name, ID, S; verbose=true, tol=1e-10, upper_bound=upper_bound)
