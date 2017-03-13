@@ -79,6 +79,27 @@ function inv(M::Array{Mod,2})
     return adjugate(M)
 end
 
+function SL_generatingset(n::Int, p::Int)
+    (p > 1 && n > 1) || throw(ArgumentError("Both n and p should be integers!"))
+    isprime(p) || throw(ArgumentError("p should be a prime number!"))
+
+    indexing = [(i,j) for i in 1:n for j in 1:n if i≠j]
+    S = [E(i,j, N=n, mod=p) for (i,j) in indexing]
+    S = vcat(S, [inv(s) for s in S])
+    S = vcat(S, [permutedims(x, [2,1]) for x in S]);
+
+    return unique(S)
+end
+
+function products{T}(U::AbstractVector{T}, V::AbstractVector{T})
+    result = Vector{T}()
+    for u in U
+        for v in V
+            push!(result, u*v)
+        end
+    end
+    return unique(result)
+end
 
 function ΔandSDPconstraints(identity, S)
     B₁ = vcat([identity], S)
