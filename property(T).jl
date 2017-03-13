@@ -2,15 +2,6 @@ using JuMP
 import Base: rationalize
 using GroupAlgebras
 
-function products{T}(U::AbstractVector{T}, V::AbstractVector{T})
-    result = Vector{T}()
-    for u in U
-        for v in V
-            push!(result, u*v)
-        end
-    end
-    return unique(result)
-end
 
 function create_product_matrix(basis, limit)
     product_matrix = zeros(Int, (limit,limit))
