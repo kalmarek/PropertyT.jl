@@ -123,8 +123,14 @@ end
 using GroupAlgebras
 include("property(T).jl")
 
+const N = 3
+
+const name = "SL$(N)Z"
+const ID = eye(Int, N)
+S() = SL_generatingset(N)
+const upper_bound=0.27
 
 
 
 
-
+@time check_property_T(name, ID, S; verbose=true, tol=1e-10, upper_bound=upper_bound)
