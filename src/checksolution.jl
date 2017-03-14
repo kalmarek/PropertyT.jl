@@ -10,7 +10,7 @@ function EOI{T<:Number}(Δ::GroupAlgebraElement{T}, κ::T)
 end
 
 function algebra_square(vector, elt)
-    zzz = zeros(elt.coefficients)
+    zzz = zeros(eltype(vector), elt.coefficients)
     zzz[1:length(vector)] = vector
 #     new_base_elt = GroupAlgebraElement(zzz, elt.product_matrix)
 #     return (new_base_elt*new_base_elt).coefficients
