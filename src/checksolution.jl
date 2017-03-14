@@ -1,6 +1,9 @@
 using ProgressMeter
-using ValidatedNumerics
 import Base: rationalize
+
+using ValidatedNumerics
+setrounding(Interval, :narrow)
+setdisplay(:standard)
 
 function EOI{T<:Number}(Δ::GroupAlgebraElement{T}, κ::T)
     return Δ*Δ - κ*Δ
@@ -41,6 +44,22 @@ function correct_to_augmentation_ideal{T<:Rational}(sqrt_matrix::Array{T,2})
     return sqrt_corrected
 end
 
+import ValidatedNumerics.±
+
+function (±){T<:Number}(X::AbstractArray{T}, tol::Real)
+    r{T}(x::T) = (x == zero(T)? @biginterval(0) : x ± tol)
+    return r.(X)
+end
+
+(±)(X::GroupAlgebraElement, tol::Real) = GroupAlgebraElement(X.coefficients ± tol, X.product_matrix)
+
+function Base.rationalize{T<:Integer, S<:Real}(::Type{T},
+    X::AbstractArray{S}; tol::Real=eps(eltype(X)))
+    r(x) = rationalize(T, x, tol=tol)
+    return r.(X)
+end
+
+ℚ(x, tol::Real) = rationalize(BigInt, x, tol=tol)
 function check_solution{T<:Number}(κ::T, sqrt_matrix::Array{T,2}, Δ::GroupAlgebraElement{T}; verbose=true, augmented=false)
     result = compute_SOS(sqrt_matrix, Δ)
     if augmented
@@ -67,21 +86,10 @@ function check_solution{T<:Number}(κ::T, sqrt_matrix::Array{T,2}, Δ::GroupAlge
     return distance_to_cone
 end
 
-import ValidatedNumerics.±
-function (±)(X::AbstractArray, tol::Real)
-    r{T}(x::T) = ( x==zero(T) ? @interval(x) : x ± tol)
-    return r.(X)
+
+
 end
 
-(±)(X::GroupAlgebraElement, tol::Real) = GroupAlgebraElement(X.coefficients ± tol, X.product_matrix)
-
-function Base.rationalize{T<:Integer, S<:Real}(::Type{T},
-    X::AbstractArray{S}; tol::Real=eps(eltype(X)))
-    r(x) = rationalize(T, x, tol=tol)
-    return r.(X)
-end
-
-ℚ(x, tol::Real) = rationalize(BigInt, x, tol=tol)
 
 function ℚ_distance_to_positive_cone(Δ::GroupAlgebraElement, κ, A;
     tol=1e-7, verbose=true, rational=false)
