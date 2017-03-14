@@ -121,7 +121,7 @@ function check_property_T(name::String, ID, generate_B₄::Function;
 
     if κ > 0
 
-        true_kappa = ℚ_distance_to_positive_cone(Δ, κ, A, tol=tol, verbose=verbose, rational=true)
+        true_kappa = check_distance_to_positive_cone(Δ, κ, A, tol=tol, verbose=verbose, rational=false)
         true_kappa = Float64(trunc(true_kappa,12))
         if true_kappa > 0
             println("κ($name, S) ≥ $true_kappa: Group HAS property (T)!")
