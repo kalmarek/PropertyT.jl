@@ -45,25 +45,24 @@ function check_solution{T<:Number}(κ::T, sqrt_matrix::Array{T,2}, Δ::GroupAlge
     result = compute_SOS(sqrt_matrix, Δ)
     if augmented
         epsilon = GroupAlgebras.ɛ(result)
-        if isa(epsilon, Interval)
-            @assert 0 in epsilon
-        elseif isa(epsilon, Rational)
-            @assert epsilon == 0//1
-        else
-            warn("Does checking for augmentation has meaning for $(typeof(epsilon))?")
-        end
+        @show epsilon
     end
-    SOS_diff = EOI(Δ, κ) - result
 
+    SOS_diff = EOI(Δ, κ) - result
     eoi_SOS_L₁_dist = norm(SOS_diff,1)
 
     if verbose
         @show κ
         ɛ_dist = GroupAlgebras.ɛ(SOS_diff)
-        @printf("ɛ(Δ² - κΔ - ∑ξᵢ*ξᵢ) ≈ %.10f\n", ɛ_dist)
-        @printf("‖Δ² - κΔ - ∑ξᵢ*ξᵢ‖₁ ≈  %.10f\n", eoi_SOS_L₁_dist)
+        if isa(ɛ_dist, Interval)
+            ɛ_dist = ɛ_dist.lo
+            L₁_dist = eoi_SOS_L₁_dist.lo
+        else
+            L₁_dist = eoi_SOS_L₁_dist
+        end
+        @printf("ɛ(Δ² - κΔ - ∑ξᵢ*ξᵢ) ≈ %.10f\n", float(ɛ_dist))
+        @printf("‖Δ² - κΔ - ∑ξᵢ*ξᵢ‖₁ ≈  %.10f\n", float(L₁_dist))
     end
-
     distance_to_cone = κ - 2^3*eoi_SOS_L₁_dist
     return distance_to_cone
 end
@@ -91,43 +90,27 @@ function ℚ_distance_to_positive_cone(Δ::GroupAlgebraElement, κ, A;
         warn("The solution matrix doesn't seem to be positive definite!")
     @assert A == Symmetric(A)
     A_sqrt = real(sqrtm(A))
-
-    # println("")
-    # println("Checking in floating-point arithmetic...")
-    # @time fp_distance = check_solution(κ, A_sqrt, Δ, verbose=verbose)
-    # println("Floating point distance (to positive cone) ≈ $(Float64(trunc(fp_distance,8)))")
-    # println("-------------------------------------------------------------")
-    # println("")
-    #
-    # if fp_distance ≤ 0
-    #     return fp_distance
-    # end
-
-    println("Checking in interval arithmetic...")
-    A_sqrtᴵ = A_sqrt ± tol
-    κᴵ = κ ± tol
-    Δᴵ = Δ ± tol
-    @time Interval_distance = check_solution(κᴵ, A_sqrtᴵ, Δᴵ, verbose=verbose)
-    # @assert isa(ℚ_distance, Rational)
-    println("The actual distance (to positive cone) is contained in $Interval_distance")
+    println("-------------------------------------------------------------")
+    println("")
+    println("Checking in floating-point arithmetic...")
+    @time fp_distance = check_solution(κ, A_sqrt, Δ, verbose=verbose)
+    println("Floating point distance (to positive cone)\n ≈ $(Float64(trunc(fp_distance,8)))")
     println("-------------------------------------------------------------")
     println("")
 
-    if Interval_distance.lo ≤ 0
-        return Interval_distance.lo
-    end
-
-    println("Projecting columns of A_sqrt to the augmentation ideal...")
-    A_sqrt_ℚ = ℚ(A_sqrt, tol)
+    println("Projecting columns of rationalized A_sqrt to the augmentation ideal...")
+    δ = eps(κ)
+    A_sqrt_ℚ = ℚ(A_sqrt, δ)
     A_sqrt_ℚ_aug = correct_to_augmentation_ideal(A_sqrt_ℚ)
-    κ_ℚ = ℚ(κ, tol)
-    Δ_ℚ = ℚ(Δ, tol)
+    κ_ℚ = ℚ(κ, δ)
+    Δ_ℚ = ℚ(Δ, δ)
 
-    A_sqrt_ℚ_augᴵ = A_sqrt_ℚ_aug ± tol
-    κᴵ = κ_ℚ ± tol
-    Δᴵ = Δ_ℚ ± tol
+    println("Checking in interval arithmetic")
+    A_sqrt_ℚ_augᴵ = A_sqrt_ℚ_aug ± δ
+    κᴵ = κ_ℚ ± δ
+    Δᴵ = Δ_ℚ ± δ
     @time Interval_dist_to_Σ² = check_solution(κᴵ, A_sqrt_ℚ_augᴵ, Δᴵ, verbose=verbose, augmented=true)
-    println("The Augmentation-projected actual distance (to positive cone) is contained in $Interval_dist_to_Σ²")
+    println("The Augmentation-projected actual distance (to positive cone) belongs to \n$Interval_dist_to_Σ²")
     println("-------------------------------------------------------------")
     println("")
 
@@ -138,9 +121,8 @@ function ℚ_distance_to_positive_cone(Δ::GroupAlgebraElement, κ, A;
         println("Checking Projected SOS decomposition in exact rational arithmetic...")
         @time ℚ_dist_to_Σ² = check_solution(κ_ℚ, A_sqrt_ℚ_aug, Δ_ℚ, verbose=verbose, augmented=true)
         @assert isa(ℚ_dist_to_Σ², Rational)
-        println("Augmentation-projected rational distance (to positive cone) ≥ $(Float64(trunc(ℚ_dist_to_Σ²,8)))")
+        println("Augmentation-projected rational distance (to positive cone)\n ≥ $(Float64(trunc(ℚ_dist_to_Σ²,8)))")
         println("-------------------------------------------------------------")
         return ℚ_dist_to_Σ²
     end
 end
- 
