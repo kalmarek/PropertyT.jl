@@ -1,5 +1,6 @@
 module PropertyT
 
+using JLD
 using GroupAlgebras
 import SCS.SCSSolver
 
@@ -44,7 +45,7 @@ end
 
 function ΔandSDPconstraints(name::String, ID, generating_func::Function)
     pm_fname, Δ_fname = pmΔfilenames(name)
-    Δ, sdp_constraints = ΔandSDPconstraints(ID, generating_func())
+    Δ, sdp_constraints = Main.ΔandSDPconstraints(ID, generating_func())
     save(pm_fname, "pm", Δ.product_matrix)
     save(Δ_fname, "Δ", Δ.coefficients)
     return Δ, sdp_constraints
