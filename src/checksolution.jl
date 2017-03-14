@@ -6,7 +6,7 @@ function EOI{T<:Number}(Δ::GroupAlgebraElement{T}, κ::T)
     return Δ*Δ - κ*Δ
 end
 
-function square_as_elt(vector, elt)
+function algebra_square(vector, elt)
     zzz = zeros(elt.coefficients)
     zzz[1:length(vector)] = vector
 #     new_base_elt = GroupAlgebraElement(zzz, elt.product_matrix)
@@ -14,16 +14,20 @@ function square_as_elt(vector, elt)
     return GroupAlgebras.algebra_multiplication(zzz, zzz, elt.product_matrix)
 end
 
-function compute_SOS{T<:Number}(sqrt_matrix::Array{T,2},
-                                  elt::GroupAlgebraElement{T})
+function compute_SOS(sqrt_matrix, elt)
     n = size(sqrt_matrix,2)
-    result = zeros(T, length(elt.coefficients))
-    p = Progress(n, 1, "Checking SOS decomposition...", 50)
-    for i in 1:n
-        result .+= square_as_elt(sqrt_matrix[:,i], elt)
-        next!(p)
+    T = eltype(sqrt_matrix)
+
+    # result = zeros(T, length(elt.coefficients))
+    # for i in 1:n
+    #     result += algebra_square(sqrt_matrix[:,i], elt)
+    # end
+
+    result = @parallel (+) for i in 1:n
+        PropertyT.algebra_square(sqrt_matrix[:,i], elt)
     end
-    return GroupAlgebraElement{T}(result, elt.product_matrix)
+
+    return GroupAlgebraElement(result, elt.product_matrix)
 end
 
 function correct_to_augmentation_ideal{T<:Rational}(sqrt_matrix::Array{T,2})
