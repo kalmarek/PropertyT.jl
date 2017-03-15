@@ -84,4 +84,3 @@ function solve_SDP(SDP_problem, solver)
     A = JuMP.getvalue(JuMP.getvariable(SDP_problem, :A))
     return κ, A
 end
-
