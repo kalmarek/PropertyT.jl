@@ -73,7 +73,12 @@ function solve_SDP(SDP_problem, solver)
 
     JuMP.setsolver(SDP_problem, solver);
     # @time MathProgBase.writeproblem(SDP_problem, "/tmp/SDP_problem")
+
+    TT = STDOUT
+    redirect_stdout(solver_logger.handlers["solver"].io)
     solution_status = JuMP.solve(SDP_problem);
+    remove_handler(solver_logger, "solver")
+    redirect_stdout(TT)
 
     if solution_status != :Optimal
         warn("The solver did not solve the problem successfully!")
