@@ -81,7 +81,7 @@ function solve_SDP(SDP_problem, solver)
     redirect_stdout(TT)
 
     if solution_status != :Optimal
-        warn("The solver did not solve the problem successfully!")
+        warn(logger, "The solver did not solve the problem successfully!")
     end
     info(logger, solution_status)
 
