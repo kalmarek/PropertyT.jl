@@ -36,7 +36,7 @@ function ΔandSDPconstraints(name::String)
     f₁ = isfile(pm_fname)
     f₂ = isfile(Δ_fname)
     if f₁ && f₂
-        println("Loading precomputed pm, Δ, sdp_constraints...")
+        info(logger, "Loading precomputed pm, Δ, sdp_constraints...")
         product_matrix = load(pm_fname, "pm")
         L = load(Δ_fname, "Δ")[:, 1]
         Δ = GroupAlgebraElement(L, Array{Int,2}(product_matrix))
@@ -60,7 +60,7 @@ function κandA(name::String)
     f₁ = isfile(κ_fname)
     f₂ = isfile(SDP_fname)
     if f₁ && f₂
-        println("Loading precomputed κ, A...")
+        info(logger, "Loading precomputed κ, A...")
         κ = load(κ_fname, "κ")
         A = load(SDP_fname, "A")
     else
@@ -79,9 +79,11 @@ function timed_msg(t)
 end
 
 function κandA(name::String, sdp_constraints, Δ::GroupAlgebraElement, solver::AbstractMathProgSolver; upper_bound=Inf)
-    println("Creating SDP problem...")
-    @time SDP_problem = create_SDP_problem(sdp_constraints, Δ; upper_bound=upper_bound)
-    println("Solving SDP problem maximizing κ...")
+    info(logger, "Creating SDP problem...")
+    t = @timed SDP_problem = create_SDP_problem(sdp_constraints, Δ; upper_bound=upper_bound)
+    info(logger, timed_msg(t))
+
+    info(logger, "Solving SDP problem maximizing κ...")
     κ, A = solve_SDP(SDP_problem, solver)
     κ_fname, A_fname = κSDPfilenames(name)
     if κ > 0
@@ -94,15 +96,19 @@ function κandA(name::String, sdp_constraints, Δ::GroupAlgebraElement, solver::
 end
 
 function check_property_T(name::String, ID, generate_B₄::Function;
-    verbose=true, tol=1e-6, upper_bound=Inf)
+    tol=1e-6, upper_bound=Inf)
 
-    # solver = MosekSolver(INTPNT_CO_TOL_REL_GAP=tol, QUIET=!verbose)
-    solver = SCSSolver(eps=tol, max_iters=100000, verbose=verbose)
+    if !isdir(name)
+        mkdir(name)
+    end
 
-    @show name
-    @show verbose
-    @show tol
+    add_handler(logger, DefaultHandler("./$name/full.log"), "full")
+    add_handler(solver_logger, DefaultHandler("./$name/solver.log"), "solver")
+    info(logger, "Group: $name")
+    info(logger, "Precision: $tol")
 
+    # solver = MosekSolver(INTPNT_CO_TOL_REL_GAP=tol, QUIET=false)
+    solver = SCSSolver(eps=tol, max_iters=1000000, verbose=true)
 
     Δ, sdp_constraints = try
         ΔandSDPconstraints(name)
@@ -110,12 +116,13 @@ function check_property_T(name::String, ID, generate_B₄::Function;
         if isa(err, ArgumentError)
             ΔandSDPconstraints(name, ID, generate_B₄)
         else
-            throw(err)
+            error(logger, err)
         end
     end
-    println("|S| = $(countnz(Δ.coefficients) -1)")
-    @show length(Δ)
-    @show size(Δ.product_matrix)
+
+    info(logger, "|S| = $(countnz(Δ.coefficients) - 1)")
+    info(logger, "length(Δ) = $(length(Δ))")
+    info(logger, "size(Δ.product_matrix) = $(size(Δ.product_matrix))")
 
     κ, A = try
         κandA(name)
@@ -123,26 +130,26 @@ function check_property_T(name::String, ID, generate_B₄::Function;
         if isa(err, ArgumentError)
             κandA(name, sdp_constraints, Δ, solver; upper_bound=upper_bound)
         else
-            throw(err)
+            # throw(err)
+            error(logger, err)
         end
     end
 
-    @show κ
-    @show sum(A)
-    @show maximum(A)
-    @show minimum(A)
+    info(logger, "κ = $κ")
+    info(logger, "sum(A) = $(sum(A))")
+    info(logger, "maximum(A) = $(maximum(A))")
+    info(logger, "minimum(A) = $(minimum(A))")
 
     if κ > 0
-
-        true_kappa = check_distance_to_positive_cone(Δ, κ, A, tol=tol, verbose=verbose, rational=false)
+        true_kappa = check_distance_to_positive_cone(Δ, κ, A, tol=tol, rational=false)
         true_kappa = Float64(trunc(true_kappa,12))
         if true_kappa > 0
-            println("κ($name, S) ≥ $true_kappa: Group HAS property (T)!")
+            info(logger, "κ($name, S) ≥ $true_kappa: Group HAS property (T)!")
         else
-            println("κ($name, S) ≥ $true_kappa: Group may NOT HAVE property (T)!")
+            info(logger, "κ($name, S) ≥ $true_kappa: Group may NOT HAVE property (T)!")
         end
     else
-        println("κ($name, S) ≥ $κ < 0: Tells us nothing about property (T)")
+        info(logger, "κ($name, S) ≥ $κ < 0: Tells us nothing about property (T)")
     end
 end
 

@@ -61,99 +61,94 @@ end
 
 ℚ(x, tol::Real) = rationalize(BigInt, x, tol=tol)
 
-function distance_to_cone{T<:Rational}(κ::T, sqrt_matrix::Array{T,2}, Δ::GroupAlgebraElement{T}; verbose=true, augmented=false)
+function distance_to_cone{T<:Rational}(κ::T, sqrt_matrix::Array{T,2}, Δ::GroupAlgebraElement{T})
     SOS = compute_SOS(sqrt_matrix, Δ)
-    if augmented
-        epsilon = GroupAlgebras.ɛ(SOS)
-        @show epsilon
-    end
 
     SOS_diff = EOI(Δ, κ) - SOS
     eoi_SOS_L₁_dist = norm(SOS_diff,1)
 
-    if verbose
-        @show κ
-        ɛ_dist = GroupAlgebras.ɛ(SOS_diff)
-        L₁_dist = eoi_SOS_L₁_dist
-        @printf("ɛ(Δ² - κΔ - ∑ξᵢ*ξᵢ) = %.10f\n", float(ɛ_dist))
-        @printf("‖Δ² - κΔ - ∑ξᵢ*ξᵢ‖₁ =  %.10f\n", float(L₁_dist))
+    info(logger, "κ = $κ")
+    ɛ_dist = GroupAlgebras.ɛ(SOS_diff)
+    if ɛ_dist ≠ 0//1
+        warn(logger, "The SOS is not in the augmentation ideal, number below are meaningless!")
     end
+    info(logger, "ɛ(Δ² - κΔ - ∑ξᵢ*ξᵢ) = $ɛ_dist")
+    info(logger, "‖Δ² - κΔ - ∑ξᵢ*ξᵢ‖₁ = $(@sprintf("%.10f", float(eoi_SOS_L₁_dist)))")
+
     distance_to_cone = κ - 2^3*eoi_SOS_L₁_dist
     return distance_to_cone
 end
 
-function distance_to_cone{T<:Rational, S<:Interval}(κ::T, sqrt_matrix::Array{S,2}, Δ::GroupAlgebraElement{T}; verbose=true)
+function distance_to_cone{T<:Rational, S<:Interval}(κ::T, sqrt_matrix::Array{S,2}, Δ::GroupAlgebraElement{T})
     SOS = compute_SOS(sqrt_matrix, Δ)
-    verbose && println("ɛ(∑ξᵢ*ξᵢ) ∈ $(GroupAlgebras.ɛ(SOS))")
+    info(logger, "ɛ(∑ξᵢ*ξᵢ) ∈ $(GroupAlgebras.ɛ(SOS))")
 
     SOS_diff = EOI(Δ, κ) - SOS
     eoi_SOS_L₁_dist = norm(SOS_diff,1)
 
-    if verbose
-        @show κ
-        ɛ_dist = GroupAlgebras.ɛ(SOS_diff)
+    info(logger, "κ = $κ")
+    ɛ_dist = GroupAlgebras.ɛ(SOS_diff)
 
-        println("ɛ(Δ² - κΔ - ∑ξᵢ*ξᵢ) ∈ $(ɛ_dist)")
-        println("‖Δ² - κΔ - ∑ξᵢ*ξᵢ‖₁ ∈ $(eoi_SOS_L₁_dist)")
-    end
+    info(logger, "ɛ(Δ² - κΔ - ∑ξᵢ*ξᵢ) ∈ $(ɛ_dist)")
+    info(logger, "‖Δ² - κΔ - ∑ξᵢ*ξᵢ‖₁ ∈ $(eoi_SOS_L₁_dist)")
+
     distance_to_cone = κ - 2^3*eoi_SOS_L₁_dist
     return distance_to_cone
 end
 
-function distance_to_cone{T<:AbstractFloat}(κ::T, sqrt_matrix::Array{T,2}, Δ::GroupAlgebraElement{T}; verbose=true)
+function distance_to_cone{T<:AbstractFloat}(κ::T, sqrt_matrix::Array{T,2}, Δ::GroupAlgebraElement{T})
     SOS = compute_SOS(sqrt_matrix, Δ)
 
     SOS_diff = EOI(Δ, κ) - SOS
     eoi_SOS_L₁_dist = norm(SOS_diff,1)
 
-    if verbose
-        println("κ = $κ (≈$(float(κ)))")
-        ɛ_dist = GroupAlgebras.ɛ(SOS_diff)
-        @printf("ɛ(Δ² - κΔ - ∑ξᵢ*ξᵢ) ≈ %.10f\n", ɛ_dist)
-        @printf("‖Δ² - κΔ - ∑ξᵢ*ξᵢ‖₁ ≈  %.10f\n", eoi_SOS_L₁_dist)
-    end
+    info(logger, "κ = $κ (≈$(float(κ)))")
+    ɛ_dist = GroupAlgebras.ɛ(SOS_diff)
+    info(logger, "ɛ(Δ² - κΔ - ∑ξᵢ*ξᵢ) ≈ $(@sprintf("%.10f\n", ɛ_dist))")
+    info(logger, "‖Δ² - κΔ - ∑ξᵢ*ξᵢ‖₁ ≈ $(@sprintf("%.10f\n", eoi_SOS_L₁_dist))")
+
     distance_to_cone = κ - 2^3*eoi_SOS_L₁_dist
     return distance_to_cone
 end
 
 function check_distance_to_positive_cone(Δ::GroupAlgebraElement, κ, A;
-    tol=1e-7, verbose=true, rational=false)
+    tol=1e-7, rational=false)
 
     isapprox(eigvals(A), abs(eigvals(A)), atol=tol) ||
         warn("The solution matrix doesn't seem to be positive definite!")
     @assert A == Symmetric(A)
     A_sqrt = real(sqrtm(A))
 
-    println("-------------------------------------------------------------")
-    println("")
-    println("Checking in floating-point arithmetic...")
-    @time fp_distance = distance_to_cone(κ, A_sqrt, Δ, verbose=verbose)
-    println("Floating point distance (to positive cone)\n ≈ $(Float64(trunc(fp_distance,10)))")
-    println("-------------------------------------------------------------")
-    println("")
+    info(logger, "-------------------------------------------------------------")
+    info(logger, "")
+    info(logger, "Checking in floating-point arithmetic...")
+    @time fp_distance = distance_to_cone(κ, A_sqrt, Δ)
+    info(logger, "Floating point distance (to positive cone)\n ≈ $(Float64(trunc(fp_distance,10)))")
+    info(logger, "-------------------------------------------------------------")
+    info(logger, "")
 
-    println("Projecting columns of rationalized A_sqrt to the augmentation ideal...")
+    info(logger, "Projecting columns of rationalized A_sqrt to the augmentation ideal...")
     δ = eps(κ)
     A_sqrt_ℚ = ℚ(A_sqrt, δ)
     A_sqrt_ℚ_aug = correct_to_augmentation_ideal(A_sqrt_ℚ)
     κ_ℚ = ℚ(κ, δ)
     Δ_ℚ = ℚ(Δ, δ)
 
-    println("Checking in interval arithmetic")
+    info(logger, "Checking in interval arithmetic")
     A_sqrt_ℚ_augᴵ = A_sqrt_ℚ_aug ± δ
-    @time Interval_dist_to_Σ² = distance_to_cone(κ_ℚ, A_sqrt_ℚ_augᴵ, Δ_ℚ, verbose=verbose)
-    println("The Augmentation-projected actual distance (to positive cone) belongs to \n$Interval_dist_to_Σ²")
-    println("-------------------------------------------------------------")
-    println("")
+    @time Interval_dist_to_Σ² = distance_to_cone(κ_ℚ, A_sqrt_ℚ_augᴵ, Δ_ℚ)
+    info(logger, "The Augmentation-projected actual distance (to positive cone) belongs to \n$Interval_dist_to_Σ²")
+    info(logger, "-------------------------------------------------------------")
+    info(logger, "")
 
     if Interval_dist_to_Σ².lo ≤ 0
         return Interval_dist_to_Σ².lo
     else
-        println("Checking Projected SOS decomposition in exact rational arithmetic...")
-        @time ℚ_dist_to_Σ² = distance_to_cone(κ_ℚ, A_sqrt_ℚ_aug, Δ_ℚ, verbose=verbose, augmented=true)
+        info(logger, "Checking Projected SOS decomposition in exact rational arithmetic...")
+        @time ℚ_dist_to_Σ² = distance_to_cone(κ_ℚ, A_sqrt_ℚ_aug, Δ_ℚ, augmented=true)
         @assert isa(ℚ_dist_to_Σ², Rational)
-        println("Augmentation-projected rational distance (to positive cone)\n ≥ $(Float64(trunc(ℚ_dist_to_Σ²,8)))")
-        println("-------------------------------------------------------------")
+        info(logger, "Augmentation-projected rational distance (to positive cone)\n ≥ $(Float64(trunc(ℚ_dist_to_Σ²,8)))")
+        info(logger, "-------------------------------------------------------------")
         return ℚ_dist_to_Σ²
     end
 end

@@ -68,8 +68,8 @@ function create_SDP_problem(matrix_constraints, Δ::GroupAlgebraElement; upper_b
 end
 
 function solve_SDP(SDP_problem, solver)
-    @show SDP_problem
-    @show solver
+    info(logger, Base.repr(m))
+    info(logger, solver)
 
     JuMP.setsolver(SDP_problem, solver);
     # @time MathProgBase.writeproblem(SDP_problem, "/tmp/SDP_problem")
@@ -78,7 +78,7 @@ function solve_SDP(SDP_problem, solver)
     if solution_status != :Optimal
         warn("The solver did not solve the problem successfully!")
     end
-    @show solution_status
+    info(logger, solution_status)
 
     κ = JuMP.getvalue(JuMP.getvariable(SDP_problem, :κ))
     A = JuMP.getvalue(JuMP.getvariable(SDP_problem, :A))
