@@ -67,7 +67,7 @@ function distance_to_cone{T<:Rational}(κ::T, sqrt_matrix::Array{T,2}, Δ::Group
     SOS_diff = EOI(Δ, κ) - SOS
     eoi_SOS_L₁_dist = norm(SOS_diff,1)
 
-    info(logger, "κ = $κ")
+    info(logger, "κ = $κ (≈$(float(κ)))")
     ɛ_dist = GroupAlgebras.ɛ(SOS_diff)
     if ɛ_dist ≠ 0//1
         warn(logger, "The SOS is not in the augmentation ideal, number below are meaningless!")
@@ -86,7 +86,7 @@ function distance_to_cone{T<:Rational, S<:Interval}(κ::T, sqrt_matrix::Array{S,
     SOS_diff = EOI(Δ, κ) - SOS
     eoi_SOS_L₁_dist = norm(SOS_diff,1)
 
-    info(logger, "κ = $κ")
+    info(logger, "κ = $κ (≈$(float(κ)))")
     ɛ_dist = GroupAlgebras.ɛ(SOS_diff)
 
     info(logger, "ɛ(Δ² - κΔ - ∑ξᵢ*ξᵢ) ∈ $(ɛ_dist)")
@@ -102,7 +102,7 @@ function distance_to_cone{T<:AbstractFloat}(κ::T, sqrt_matrix::Array{T,2}, Δ::
     SOS_diff = EOI(Δ, κ) - SOS
     eoi_SOS_L₁_dist = norm(SOS_diff,1)
 
-    info(logger, "κ = $κ (≈$(float(κ)))")
+    info(logger, "κ = $κ")
     ɛ_dist = GroupAlgebras.ɛ(SOS_diff)
     info(logger, "ɛ(Δ² - κΔ - ∑ξᵢ*ξᵢ) ≈ $(@sprintf("%.10f\n", ɛ_dist))")
     info(logger, "‖Δ² - κΔ - ∑ξᵢ*ξᵢ‖₁ ≈ $(@sprintf("%.10f\n", eoi_SOS_L₁_dist))")
@@ -119,13 +119,12 @@ function check_distance_to_positive_cone(Δ::GroupAlgebraElement, κ, A;
     @assert A == Symmetric(A)
     A_sqrt = real(sqrtm(A))
 
-    info(logger, "-------------------------------------------------------------")
+    info(logger, "------------------------------------------------------------")
     info(logger, "")
     info(logger, "Checking in floating-point arithmetic...")
     @time fp_distance = distance_to_cone(κ, A_sqrt, Δ)
-    info(logger, "Floating point distance (to positive cone)\n ≈ $(Float64(trunc(fp_distance,10)))")
-    info(logger, "-------------------------------------------------------------")
-    info(logger, "")
+    info(logger, "Floating point distance (to positive cone) ≈ $(Float64(trunc(fp_distance,10)))")
+    info(logger, "------------------------------------------------------------")
 
     info(logger, "Projecting columns of rationalized A_sqrt to the augmentation ideal...")
     δ = eps(κ)
@@ -137,9 +136,8 @@ function check_distance_to_positive_cone(Δ::GroupAlgebraElement, κ, A;
     info(logger, "Checking in interval arithmetic")
     A_sqrt_ℚ_augᴵ = A_sqrt_ℚ_aug ± δ
     @time Interval_dist_to_Σ² = distance_to_cone(κ_ℚ, A_sqrt_ℚ_augᴵ, Δ_ℚ)
-    info(logger, "The Augmentation-projected actual distance (to positive cone) belongs to \n$Interval_dist_to_Σ²")
-    info(logger, "-------------------------------------------------------------")
-    info(logger, "")
+    info(logger, "The Augmentation-projected actual distance (to positive cone) belongs to $Interval_dist_to_Σ²")
+    info(logger, "------------------------------------------------------------")
 
     if Interval_dist_to_Σ².lo ≤ 0
         return Interval_dist_to_Σ².lo
@@ -147,8 +145,8 @@ function check_distance_to_positive_cone(Δ::GroupAlgebraElement, κ, A;
         info(logger, "Checking Projected SOS decomposition in exact rational arithmetic...")
         @time ℚ_dist_to_Σ² = distance_to_cone(κ_ℚ, A_sqrt_ℚ_aug, Δ_ℚ)
         @assert isa(ℚ_dist_to_Σ², Rational)
-        info(logger, "Augmentation-projected rational distance (to positive cone)\n ≥ $(Float64(trunc(ℚ_dist_to_Σ²,8)))")
-        info(logger, "-------------------------------------------------------------")
+        info(logger, "Augmentation-projected rational distance (to positive cone) ≥ $(Float64(trunc(ℚ_dist_to_Σ²,8)))")
+        info(logger, "------------------------------------------------------------")
         return ℚ_dist_to_Σ²
     end
 end
