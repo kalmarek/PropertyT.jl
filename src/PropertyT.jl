@@ -6,6 +6,7 @@ import SCS.SCSSolver
 using Memento
 
 const logger = basic_config("info")
+const solver_logger = basic_config("info")
 
 include("sdps.jl")
 include("checksolution.jl")
@@ -82,6 +83,9 @@ function κandA(name::String, sdp_constraints, Δ::GroupAlgebraElement, solver::
     if isfile("$name/solver.log")
         rm("$name/solver.log")
     end
+
+    add_handler(solver_logger, DefaultHandler("./$name/solver.log"), "solver")
+
     t = @timed SDP_problem = create_SDP_problem(sdp_constraints, Δ; upper_bound=upper_bound)
     info(logger, timed_msg(t))
 

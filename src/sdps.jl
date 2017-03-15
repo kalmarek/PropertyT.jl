@@ -74,8 +74,6 @@ function solve_SDP(SDP_problem, solver)
     JuMP.setsolver(SDP_problem, solver);
     # @time MathProgBase.writeproblem(SDP_problem, "/tmp/SDP_problem")
 
-    solver_logger = basic_config("info")
-    add_handler(solver_logger, DefaultHandler("./$name/solver.log"), "solver")
 
     TT = STDOUT
     redirect_stdout(solver_logger.handlers["solver"].io)
