@@ -64,7 +64,7 @@ end
 function distance_to_cone{T<:Rational}(κ::T, sqrt_matrix::Array{T,2}, Δ::GroupAlgebraElement{T}; verbose=true, augmented=false)
     SOS = compute_SOS(sqrt_matrix, Δ)
     if augmented
-        epsilon = GroupAlgebras.ɛ(result)
+        epsilon = GroupAlgebras.ɛ(SOS)
         @show epsilon
     end
 
@@ -150,7 +150,7 @@ function check_distance_to_positive_cone(Δ::GroupAlgebraElement, κ, A;
         return Interval_dist_to_Σ².lo
     else
         println("Checking Projected SOS decomposition in exact rational arithmetic...")
-        @time ℚ_dist_to_Σ² = check_solution(κ_ℚ, A_sqrt_ℚ_aug, Δ_ℚ, verbose=verbose, augmented=true)
+        @time ℚ_dist_to_Σ² = distance_to_cone(κ_ℚ, A_sqrt_ℚ_aug, Δ_ℚ, verbose=verbose, augmented=true)
         @assert isa(ℚ_dist_to_Σ², Rational)
         println("Augmentation-projected rational distance (to positive cone)\n ≥ $(Float64(trunc(ℚ_dist_to_Σ²,8)))")
         println("-------------------------------------------------------------")
