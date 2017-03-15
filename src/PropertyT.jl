@@ -6,7 +6,6 @@ import SCS.SCSSolver
 using Memento
 
 const logger = basic_config("info")
-const solver_logger = basic_config("info")
 
 include("sdps.jl")
 include("checksolution.jl")
@@ -80,6 +79,9 @@ end
 
 function κandA(name::String, sdp_constraints, Δ::GroupAlgebraElement, solver::AbstractMathProgSolver; upper_bound=Inf)
     info(logger, "Creating SDP problem...")
+    if isfile("$name/solver.log")
+        rm("$name/solver.log")
+    end
     t = @timed SDP_problem = create_SDP_problem(sdp_constraints, Δ; upper_bound=upper_bound)
     info(logger, timed_msg(t))
 
@@ -103,7 +105,6 @@ function check_property_T(name::String, ID, generate_B₄::Function;
     end
 
     add_handler(logger, DefaultHandler("./$name/full.log", DefaultFormatter("{date}|{msg}")), "full")
-    add_handler(solver_logger, DefaultHandler("./$name/solver.log"), "solver")
     info(logger, "Group: $name")
     info(logger, "Precision: $tol")
 
