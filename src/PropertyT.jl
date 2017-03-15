@@ -5,7 +5,7 @@ using GroupAlgebras
 import SCS.SCSSolver
 using Memento
 
-const logger = basic_config("info"; fmt="[{date}|{level}]: {msg}")
+const logger = basic_config("info")
 const solver_logger = basic_config("info")
 
 include("sdps.jl")
@@ -102,7 +102,7 @@ function check_property_T(name::String, ID, generate_B₄::Function;
         mkdir(name)
     end
 
-    add_handler(logger, DefaultHandler("./$name/full.log"), "full")
+    add_handler(logger, DefaultHandler("./$name/full.log", DefaultFormatter("{date}|{msg}")), "full")
     add_handler(solver_logger, DefaultHandler("./$name/solver.log"), "solver")
     info(logger, "Group: $name")
     info(logger, "Precision: $tol")
