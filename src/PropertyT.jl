@@ -69,6 +69,15 @@ function κandA(name::String)
     return κ, A
 end
 
+function timed_msg(t)
+    elapsed = t[2]
+    bytes_alloc = t[3]
+    gc_time = t[4]
+    gc_diff = t[5]
+
+    return "took: $elapsed s, allocated: $bytes_alloc bytes ($(gc_diff.poolalloc) allocations)."
+end
+
 function κandA(name::String, sdp_constraints, Δ::GroupAlgebraElement, solver::AbstractMathProgSolver; upper_bound=Inf)
     println("Creating SDP problem...")
     @time SDP_problem = create_SDP_problem(sdp_constraints, Δ; upper_bound=upper_bound)
