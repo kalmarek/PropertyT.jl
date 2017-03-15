@@ -77,6 +77,7 @@ function solve_SDP(SDP_problem, solver)
     TT = STDOUT
     redirect_stdout(solver_logger.handlers["solver"].io)
     solution_status = JuMP.solve(SDP_problem);
+    flush(solver_logger.handlers["solver"].io)
     remove_handler(solver_logger, "solver")
     redirect_stdout(TT)
 
