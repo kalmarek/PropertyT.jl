@@ -68,7 +68,7 @@ function create_SDP_problem(matrix_constraints, Δ::GroupAlgebraElement; upper_b
 end
 
 function solve_SDP(SDP_problem, solver)
-    info(logger, Base.repr(m))
+    info(logger, Base.repr(SDP_problem))
     info(logger, solver)
 
     JuMP.setsolver(SDP_problem, solver);
