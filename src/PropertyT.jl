@@ -3,6 +3,10 @@ module PropertyT
 using JLD
 using GroupAlgebras
 import SCS.SCSSolver
+using Memento
+
+const logger = basic_config("info"; fmt="[{date}|{level}]: {msg}")
+const solver_logger = basic_config("info")
 
 include("sdps.jl")
 include("checksolution.jl")
