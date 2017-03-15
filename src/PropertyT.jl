@@ -80,6 +80,9 @@ end
 
 function κandA(name::String, sdp_constraints, Δ::GroupAlgebraElement, solver::AbstractMathProgSolver; upper_bound=Inf)
     info(logger, "Creating SDP problem...")
+    if isfile("$name/solver.log")
+        rm("$name/solver.log")
+    end
     t = @timed SDP_problem = create_SDP_problem(sdp_constraints, Δ; upper_bound=upper_bound)
     info(logger, timed_msg(t))
 
