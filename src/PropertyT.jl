@@ -144,7 +144,7 @@ function check_property_T(name::String, ID, generate_B₄::Function,
         spectral_gap = check_distance_to_positive_cone(Δ, κ, A, tol=tol, rational=false)
         Kazhdan_κ = sqrt(2*spectral_gap/S)
         Kazhdan_κ = Float64(trunc(Kazhdan_κ,12))
-        if true_kappa > 0
+        if Kazhdan_κ > 0
             info(logger, "κ($name, S) ≥ $Kazhdan_κ: Group HAS property (T)!")
         else
             info(logger, "κ($name, S) ≥ $Kazhdan_κ: Group may NOT HAVE property (T)!")
