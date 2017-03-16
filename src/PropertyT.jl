@@ -79,13 +79,13 @@ function timed_msg(t)
 end
 
 function κandA(name::String, sdp_constraints, Δ::GroupAlgebraElement, solver::AbstractMathProgSolver; upper_bound=Inf)
-    info(logger, "Creating SDP problem...")
     if isfile("$name/solver.log")
         rm("$name/solver.log")
     end
 
-    add_handler(solver_logger, DefaultHandler("./$name/solver.log"), "solver")
+    add_handler(solver_logger, DefaultHandler("./$name/solver.log", DefaultFormatter("{date}| {msg}")), "solver")
 
+    info(logger, "Creating SDP problem...")
     t = @timed SDP_problem = create_SDP_problem(sdp_constraints, Δ; upper_bound=upper_bound)
     info(logger, timed_msg(t))
 
@@ -108,7 +108,7 @@ function check_property_T(name::String, ID, generate_B₄::Function;
         mkdir(name)
     end
 
-    add_handler(logger, DefaultHandler("./$name/full.log", DefaultFormatter("{date}|{msg}")), "full")
+    add_handler(logger, DefaultHandler("./$name/full.log", DefaultFormatter("{date}| {msg}")), "full")
     info(logger, "Group: $name")
     info(logger, "Precision: $tol")
 
