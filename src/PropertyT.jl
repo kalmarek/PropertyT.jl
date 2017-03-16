@@ -2,7 +2,6 @@ module PropertyT
 
 using JLD
 using GroupAlgebras
-import SCS.SCSSolver
 using Memento
 
 const logger = basic_config("info", fmt="{msg}")
@@ -100,8 +99,8 @@ function κandA(name::String, sdp_constraints, Δ::GroupAlgebraElement, solver::
     return κ, A
 end
 
-function check_property_T(name::String, ID, generate_B₄::Function;
-    tol=1e-6, upper_bound=Inf)
+function check_property_T(name::String, ID, generate_B₄::Function,
+    solver, upper_bound, tol=1e-6)
 
     if !isdir(name)
         mkdir(name)
@@ -110,9 +109,6 @@ function check_property_T(name::String, ID, generate_B₄::Function;
     add_handler(logger, DefaultHandler("./$name/full.log", DefaultFormatter("{date}| {msg}")), "full")
     info(logger, "Group: $name")
     info(logger, "Precision: $tol")
-
-    # solver = MosekSolver(INTPNT_CO_TOL_REL_GAP=tol, QUIET=false)
-    solver = SCSSolver(eps=tol, max_iters=1000000, verbose=true)
 
     Δ, sdp_constraints = try
         ΔandSDPconstraints(name)
