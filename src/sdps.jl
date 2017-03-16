@@ -75,17 +75,15 @@ function solve_SDP(SDP_problem, solver)
 
     out = STDOUT
     err = STDERR
-    redirect_stdout(solver_logger.handlers["solver"].io)
-    redirect_stderr(solver_logger.handlers["solver"].io)
+    o = redirect_stdout(solver_logger.handlers["solver"].io)
+    e = redirect_stderr(solver_logger.handlers["solver"].io)
 
     solution_status = JuMP.solve(SDP_problem);
-
-    flush(solver_logger.handlers["solver"].io)
-    info(solver_logger, "Finished!")
+    Base.Libc.flush_cstdio()
     remove_handler(solver_logger, "solver")
 
-    redirect_stdout(out)
-    redirect_stderr(err)
+    redirect_stdout(o)
+    redirect_stderr(e)
 
     if solution_status != :Optimal
         warn(logger, "The solver did not solve the problem successfully!")
