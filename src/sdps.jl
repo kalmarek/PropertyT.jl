@@ -68,21 +68,23 @@ function create_SDP_problem(matrix_constraints, Δ::GroupAlgebraElement; upper_b
 end
 
 function solve_SDP(SDP_problem, solver)
+    JuMP.setsolver(SDP_problem, solver)
     info(logger, Base.repr(SDP_problem))
-    info(logger, solver)
 
-    JuMP.setsolver(SDP_problem, solver);
     # @time MathProgBase.writeproblem(SDP_problem, "/tmp/SDP_problem")
 
-    solver_logger = basic_config("info")
-    add_handler(solver_logger, DefaultHandler("./$name/solver.log"), "solver")
-
-    TT = STDOUT
+    out = STDOUT
+    err = STDERR
     redirect_stdout(solver_logger.handlers["solver"].io)
+    redirect_stderr(solver_logger.handlers["solver"].io)
+
     solution_status = JuMP.solve(SDP_problem);
+
     flush(solver_logger.handlers["solver"].io)
+    info(solver_logger, "Finished!")
     remove_handler(solver_logger, "solver")
-    redirect_stdout(TT)
+
+    redirect_stdout(out)
 
     if solution_status != :Optimal
         warn(logger, "The solver did not solve the problem successfully!")
