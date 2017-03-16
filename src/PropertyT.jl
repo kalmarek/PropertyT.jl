@@ -124,8 +124,8 @@ function check_property_T(name::String, ID, generate_B₄::Function;
             error(logger, err)
         end
     end
-
-    info(logger, "|S| = $(countnz(Δ.coefficients) - 1)")
+    S = countnz(Δ.coefficients) - 1
+    info(logger, "|S| = $S")
     info(logger, "length(Δ) = $(length(Δ))")
     info(logger, "size(Δ.product_matrix) = $(size(Δ.product_matrix))")
 
@@ -146,12 +146,13 @@ function check_property_T(name::String, ID, generate_B₄::Function;
     info(logger, "minimum(A) = $(minimum(A))")
 
     if κ > 0
-        true_kappa = check_distance_to_positive_cone(Δ, κ, A, tol=tol, rational=false)
-        true_kappa = Float64(trunc(true_kappa,12))
+        spectral_gap = check_distance_to_positive_cone(Δ, κ, A, tol=tol, rational=false)
+        Kazhdan_κ = sqrt(2*spectral_gap/S)
+        Kazhdan_κ = Float64(trunc(Kazhdan_κ,12))
         if true_kappa > 0
-            info(logger, "κ($name, S) ≥ $true_kappa: Group HAS property (T)!")
+            info(logger, "κ($name, S) ≥ $Kazhdan_κ: Group HAS property (T)!")
         else
-            info(logger, "κ($name, S) ≥ $true_kappa: Group may NOT HAVE property (T)!")
+            info(logger, "κ($name, S) ≥ $Kazhdan_κ: Group may NOT HAVE property (T)!")
         end
     else
         info(logger, "κ($name, S) ≥ $κ < 0: Tells us nothing about property (T)")
