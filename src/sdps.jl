@@ -85,6 +85,7 @@ function solve_SDP(SDP_problem, solver)
     remove_handler(solver_logger, "solver")
 
     redirect_stdout(out)
+    redirect_stderr(err)
 
     if solution_status != :Optimal
         warn(logger, "The solver did not solve the problem successfully!")
