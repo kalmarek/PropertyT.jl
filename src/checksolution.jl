@@ -67,7 +67,7 @@ function distance_to_cone{T<:Rational}(κ::T, sqrt_matrix::Array{T,2}, Δ::Group
     SOS_diff = EOI(Δ, κ) - SOS
     eoi_SOS_L₁_dist = norm(SOS_diff,1)
 
-    info(logger, "κ = $κ (≈$(float(κ)))")
+    info(logger, "κ = $κ (≈$(@sprintf("%.10f", float(κ)))")
     ɛ_dist = GroupAlgebras.ɛ(SOS_diff)
     if ɛ_dist ≠ 0//1
         warn(logger, "The SOS is not in the augmentation ideal, number below are meaningless!")
@@ -86,7 +86,7 @@ function distance_to_cone{T<:Rational, S<:Interval}(κ::T, sqrt_matrix::Array{S,
     SOS_diff = EOI(Δ, κ) - SOS
     eoi_SOS_L₁_dist = norm(SOS_diff,1)
 
-    info(logger, "κ = $κ (≈$(@sprintf("%.10f",κ)))")
+    info(logger, "κ = $κ (≈$(@sprintf("%.10f",float(κ))))")
     ɛ_dist = GroupAlgebras.ɛ(SOS_diff)
 
     info(logger, "ɛ(Δ² - κΔ - ∑ξᵢ*ξᵢ) ∈ $(ɛ_dist)")
@@ -141,7 +141,7 @@ function check_distance_to_positive_cone(Δ::GroupAlgebraElement, κ, A;
     info(logger, "The Augmentation-projected actual distance (to positive cone) ≥ $(@sprintf("%.10f", Interval_dist_to_Σ².lo))")
     info(logger, "------------------------------------------------------------")
 
-    if Interval_dist_to_Σ².lo ≤ 0
+    if Interval_dist_to_Σ².lo ≤ 0 || !rational
         return Interval_dist_to_Σ².lo
     else
         info(logger, "Checking Projected SOS decomposition in exact rational arithmetic...")
