@@ -5,7 +5,7 @@ using GroupAlgebras
 import SCS.SCSSolver
 using Memento
 
-const logger = basic_config("info")
+const logger = basic_config("info", fmt="{msg}")
 const solver_logger = basic_config("info")
 
 include("sdps.jl")
@@ -89,7 +89,6 @@ function κandA(name::String, sdp_constraints, Δ::GroupAlgebraElement, solver::
     t = @timed SDP_problem = create_SDP_problem(sdp_constraints, Δ; upper_bound=upper_bound)
     info(logger, timed_msg(t))
 
-    info(logger, "Solving SDP problem maximizing κ...")
     κ, A = solve_SDP(SDP_problem, solver)
     κ_fname, A_fname = κSDPfilenames(name)
     if κ > 0
