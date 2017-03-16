@@ -86,7 +86,7 @@ function distance_to_cone{T<:Rational, S<:Interval}(κ::T, sqrt_matrix::Array{S,
     SOS_diff = EOI(Δ, κ) - SOS
     eoi_SOS_L₁_dist = norm(SOS_diff,1)
 
-    info(logger, "κ = $κ (≈$(float(κ)))")
+    info(logger, "κ = $κ (≈$(@sprintf("%.10f",κ)))")
     ɛ_dist = GroupAlgebras.ɛ(SOS_diff)
 
     info(logger, "ɛ(Δ² - κΔ - ∑ξᵢ*ξᵢ) ∈ $(ɛ_dist)")
@@ -104,8 +104,8 @@ function distance_to_cone{T<:AbstractFloat}(κ::T, sqrt_matrix::Array{T,2}, Δ::
 
     info(logger, "κ = $κ")
     ɛ_dist = GroupAlgebras.ɛ(SOS_diff)
-    info(logger, "ɛ(Δ² - κΔ - ∑ξᵢ*ξᵢ) ≈ $(@sprintf("%.10f\n", ɛ_dist))")
-    info(logger, "‖Δ² - κΔ - ∑ξᵢ*ξᵢ‖₁ ≈ $(@sprintf("%.10f\n", eoi_SOS_L₁_dist))")
+    info(logger, "ɛ(Δ² - κΔ - ∑ξᵢ*ξᵢ) ≈ $(@sprintf("%.10f", ɛ_dist))")
+    info(logger, "‖Δ² - κΔ - ∑ξᵢ*ξᵢ‖₁ ≈ $(@sprintf("%.10f", eoi_SOS_L₁_dist))")
 
     distance_to_cone = κ - 2^3*eoi_SOS_L₁_dist
     return distance_to_cone
@@ -124,7 +124,7 @@ function check_distance_to_positive_cone(Δ::GroupAlgebraElement, κ, A;
     info(logger, "Checking in floating-point arithmetic...")
     t = @timed fp_distance = distance_to_cone(κ, A_sqrt, Δ)
     info(logger, timed_msg(t))
-    info(logger, "Floating point distance (to positive cone) ≈ $(Float64(trunc(fp_distance,10)))")
+    info(logger, "Floating point distance (to positive cone) ≈ $(@sprintf("%.10f", fp_distance))")
     info(logger, "------------------------------------------------------------")
 
     info(logger, "Projecting columns of rationalized A_sqrt to the augmentation ideal...")
@@ -138,7 +138,7 @@ function check_distance_to_positive_cone(Δ::GroupAlgebraElement, κ, A;
     A_sqrt_ℚ_augᴵ = A_sqrt_ℚ_aug ± δ
     t = @timed Interval_dist_to_Σ² = distance_to_cone(κ_ℚ, A_sqrt_ℚ_augᴵ, Δ_ℚ)
     info(logger, timed_msg(t))
-    info(logger, "The Augmentation-projected actual distance (to positive cone) belongs to $Interval_dist_to_Σ²")
+    info(logger, "The Augmentation-projected actual distance (to positive cone) ≥ $(@sprintf("%.10f", Interval_dist_to_Σ².lo))")
     info(logger, "------------------------------------------------------------")
 
     if Interval_dist_to_Σ².lo ≤ 0
