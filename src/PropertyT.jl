@@ -107,8 +107,9 @@ function check_property_T(name::String, ID, generate_B₄::Function,
     end
 
     add_handler(logger, DefaultHandler("./$name/full.log", DefaultFormatter("{date}| {msg}")), "full")
-    info(logger, "Group: $name")
-    info(logger, "Precision: $tol")
+    info(logger, "Group:       $name")
+    info(logger, "Precision:   $tol")
+    info(logger, "Upper bound: $upper_bound")
 
     Δ, sdp_constraints = try
         ΔandSDPconstraints(name)
