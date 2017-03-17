@@ -74,7 +74,6 @@ function solve_SDP(SDP_problem, solver)
     # @time MathProgBase.writeproblem(SDP_problem, "/tmp/SDP_problem")
 
     out = STDOUT
-    err = STDERR
     o = redirect_stdout(solver_logger.handlers["solver"].io)
     e = redirect_stderr(solver_logger.handlers["solver"].io)
 
@@ -84,7 +83,6 @@ function solve_SDP(SDP_problem, solver)
     remove_handler(solver_logger, "solver")
 
     redirect_stdout(o)
-    redirect_stderr(e)
 
     if solution_status != :Optimal
         warn(logger, "The solver did not solve the problem successfully!")
