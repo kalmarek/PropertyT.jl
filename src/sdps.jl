@@ -49,7 +49,7 @@ end
 
 function create_SDP_problem(matrix_constraints, Δ::GroupAlgebraElement; upper_bound=Inf)
     N = size(Δ.product_matrix,1)
-    const Δ² = Δ*Δ
+    Δ² = Δ*Δ
     @assert length(Δ) == length(matrix_constraints)
     m = JuMP.Model();
     JuMP.@variable(m, A[1:N, 1:N], SDP)
