@@ -1,9 +1,8 @@
-using ProgressMeter
 import Base: rationalize
 
 using ValidatedNumerics
-setrounding(Interval, :narrow)
-setdisplay(:standard)
+ValidatedNumerics.setrounding(Interval, :correct)
+ValidatedNumerics.setformat(:standard)
 
 function EOI{T<:Number}(Δ::GroupAlgebraElement{T}, κ::T)
     return Δ*Δ - κ*Δ
