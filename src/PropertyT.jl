@@ -82,14 +82,13 @@ function κandA(name::String, sdp_constraints, Δ::GroupAlgebraElement, solver::
         rm("$name/solver.log")
     end
 
-    add_handler(solver_logger, DefaultHandler("./$name/solver.log", DefaultFormatter("{date}| {msg}")), "solver")
+    add_handler(solver_logger, DefaultHandler("./$name/solver.log", DefaultFormatter("{date}| {msg}")), "solver_log")
 
     info(logger, "Creating SDP problem...")
     t = @timed SDP_problem = create_SDP_problem(sdp_constraints, Δ; upper_bound=upper_bound)
     info(logger, timed_msg(t))
 
     κ = 0.0
-    A = nothing
     while κ == 0.0
         κ, A = try
             solve_SDP(SDP_problem, solver)
