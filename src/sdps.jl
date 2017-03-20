@@ -55,15 +55,19 @@ function create_SDP_problem(matrix_constraints, Δ::GroupAlgebraElement; upper_b
     JuMP.@variable(m, A[1:N, 1:N], SDP)
     JuMP.@SDconstraint(m, A >= 0)
     JuMP.@constraint(m, sum(A[i] for i in eachindex(A)) == 0)
-    JuMP.@variable(m, κ >= 0.0)
+
     if upper_bound < Inf
-        JuMP.@constraint(m, κ <= upper_bound)
+        JuMP.@variable(m, 0.0 <= κ <= upper_bound)
+    else
+        JuMP.@variable(m, κ >= 0)
     end
-    JuMP.@objective(m, Max, κ)
 
     for (pairs, δ², δ) in zip(matrix_constraints, Δ².coefficients, Δ.coefficients)
         JuMP.@constraint(m, sum(A[i,j] for (i,j) in pairs) == δ² - κ*δ)
     end
+
+    JuMP.@objective(m, Max, κ)
+
     return m
 end
 
