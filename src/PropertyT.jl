@@ -98,6 +98,8 @@ function κandA(name::String, sdp_constraints, Δ::GroupAlgebraElement, solver::
         end
     end
 
+    remove_handler(solver_logger, "solver_log")
+
     κ_fname, A_fname = κSDPfilenames(name)
     if κ > 0
         save(κ_fname, "κ", κ)

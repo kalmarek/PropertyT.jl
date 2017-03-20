@@ -84,7 +84,6 @@ function solve_SDP(SDP_problem, solver)
     t = @timed solution_status = JuMP.solve(SDP_problem)
     info(logger, timed_msg(t))
     Base.Libc.flush_cstdio()
-    remove_handler(solver_logger, "solver")
 
     redirect_stdout(o)
 
