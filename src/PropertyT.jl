@@ -89,9 +89,10 @@ function κandA(name::String, sdp_constraints, Δ::GroupAlgebraElement, solver::
     info(logger, timed_msg(t))
 
     κ = 0.0
+    A = nothing
     while κ == 0.0
-        κ, A = try
-            solve_SDP(SDP_problem, solver)
+        try
+            κ, A = solve_SDP(SDP_problem, solver)
         catch y
             warn(solver_logger, y)
         end
