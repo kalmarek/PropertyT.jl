@@ -76,8 +76,12 @@ function solve_SDP(SDP_problem, solver)
     info(logger, Base.repr(SDP_problem))
 
     # @time MathProgBase.writeproblem(SDP_problem, "/tmp/SDP_problem")
-
     out = STDOUT
+
+    # to change buffering mode of stdout to _IOLBF (line bufferin)
+    # see https://github.com/JuliaLang/julia/issues/8765
+    ccall((:printf, "libc"), Int, (Ptr{UInt8},), "\n");
+
     o = redirect_stdout(solver_logger.handlers["solver_log"].io)
     # e = redirect_stderr(solver_logger.handlers["solver_log"].io)
 
