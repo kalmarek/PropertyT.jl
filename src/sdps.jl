@@ -83,7 +83,6 @@ function solve_SDP(SDP_problem, solver)
     ccall((:printf, "libc"), Int, (Ptr{UInt8},), "\n");
 
     o = redirect_stdout(solver_logger.handlers["solver_log"].io)
-    # e = redirect_stderr(solver_logger.handlers["solver_log"].io)
 
     t = @timed solution_status = JuMP.solve(SDP_problem)
     info(logger, timed_msg(t))

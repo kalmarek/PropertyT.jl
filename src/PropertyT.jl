@@ -117,7 +117,8 @@ function check_property_T(name::String, ID, generate_B₄::Function,
         mkdir(name)
     end
 
-    add_handler(logger, DefaultHandler("./$name/full.log", DefaultFormatter("{date}| {msg}")), "full")
+    add_handler(logger, DefaultHandler("./$name/full.log", DefaultFormatter("{date}| {msg}")), "full_log")
+    e = redirect_stderr(logger.handlers["full_log"].io)
     info(logger, "Group:       $name")
     info(logger, "Precision:   $tol")
     info(logger, "Upper bound: $upper_bound")
