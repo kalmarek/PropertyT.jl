@@ -1,9 +1,9 @@
 using JuMP
 import MathProgBase: AbstractMathProgSolver
 
-function create_product_matrix(basis, limit)
+function create_product_matrix{T}(basis::Vector{T}, limit)
     product_matrix = zeros(Int, (limit,limit))
-    basis_dict = Dict{Array, Int}(x => i
+    basis_dict = Dict{T, Int}(x => i
         for (i,x) in enumerate(basis))
     for i in 1:limit
         x_inv::eltype(basis) = inv(basis[i])
