@@ -46,9 +46,10 @@ function ΔandSDPconstraints(name::String)
     return Δ, sdp_constraints
 end
 
-function ΔandSDPconstraints(name::String, ID, generating_func::Function)
+function ΔandSDPconstraints(name::String, generating_set::Function)
     pm_fname, Δ_fname = pmΔfilenames(name)
-    Δ, sdp_constraints = Main.ΔandSDPconstraints(ID, generating_func())
+    S, ID = generating_set()
+    Δ, sdp_constraints = Main.ΔandSDPconstraints(ID, S)
     save(pm_fname, "pm", Δ.product_matrix)
     save(Δ_fname, "Δ", Δ.coefficients)
     return Δ, sdp_constraints
@@ -110,7 +111,7 @@ function κandA(name::String, sdp_constraints, Δ::GroupAlgebraElement, solver::
     return κ, A
 end
 
-function check_property_T(name::String, ID, generate_B₄::Function,
+function check_property_T(name::String, generating_set::Function,
     solver, upper_bound, tol=1e-6)
 
     if !isdir(name)
@@ -127,7 +128,7 @@ function check_property_T(name::String, ID, generate_B₄::Function,
         ΔandSDPconstraints(name)
     catch err
         if isa(err, ArgumentError)
-            ΔandSDPconstraints(name, ID, generate_B₄)
+            ΔandSDPconstraints(name, generating_set)
         else
             error(logger, err)
         end
