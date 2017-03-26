@@ -5,7 +5,7 @@ using GroupAlgebras
 using Memento
 
 const logger = basic_config("info", fmt="{msg}")
-const solver_logger = basic_config("info")
+const solver_logger = basic_config("info", fmt="{msg}")
 
 include("sdps.jl")
 include("checksolution.jl")
