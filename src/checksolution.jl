@@ -135,8 +135,8 @@ function check_distance_to_positive_cone(Δ::GroupAlgebraElement, κ, A;
     Δ_ℚ = ℚ(Δ, δ)
 
     info(logger, "Checking in interval arithmetic")
-    A_sqrt_ℚ_augᴵ = A_sqrt_ℚ_aug ± δ
-    t = @timed Interval_dist_to_Σ² = distance_to_cone(κ_ℚ, A_sqrt_ℚ_augᴵ, Δ_ℚ)
+    A_sqrt_ℚ_augⁱⁿᵗ = Float64.(A_sqrt_ℚ_aug) ± δ
+    t = @timed Interval_dist_to_Σ² = distance_to_cone(κ_ℚ, A_sqrt_ℚ_augⁱⁿᵗ, Δ_ℚ)
     info(logger, timed_msg(t))
     info(logger, "The Augmentation-projected actual distance (to positive cone) ≥ $(@sprintf("%.10f", Interval_dist_to_Σ².lo))")
     info(logger, "------------------------------------------------------------")
