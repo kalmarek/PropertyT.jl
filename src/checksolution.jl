@@ -46,7 +46,7 @@ end
 import ValidatedNumerics.±
 
 function (±){T<:Number}(X::AbstractArray{T}, tol::Real)
-    r{T}(x::T) = (x == zero(T)? @biginterval(0) : x ± tol)
+    r{T}(x::T) = (x == zero(T)? @interval(0) : x ± tol)
     return r.(X)
 end
 
