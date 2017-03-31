@@ -100,7 +100,7 @@ function κandA(name::String, opts...)
 
             info(logger, "Creating SDP problem...")
 
-            return compute_κandA(opts...)
+            κ, A = compute_κandA(opts...)
 
             remove_handler(solver_logger, "solver_log")
 
