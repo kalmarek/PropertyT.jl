@@ -2,7 +2,9 @@ import Base: rationalize
 
 using ValidatedNumerics
 ValidatedNumerics.setrounding(Interval, :correct)
+# ValidatedNumerics.setrounding(Interval, :fast) #which is slower??
 ValidatedNumerics.setformat(:standard)
+# setprecision(Interval, 53) # slightly faster than 256
 
 function EOI{T<:Number}(Δ::GroupAlgebraElement{T}, κ::T)
     return Δ*Δ - κ*Δ
