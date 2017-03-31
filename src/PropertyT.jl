@@ -121,7 +121,7 @@ function κandA(name::String, opts...)
     end
 end
 
-function compute_κandA(sdp_constraints, Δ::GroupAlgebraElement, solver::AbstractMathProgSolver; upper_bound=Inf)
+function compute_κandA(sdp_constraints, Δ::GroupAlgebraElement, solver::AbstractMathProgSolver, upper_bound=Inf)
 
     t = @timed SDP_problem = create_SDP_problem(sdp_constraints, Δ; upper_bound=upper_bound)
     info(logger, timed_msg(t))
@@ -139,7 +139,7 @@ function compute_κandA(sdp_constraints, Δ::GroupAlgebraElement, solver::Abstra
 end
 
 function check_property_T(name::String, generating_set::Function,
-    solver, upper_bound, tol=1e-6)
+    solver, upper_bound, tol, radius)
 
     if !isdir(name)
         mkdir(name)
@@ -158,7 +158,7 @@ function check_property_T(name::String, generating_set::Function,
     info(logger, "length(Δ) = $(length(Δ))")
     info(logger, "size(Δ.product_matrix) = $(size(Δ.product_matrix))")
 
-    κ, A = κandA(name, sdp_constraints, Δ, solver; upper_bound=upper_bound)
+    κ, A = κandA(name, sdp_constraints, Δ, solver, upper_bound)
 
     info(logger, "κ = $κ")
     info(logger, "sum(A) = $(sum(A))")
