@@ -126,6 +126,10 @@ function check_distance_to_positive_cone(Δ::GroupAlgebraElement, κ, A;
     info(logger, "Floating point distance (to positive cone) ≈ $(@sprintf("%.10f", fp_distance))")
     info(logger, "------------------------------------------------------------")
 
+    # if fp_distance ≤ 0
+    #     return fpdistance
+    # end
+
     info(logger, "Projecting columns of rationalized A_sqrt to the augmentation ideal...")
     δ = eps(κ)
     A_sqrt_ℚ = ℚ(A_sqrt, δ)
