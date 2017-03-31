@@ -129,7 +129,8 @@ function check_distance_to_positive_cone(Δ::GroupAlgebraElement, κ, A;
     info(logger, "Projecting columns of rationalized A_sqrt to the augmentation ideal...")
     δ = eps(κ)
     A_sqrt_ℚ = ℚ(A_sqrt, δ)
-    A_sqrt_ℚ_aug = correct_to_augmentation_ideal(A_sqrt_ℚ)
+    t = @timed A_sqrt_ℚ_aug = correct_to_augmentation_ideal(A_sqrt_ℚ)
+    info(logger, timed_msg(t))
     κ_ℚ = ℚ(κ, δ)
     Δ_ℚ = ℚ(Δ, δ)
 
