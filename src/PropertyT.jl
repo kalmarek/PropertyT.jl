@@ -46,13 +46,21 @@ function ΔandSDPconstraints(name::String)
     return Δ, sdp_constraints
 end
 
-function ΔandSDPconstraints(name::String, generating_set::Function)
-    pm_fname, Δ_fname = pmΔfilenames(name)
-    S, ID = generating_set()
-    Δ, sdp_constraints = Main.ΔandSDPconstraints(ID, S)
-    save(pm_fname, "pm", Δ.product_matrix)
-    save(Δ_fname, "Δ", Δ.coefficients)
-    return Δ, sdp_constraints
+function ΔandSDPconstraints(name::String, generating_set::Function, radius::Int)
+    try
+        return ΔandSDPconstraints(name)
+    catch err
+        if isa(err, ArgumentError)
+            pm_fname, Δ_fname = pmΔfilenames(name)
+            S, Id = generating_set()
+            Δ, sdp_constraints = Main.ΔandSDPconstraints(Id, S, radius)
+            save(pm_fname, "pm", Δ.product_matrix)
+            save(Δ_fname, "Δ", Δ.coefficients)
+            return Δ, sdp_constraints
+        else
+            error(logger, err)
+        end
+    end
 end
 
 function κandA(name::String)
@@ -78,14 +86,43 @@ function timed_msg(t)
     return "took: $elapsed s, allocated: $bytes_alloc bytes ($(gc_diff.poolalloc) allocations)."
 end
 
-function κandA(name::String, sdp_constraints, Δ::GroupAlgebraElement, solver::AbstractMathProgSolver; upper_bound=Inf)
-    if isfile("$name/solver.log")
-        rm("$name/solver.log")
+
+function κandA(name::String, opts...)
+    try
+        return κandA(name)
+    catch err
+        if isa(err, ArgumentError)
+            if isfile("$name/solver.log")
+                rm("$name/solver.log")
+            end
+
+            add_handler(solver_logger, DefaultHandler("./$name/solver.log", DefaultFormatter("{date}| {msg}")), "solver_log")
+
+            info(logger, "Creating SDP problem...")
+
+            return compute_κandA(opts...)
+
+            remove_handler(solver_logger, "solver_log")
+
+            κ_fname, A_fname = κSDPfilenames(name)
+
+            if κ > 0
+                save(κ_fname, "κ", κ)
+                save(A_fname, "A", A)
+            else
+                throw(ErrorException("Solver $solver did not produce a valid solution!: κ = $κ"))
+            end
+            return κ, A
+
+        else
+            # throw(err)
+            error(logger, err)
+        end
     end
+end
 
-    add_handler(solver_logger, DefaultHandler("./$name/solver.log", DefaultFormatter("{date}| {msg}")), "solver_log")
+function compute_κandA(sdp_constraints, Δ::GroupAlgebraElement, solver::AbstractMathProgSolver; upper_bound=Inf)
 
-    info(logger, "Creating SDP problem...")
     t = @timed SDP_problem = create_SDP_problem(sdp_constraints, Δ; upper_bound=upper_bound)
     info(logger, timed_msg(t))
 
@@ -97,16 +134,6 @@ function κandA(name::String, sdp_constraints, Δ::GroupAlgebraElement, solver::
         catch y
             warn(solver_logger, y)
         end
-    end
-
-    remove_handler(solver_logger, "solver_log")
-
-    κ_fname, A_fname = κSDPfilenames(name)
-    if κ > 0
-        save(κ_fname, "κ", κ)
-        save(A_fname, "A", A)
-    else
-        throw(ErrorException("Solver $solver did not produce a valid solution!: κ = $κ"))
     end
     return κ, A
 end
@@ -124,30 +151,14 @@ function check_property_T(name::String, generating_set::Function,
     info(logger, "Precision:   $tol")
     info(logger, "Upper bound: $upper_bound")
 
-    Δ, sdp_constraints = try
-        ΔandSDPconstraints(name)
-    catch err
-        if isa(err, ArgumentError)
-            ΔandSDPconstraints(name, generating_set)
-        else
-            error(logger, err)
-        end
-    end
+    Δ, sdp_constraints = ΔandSDPconstraints(name, generating_set, radius)
+
     S = countnz(Δ.coefficients) - 1
     info(logger, "|S| = $S")
     info(logger, "length(Δ) = $(length(Δ))")
     info(logger, "size(Δ.product_matrix) = $(size(Δ.product_matrix))")
 
-    κ, A = try
-        κandA(name)
-    catch err
-        if isa(err, ArgumentError)
-            κandA(name, sdp_constraints, Δ, solver; upper_bound=upper_bound)
-        else
-            # throw(err)
-            error(logger, err)
-        end
-    end
+    κ, A = κandA(name, sdp_constraints, Δ, solver; upper_bound=upper_bound)
 
     info(logger, "κ = $κ")
     info(logger, "sum(A) = $(sum(A))")
