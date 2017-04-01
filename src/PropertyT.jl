@@ -138,6 +138,8 @@ function compute_κandA(sdp_constraints, Δ::GroupAlgebraElement, solver::Abstra
     return κ, A
 end
 
+Kazhdan_from_sgap(λ,N) = sqrt(2*λ/N)
+
 function check_property_T(name::String, generating_set::Function,
     solver, upper_bound, tol, radius)
 
@@ -171,9 +173,10 @@ function check_property_T(name::String, generating_set::Function,
             spectral_gap = spectral_gap.lo
         end
         if spectral_gap > 0
-            Kazhdan_κ = sqrt(2*spectral_gap/S)
-            Kazhdan_κ = Float64(trunc(Kazhdan_κ, 12))
-            info(logger, "κ($name, S) ≥ $Kazhdan_κ: Group HAS property (T)!")
+            @show spectral_gap
+            Kazhdan_const = Kazhdan_from_sgap(spectral_gap, S)
+            Kazhdan_const = Float64(trunc(Kazhdan_const, 12))
+            info(logger, "κ($name, S) ≥ $Kazhdan_const: Group HAS property (T)!")
         else
             spectral_gap = Float64(trunc(spectral_gap, 12))
             info(logger, "λ($name, S) ≥ $spectral_gap: Group may NOT HAVE property (T)!")
