@@ -109,6 +109,8 @@ function κandA(name::String, opts...)
             if κ > 0
                 save(κ_fname, "κ", κ)
                 save(A_fname, "A", A)
+            else
+                throw(ErrorException("Solver $solver did not produce a valid solution!: κ = $κ"))
             end
             return κ, A
 
