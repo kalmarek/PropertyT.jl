@@ -144,11 +144,11 @@ function check_distance_to_positive_cone(Δ::GroupAlgebraElement, κ, A;
     A_sqrt_ℚ_augⁱⁿᵗ = Float64.(A_sqrt_ℚ_aug) ± δ
     t = @timed Interval_dist_to_Σ² = distance_to_cone(κ_ℚ, A_sqrt_ℚ_augⁱⁿᵗ, Δ_ℚ)
     info(logger, timed_msg(t))
-    info(logger, "The Augmentation-projected actual distance (to positive cone) ≥ $(@sprintf("%.10f", Interval_dist_to_Σ².lo))")
+    info(logger, "The Augmentation-projected actual distance (to positive cone) ∈ $(Interval_dist_to_Σ²)")
     info(logger, "------------------------------------------------------------")
 
     if Interval_dist_to_Σ².lo ≤ 0 || !rational
-        return Interval_dist_to_Σ².lo
+        return Interval_dist_to_Σ²
     else
         info(logger, "Checking Projected SOS decomposition in exact rational arithmetic...")
         t = @timed ℚ_dist_to_Σ² = distance_to_cone(κ_ℚ, A_sqrt_ℚ_aug, Δ_ℚ)

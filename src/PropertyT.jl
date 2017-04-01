@@ -167,6 +167,9 @@ function check_property_T(name::String, generating_set::Function,
 
     if κ > 0
         spectral_gap = check_distance_to_positive_cone(Δ, κ, A, tol=tol, rational=false)
+        if isa(spectral_gap, Interval)
+            spectral_gap = spectral_gap.lo
+        end
         if spectral_gap > 0
             Kazhdan_κ = sqrt(2*spectral_gap/S)
             Kazhdan_κ = Float64(trunc(Kazhdan_κ, 12))
