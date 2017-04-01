@@ -126,11 +126,13 @@ function compute_κandA(sdp_constraints, Δ::GroupAlgebraElement, solver::Abstra
     t = @timed SDP_problem = create_SDP_problem(sdp_constraints, Δ; upper_bound=upper_bound)
     info(logger, timed_msg(t))
 
+    κ = 0.0
+    A = nothing
     while κ == 0.0
-        κ, A = try
-            solve_SDP(SDP_problem, solver)
+        try
+            κ, A = solve_SDP(SDP_problem, solver)
         catch y
-            warn(logger, y)
+            warn(solver_logger, y)
         end
     end
     return κ, A
