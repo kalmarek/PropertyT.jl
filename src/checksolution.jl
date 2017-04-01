@@ -83,11 +83,12 @@ end
 function distance_to_cone{T<:Rational, S<:Interval}(κ::T, sqrt_matrix::Array{S,2}, Δ::GroupAlgebraElement{T})
     SOS = compute_SOS(sqrt_matrix, Δ)
     info(logger, "ɛ(∑ξᵢ*ξᵢ) ∈ $(GroupAlgebras.ɛ(SOS))")
-
-    SOS_diff = EOI(Δ, κ) - SOS
+    κⁱⁿᵗ = @interval(κ)
+    Δⁱⁿᵗ = GroupAlgebraElement([@interval(c) for c in Δ.coefficients], Δ.product_matrix)
+    SOS_diff = EOI(Δⁱⁿᵗ, κⁱⁿᵗ) - SOS
     eoi_SOS_L₁_dist = norm(SOS_diff,1)
 
-    info(logger, "κ = $κ (≈$(@sprintf("%.10f",float(κ))))")
+    info(logger, "κ = $κ (≈≥$(@sprintf("%.10f",float(κ))))")
     ɛ_dist = GroupAlgebras.ɛ(SOS_diff)
 
     info(logger, "ɛ(Δ² - κΔ - ∑ξᵢ*ξᵢ) ∈ $(ɛ_dist)")
