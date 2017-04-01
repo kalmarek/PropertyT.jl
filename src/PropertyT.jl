@@ -171,13 +171,10 @@ function check_property_T(name::String, generating_set::Function,
     if λ > 0
         spectral_gap = check_distance_to_positive_cone(Δ, λ, P, tol=tol, rational=false)
         if isa(spectral_gap, Interval)
-            spectral_gap = spectral_gap.lo
-        end
-        if spectral_gap > 0
-            @show spectral_gap
+            info(logger, "λ ≥ $(Float64(trunc(spectral_gap.lo,12)))")
             Kazhdan_κ = Kazhdan_from_sgap(spectral_gap, S)
-            Kazhdan_κ = Float64(trunc(Kazhdan_κ, 12))
-            info(logger, "κ($name, S) ≥ $Kazhdan_κ: Group HAS property (T)!")
+            Kazhdan_κ_lo = Float64(trunc(Kazhdan_κ.lo, 12))
+            info(logger, "κ($name, S) ≥ $Kazhdan_κ_lo: Group HAS property (T)!")
         else
             spectral_gap = Float64(trunc(spectral_gap, 12))
             info(logger, "λ($name, S) ≥ $spectral_gap: Group may NOT HAVE property (T)!")
