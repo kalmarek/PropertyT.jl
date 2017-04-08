@@ -38,7 +38,7 @@ function correct_to_augmentation_ideal{T<:Rational}(sqrt_matrix::Array{T,2})
     sqrt_corrected = similar(sqrt_matrix)
     l = size(sqrt_matrix,2)
     for i in 1:l
-        col = view(sqrt_matrix,:,i)
+        col = sqrt_matrix[:,i]
         sqrt_corrected[:,i] = col - sum(col)//l
         # @assert sum(sqrt_corrected[:,i]) == 0
     end
