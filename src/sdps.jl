@@ -1,14 +1,18 @@
 using JuMP
 import MathProgBase: AbstractMathProgSolver
 
-function create_product_matrix{T}(basis::Vector{T}, limit)
+function create_product_matrix{T}(basis::Vector{T}, limit; twisted=true)
     product_matrix = zeros(Int, (limit,limit))
     basis_dict = Dict{T, Int}(x => i
         for (i,x) in enumerate(basis))
     for i in 1:limit
-        x_inv::eltype(basis) = inv(basis[i])
+        if twisted
+            x = inv(basis[i])
+        else
+            x = basis[i]
+        end
         for j in 1:limit
-            w = x_inv*basis[j]
+            w = x*basis[j]
             product_matrix[i,j] = basis_dict[w]
             # index = findfirst(basis, w)
             # index ≠ 0 || throw(ArgumentError("Product is not supported on basis: $w"))
@@ -17,6 +21,8 @@ function create_product_matrix{T}(basis::Vector{T}, limit)
     end
     return product_matrix
 end
+
+create_product_matrix{T}(basis::Vector{T}; twisted=twisted) = create_product_matrix(basis, length(basis); twisted=twisted)
 
 function constraints_from_pm(pm, total_length)
     n = size(pm,1)
