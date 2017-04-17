@@ -4,8 +4,8 @@ using JLD
 using GroupAlgebras
 using Memento
 
-const logger = basic_config("info", fmt="{msg}")
-const solver_logger = basic_config("info", fmt="{msg}")
+const logger = Memento.config("info", fmt="{msg}")
+const solver_logger = Memento.config("info", fmt="{msg}")
 
 include("sdps.jl")
 include("checksolution.jl")
@@ -79,7 +79,10 @@ function ΔandSDPconstraints(name::String, generating_set::Function, radius::Int
         if isa(err, ArgumentError)
             pm_fname, Δ_fname = pmΔfilenames(name)
             S, Id = generating_set()
-            Δ, sdp_constraints = Main.ΔandSDPconstraints(Id, S, radius)
+            info(logger, "Computing pm, Δ, sdp_constraints...")
+            t = @timed Δ, sdp_constraints = Main.ΔandSDPconstraints(Id, S, radius)
+            info(logger, timed_msg(t))
+
             save(pm_fname, "pm", Δ.product_matrix)
             save(Δ_fname, "Δ", Δ.coefficients)
             return Δ, sdp_constraints
