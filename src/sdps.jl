@@ -53,8 +53,8 @@ function laplacian_coeff(S, basis)
 end
 
 
-function create_SDP_problem(matrix_constraints, Δ::GroupAlgebraElement; upper_bound=Inf)
-    N = size(Δ.product_matrix,1)
+function create_SDP_problem(matrix_constraints, Δ::GroupRingElem; upper_bound=Inf)
+    N = size(parent(Δ).pm, 1)
     Δ² = Δ*Δ
     @assert length(Δ) == length(matrix_constraints)
     m = JuMP.Model();
@@ -68,7 +68,7 @@ function create_SDP_problem(matrix_constraints, Δ::GroupAlgebraElement; upper_b
         JuMP.@variable(m, λ >= 0)
     end
 
-    for (pairs, δ², δ) in zip(matrix_constraints, Δ².coefficients, Δ.coefficients)
+    for (pairs, δ², δ) in zip(matrix_constraints, Δ².coeffs, Δ.coeffs)
         JuMP.@constraint(m, sum(P[i,j] for (i,j) in pairs) == δ² - λ*δ)
     end
 

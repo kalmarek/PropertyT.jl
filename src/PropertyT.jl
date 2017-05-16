@@ -42,7 +42,7 @@ function pmΔfilenames(name::String)
     end
     prefix = name
     pm_filename = joinpath(prefix, "product_matrix.jld")
-    Δ_coeff_filename = joinpath(prefix, "delta.coefficients.jld")
+    Δ_coeff_filename = joinpath(prefix, "delta.coeffs.jld")
     return pm_filename, Δ_coeff_filename
 end
 
@@ -64,7 +64,7 @@ function ΔandSDPconstraints(name::String)
         info(logger, "Loading precomputed pm, Δ, sdp_constraints...")
         product_matrix = load(pm_fname, "pm")
         L = load(Δ_fname, "Δ")[:, 1]
-        Δ = GroupAlgebraElement(L, Array{Int,2}(product_matrix))
+        Δ = GroupRingElem(L, Array{Int,2}(product_matrix))
         sdp_constraints = constraints_from_pm(product_matrix)
     else
         throw(ArgumentError("You need to precompute pm and Δ to load it!"))
@@ -84,7 +84,7 @@ function ΔandSDPconstraints(name::String, generating_set::Function, radius::Int
             info(logger, timed_msg(t))
 
             save(pm_fname, "pm", Δ.product_matrix)
-            save(Δ_fname, "Δ", Δ.coefficients)
+            save(Δ_fname, "Δ", Δ.coeffs)
             return Δ, sdp_constraints
         else
             error(logger, err)
@@ -151,7 +151,7 @@ function λandP(name::String, opts...)
     end
 end
 
-function compute_λandP(sdp_constraints, Δ::GroupAlgebraElement, solver::AbstractMathProgSolver, upper_bound=Inf)
+function compute_λandP(sdp_constraints, Δ::GroupRingElem, solver::AbstractMathProgSolver, upper_bound=Inf)
 
     t = @timed SDP_problem = create_SDP_problem(sdp_constraints, Δ; upper_bound=upper_bound)
     info(logger, timed_msg(t))
@@ -185,7 +185,7 @@ function check_property_T(name::String, generating_set::Function,
 
     Δ, sdp_constraints = ΔandSDPconstraints(name, generating_set, radius)
 
-    S = countnz(Δ.coefficients) - 1
+    S = countnz(Δ.coeffs) - 1
     info(logger, "|S| = $S")
     info(logger, "length(Δ) = $(length(Δ))")
     info(logger, "size(Δ.product_matrix) = $(size(Δ.product_matrix))")

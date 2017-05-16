@@ -6,23 +6,21 @@ ValidatedNumerics.setrounding(Interval, :correct)
 ValidatedNumerics.setformat(:standard)
 # setprecision(Interval, 53) # slightly faster than 256
 
-function EOI{T<:Number}(Δ::GroupAlgebraElement{T}, λ::T)
+function EOI{T<:Number}(Δ::GroupRingElem{T}, λ::T)
     return Δ*Δ - λ*Δ
 end
 
-function algebra_square(vector, elt)
-    zzz = zeros(eltype(vector), elt.coefficients)
-    zzz[1:length(vector)] = vector
-#     new_base_elt = GroupAlgebraElement(zzz, elt.product_matrix)
-#     return (new_base_elt*new_base_elt).coefficients
-    return GroupAlgebras.algebra_multiplication(zzz, zzz, elt.product_matrix)
+function algebra_square(vect, elt)
+    zzz = zeros(eltype(vect), elt.coeffs)
+    zzz[1:length(vect)] = vect
+    return GroupAlgebras.algebra_multiplication(zzz, zzz, parent(elt).pm)
 end
 
 function compute_SOS(sqrt_matrix, elt)
     n = size(sqrt_matrix,2)
     T = eltype(sqrt_matrix)
 
-    # result = zeros(T, length(elt.coefficients))
+    # result = zeros(T, length(elt.coeffs))
     # for i in 1:n
     #     result += algebra_square(sqrt_matrix[:,i], elt)
     # end
@@ -30,8 +28,7 @@ function compute_SOS(sqrt_matrix, elt)
     result = @parallel (+) for i in 1:n
         PropertyT.algebra_square(sqrt_matrix[:,i], elt)
     end
-
-    return GroupAlgebraElement(result, elt.product_matrix)
+    return GroupRingElem(result, parent(elt))
 end
 
 function correct_to_augmentation_ideal{T<:Rational}(sqrt_matrix::Array{T,2})
@@ -52,7 +49,7 @@ function (±){T<:Number}(X::AbstractArray{T}, tol::Real)
     return r.(X)
 end
 
-(±)(X::GroupAlgebraElement, tol::Real) = GroupAlgebraElement(X.coefficients ± tol, X.product_matrix)
+(±)(X::GroupRingElem, tol::Real) = GroupRingElem(X.coeffs ± tol, parent(X))
 
 function Base.rationalize{T<:Integer, S<:Real}(::Type{T},
     X::AbstractArray{S}; tol::Real=eps(eltype(X)))
@@ -62,7 +59,7 @@ end
 
 ℚ(x, tol::Real) = rationalize(BigInt, x, tol=tol)
 
-function distance_to_cone{T<:Rational}(λ::T, sqrt_matrix::Array{T,2}, Δ::GroupAlgebraElement{T})
+function distance_to_cone{T<:Rational}(λ::T, sqrt_matrix::Array{T,2}, Δ::GroupRingElem{T})
     SOS = compute_SOS(sqrt_matrix, Δ)
 
     SOS_diff = EOI(Δ, λ) - SOS
@@ -80,11 +77,11 @@ function distance_to_cone{T<:Rational}(λ::T, sqrt_matrix::Array{T,2}, Δ::Group
     return distance_to_cone
 end
 
-function distance_to_cone{T<:Rational, S<:Interval}(λ::T, sqrt_matrix::Array{S,2}, Δ::GroupAlgebraElement{T})
+function distance_to_cone{T<:Rational, S<:Interval}(λ::T, sqrt_matrix::Array{S,2}, Δ::GroupRingElem{T})
     SOS = compute_SOS(sqrt_matrix, Δ)
     info(logger, "ɛ(∑ξᵢ*ξᵢ) ∈ $(GroupAlgebras.ɛ(SOS))")
     λⁱⁿᵗ = @interval(λ)
-    Δⁱⁿᵗ = GroupAlgebraElement([@interval(c) for c in Δ.coefficients], Δ.product_matrix)
+    Δⁱⁿᵗ = GroupRingElem([@interval(c) for c in Δ.coeffs], parent(Δ).pm)
     SOS_diff = EOI(Δⁱⁿᵗ, λⁱⁿᵗ) - SOS
     eoi_SOS_L₁_dist = norm(SOS_diff,1)
 
@@ -98,7 +95,7 @@ function distance_to_cone{T<:Rational, S<:Interval}(λ::T, sqrt_matrix::Array{S,
     return distance_to_cone
 end
 
-function distance_to_cone{T<:AbstractFloat}(λ::T, sqrt_matrix::Array{T,2}, Δ::GroupAlgebraElement{T})
+function distance_to_cone{T<:AbstractFloat}(λ::T, sqrt_matrix::Array{T,2}, Δ::GroupRingElem{T})
     SOS = compute_SOS(sqrt_matrix, Δ)
 
     SOS_diff = EOI(Δ, λ) - SOS
@@ -113,7 +110,7 @@ function distance_to_cone{T<:AbstractFloat}(λ::T, sqrt_matrix::Array{T,2}, Δ::
     return distance_to_cone
 end
 
-function check_distance_to_positive_cone(Δ::GroupAlgebraElement, λ, P;
+function check_distance_to_positive_cone(Δ::GroupRingElem, λ, P;
     tol=1e-7, rational=false)
 
     isapprox(eigvals(P), abs(eigvals(P)), atol=tol) ||
