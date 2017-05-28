@@ -10,10 +10,10 @@ function EOI{T<:Number}(Δ::GroupRingElem{T}, λ::T)
     return Δ*Δ - λ*Δ
 end
 
-function algebra_square(vect, elt)
+function groupring_square(vect, elt)
     zzz = zeros(eltype(vect), elt.coeffs)
     zzz[1:length(vect)] = vect
-    return GroupAlgebras.algebra_multiplication(zzz, zzz, parent(elt).pm)
+    return GroupRings.groupring_mult(zzz, zzz, parent(elt).pm)
 end
 
 function compute_SOS(sqrt_matrix, elt)
@@ -22,11 +22,11 @@ function compute_SOS(sqrt_matrix, elt)
 
     # result = zeros(T, length(elt.coeffs))
     # for i in 1:n
-    #     result += algebra_square(sqrt_matrix[:,i], elt)
+    #     result += groupring_square(sqrt_matrix[:,i], elt)
     # end
 
     result = @parallel (+) for i in 1:n
-        PropertyT.algebra_square(sqrt_matrix[:,i], elt)
+        groupring_square(sqrt_matrix[:,i], elt)
     end
     return GroupRingElem(result, parent(elt))
 end
