@@ -66,7 +66,7 @@ function distance_to_cone{T<:Rational}(λ::T, sqrt_matrix::Array{T,2}, Δ::Group
     eoi_SOS_L₁_dist = norm(SOS_diff,1)
 
     info(logger, "λ = $λ (≈$(@sprintf("%.10f", float(λ)))")
-    ɛ_dist = GroupAlgebras.ɛ(SOS_diff)
+    ɛ_dist = GroupRings.augmentation(SOS_diff)
     if ɛ_dist ≠ 0//1
         warn(logger, "The SOS is not in the augmentation ideal, number below are meaningless!")
     end
@@ -79,14 +79,14 @@ end
 
 function distance_to_cone{T<:Rational, S<:Interval}(λ::T, sqrt_matrix::Array{S,2}, Δ::GroupRingElem{T})
     SOS = compute_SOS(sqrt_matrix, Δ)
-    info(logger, "ɛ(∑ξᵢ*ξᵢ) ∈ $(GroupAlgebras.ɛ(SOS))")
+    info(logger, "ɛ(∑ξᵢ*ξᵢ) ∈ $(GroupRings.augmentation(SOS))")
     λⁱⁿᵗ = @interval(λ)
     Δⁱⁿᵗ = GroupRingElem([@interval(c) for c in Δ.coeffs], parent(Δ).pm)
     SOS_diff = EOI(Δⁱⁿᵗ, λⁱⁿᵗ) - SOS
     eoi_SOS_L₁_dist = norm(SOS_diff,1)
 
     info(logger, "λ = $λ (≈≥$(@sprintf("%.10f",float(λ))))")
-    ɛ_dist = GroupAlgebras.ɛ(SOS_diff)
+    ɛ_dist = GroupRings.augmentation(SOS_diff)
 
     info(logger, "ɛ(Δ² - λΔ - ∑ξᵢ*ξᵢ) ∈ $(ɛ_dist)")
     info(logger, "‖Δ² - λΔ - ∑ξᵢ*ξᵢ‖₁ ∈ $(eoi_SOS_L₁_dist)")
@@ -102,7 +102,7 @@ function distance_to_cone{T<:AbstractFloat}(λ::T, sqrt_matrix::Array{T,2}, Δ::
     eoi_SOS_L₁_dist = norm(SOS_diff,1)
 
     info(logger, "λ = $λ")
-    ɛ_dist = GroupAlgebras.ɛ(SOS_diff)
+    ɛ_dist = GroupRings.augmentation(SOS_diff)
     info(logger, "ɛ(Δ² - λΔ - ∑ξᵢ*ξᵢ) ≈ $(@sprintf("%.10f", ɛ_dist))")
     info(logger, "‖Δ² - λΔ - ∑ξᵢ*ξᵢ‖₁ ≈ $(@sprintf("%.10f", eoi_SOS_L₁_dist))")
 
