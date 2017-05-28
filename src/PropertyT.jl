@@ -57,7 +57,7 @@ function ΔandSDPconstraints(name::String, generating_set::Function, radius::Int
             t = @timed Δ, sdp_constraints = Main.ΔandSDPconstraints(Id, S, radius)
             info(logger, timed_msg(t))
 
-            save(pm_fname, "pm", Δ.product_matrix)
+            save(pm_fname, "pm", parent(Δ).pm)
             save(Δ_fname, "Δ", Δ.coeffs)
             return Δ, sdp_constraints
         else
@@ -162,7 +162,7 @@ function check_property_T(name::String, generating_set::Function,
     S = countnz(Δ.coeffs) - 1
     info(logger, "|S| = $S")
     info(logger, "length(Δ) = $(length(Δ))")
-    info(logger, "size(Δ.product_matrix) = $(size(Δ.product_matrix))")
+    info(logger, "|R(G)|.pm = $(size(parent(Δ).pm))")
 
     λ, P = λandP(name, sdp_constraints, Δ, solver, upper_bound)
 
