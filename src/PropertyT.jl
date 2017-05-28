@@ -34,7 +34,7 @@ function ΔandSDPconstraints(name::String)
     pm_fname, Δ_fname = pmΔfilenames(name)
     f₁ = isfile(pm_fname)
     f₂ = isfile(Δ_fname)
-    if f₁ && f₂
+    if f₁ && f₂ && false
         info(logger, "Loading precomputed pm, Δ, sdp_constraints...")
         product_matrix = load(pm_fname, "pm")
         L = load(Δ_fname, "Δ")[:, 1]
