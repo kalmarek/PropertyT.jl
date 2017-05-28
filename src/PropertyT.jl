@@ -172,9 +172,9 @@ function check_property_T(name::String, generating_set::Function,
     info(logger, "minimum(P) = $(minimum(P))")
 
     if λ > 0
-        spectral_gap = check_distance_to_positive_cone(Δ, λ, P, tol=tol, rational=false)
-        if isa(spectral_gap, Interval)
-            sgap = spectral_gap.lo
+        sgap = check_distance_to_positive_cone(Δ, λ, P, tol=tol, rational=false)
+        if isa(sgap, Interval)
+            sgap = sgap.lo
         end
         if sgap > 0
             info(logger, "λ ≥ $(Float64(trunc(sgap,12)))")
