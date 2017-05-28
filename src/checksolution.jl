@@ -127,7 +127,7 @@ function check_distance_to_positive_cone(Δ::GroupRingElem, λ, P;
     info(logger, "------------------------------------------------------------")
 
     if fp_distance ≤ 0
-        return fpdistance
+        return fp_distance
     end
 
     info(logger, "Projecting columns of rationalized Q to the augmentation ideal...")
