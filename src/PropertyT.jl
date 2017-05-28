@@ -1,7 +1,7 @@
 module PropertyT
 
 using JLD
-using GroupAlgebras
+using GroupRings
 using Memento
 
 const logger = Memento.config("info", fmt="{msg}")
