@@ -56,7 +56,7 @@ end
 function create_SDP_problem(matrix_constraints, Δ::GroupRingElem; upper_bound=Inf)
     N = size(parent(Δ).pm, 1)
     Δ² = Δ*Δ
-    @assert length(Δ) == length(matrix_constraints)
+    @assert length(Δ.coeffs) == length(matrix_constraints)
     m = JuMP.Model();
     JuMP.@variable(m, P[1:N, 1:N], SDP)
     JuMP.@SDconstraint(m, P >= 0)
