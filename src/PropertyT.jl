@@ -10,32 +10,6 @@ const solver_logger = Memento.config("info", fmt="{msg}")
 include("sdps.jl")
 include("checksolution.jl")
 
-function products{T}(X::AbstractVector{T}, Y::AbstractVector{T})
-    result = Vector{T}()
-    seen = Set{T}()
-    for x in X
-        for y in Y
-            z = x*y
-            if !in(z, seen)
-                push!(seen, z)
-                push!(result, z)
-            end
-        end
-    end
-    return result
-end
-
-function generate_balls{T}(S::Vector{T}, Id::T; radius=4)
-    sizes = Vector{Int}()
-    S = vcat([Id], S)
-    B = [Id]
-    for i in 1:radius
-        B = products(B, S);
-        push!(sizes, length(B))
-    end
-    return B, sizes
-end
-
 function pmΔfilenames(name::String)
     if !isdir(name)
         mkdir(name)
