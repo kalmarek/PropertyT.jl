@@ -53,7 +53,7 @@ function laplacian_coeff(S, basis)
 end
 
 
-function create_SDP_problem(matrix_constraints, Δ::GroupRingElem; upper_bound=Inf)
+function create_SDP_problem(Δ::GroupRingElem, matrix_constraints; upper_bound=Inf)
     N = size(parent(Δ).pm, 1)
     Δ² = Δ*Δ
     @assert length(Δ.coeffs) == length(matrix_constraints)
@@ -74,7 +74,7 @@ function create_SDP_problem(matrix_constraints, Δ::GroupRingElem; upper_bound=I
 
     JuMP.@objective(m, Max, λ)
 
-    return m
+    return m, λ, P
 end
 
 function solve_SDP(SDP_problem, solver)
