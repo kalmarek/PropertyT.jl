@@ -59,7 +59,7 @@ end
 
 ℚ(x, tol::Real) = rationalize(BigInt, x, tol=tol)
 
-function distance_to_cone{T<:Rational}(λ::T, sqrt_matrix::Array{T,2}, Δ::GroupRingElem{T})
+function distance_to_cone{T<:Rational}(λ::T, sqrt_matrix::Array{T,2}, Δ::GroupRingElem{T}; len=4)
     SOS = compute_SOS(sqrt_matrix, Δ)
 
     SOS_diff = EOI(Δ, λ) - SOS
@@ -73,11 +73,11 @@ function distance_to_cone{T<:Rational}(λ::T, sqrt_matrix::Array{T,2}, Δ::Group
     info(logger, "ɛ(Δ² - λΔ - ∑ξᵢ*ξᵢ) = $ɛ_dist")
     info(logger, "‖Δ² - λΔ - ∑ξᵢ*ξᵢ‖₁ = $(@sprintf("%.10f", float(eoi_SOS_L₁_dist)))")
 
-    distance_to_cone = λ - 2^3*eoi_SOS_L₁_dist
+    distance_to_cone = λ - 2^(len-1)*eoi_SOS_L1_dist
     return distance_to_cone
 end
 
-function distance_to_cone{T<:Rational, S<:Interval}(λ::T, sqrt_matrix::Array{S,2}, Δ::GroupRingElem{T})
+function distance_to_cone{T<:Rational, S<:Interval}(λ::T, sqrt_matrix::Array{S,2}, Δ::GroupRingElem{T}; len=4)
     SOS = compute_SOS(sqrt_matrix, Δ)
     info(logger, "ɛ(∑ξᵢ*ξᵢ) ∈ $(GroupRings.augmentation(SOS))")
     λⁱⁿᵗ = @interval(λ)
@@ -91,11 +91,11 @@ function distance_to_cone{T<:Rational, S<:Interval}(λ::T, sqrt_matrix::Array{S,
     info(logger, "ɛ(Δ² - λΔ - ∑ξᵢ*ξᵢ) ∈ $(ɛ_dist)")
     info(logger, "‖Δ² - λΔ - ∑ξᵢ*ξᵢ‖₁ ∈ $(eoi_SOS_L₁_dist)")
 
-    distance_to_cone = λ - 2^3*eoi_SOS_L₁_dist
+    distance_to_cone = λ - 2^(len-1)*eoi_SOS_L₁_dist
     return distance_to_cone
 end
 
-function distance_to_cone{T<:AbstractFloat}(λ::T, sqrt_matrix::Array{T,2}, Δ::GroupRingElem{T})
+function distance_to_cone{T<:AbstractFloat}(λ::T, sqrt_matrix::Array{T,2}, Δ::GroupRingElem{T}; len=4)
     SOS = compute_SOS(sqrt_matrix, Δ)
 
     SOS_diff = EOI(Δ, λ) - SOS
@@ -106,12 +106,12 @@ function distance_to_cone{T<:AbstractFloat}(λ::T, sqrt_matrix::Array{T,2}, Δ::
     info(logger, "ɛ(Δ² - λΔ - ∑ξᵢ*ξᵢ) ≈ $(@sprintf("%.10f", ɛ_dist))")
     info(logger, "‖Δ² - λΔ - ∑ξᵢ*ξᵢ‖₁ ≈ $(@sprintf("%.10f", eoi_SOS_L₁_dist))")
 
-    distance_to_cone = λ - 2^3*eoi_SOS_L₁_dist
+    distance_to_cone = λ - 2^(len-1)*eoi_SOS_L₁_dist
     return distance_to_cone
 end
 
 function check_distance_to_positive_cone(Δ::GroupRingElem, λ, P;
-    tol=1e-7, rational=false)
+    tol=1e-7, rational=false, len=4)
 
     isapprox(eigvals(P), abs(eigvals(P)), atol=tol) ||
         warn("The solution matrix doesn't seem to be positive definite!")
@@ -121,7 +121,7 @@ function check_distance_to_positive_cone(Δ::GroupRingElem, λ, P;
     info(logger, "------------------------------------------------------------")
     info(logger, "")
     info(logger, "Checking in floating-point arithmetic...")
-    t = @timed fp_distance = distance_to_cone(λ, Q, Δ)
+    t = @timed fp_distance = distance_to_cone(λ, Q, Δ, len=len)
     info(logger, timed_msg(t))
     info(logger, "Floating point distance (to positive cone) ≈ $(@sprintf("%.10f", fp_distance))")
     info(logger, "------------------------------------------------------------")
@@ -140,7 +140,7 @@ function check_distance_to_positive_cone(Δ::GroupRingElem, λ, P;
 
     info(logger, "Checking in interval arithmetic")
     Q_ℚωⁱⁿᵗ = Float64.(Q_ℚω) ± δ
-    t = @timed Interval_dist_to_Σ² = distance_to_cone(λ_ℚ, Q_ℚωⁱⁿᵗ, Δ_ℚ)
+    t = @timed Interval_dist_to_Σ² = distance_to_cone(λ_ℚ, Q_ℚω_int, Δ_ℚ, len=len)
     info(logger, timed_msg(t))
     info(logger, "The Augmentation-projected actual distance (to positive cone) ∈ $(Interval_dist_to_Σ²)")
     info(logger, "------------------------------------------------------------")
@@ -149,7 +149,7 @@ function check_distance_to_positive_cone(Δ::GroupRingElem, λ, P;
         return Interval_dist_to_Σ²
     else
         info(logger, "Checking Projected SOS decomposition in exact rational arithmetic...")
-        t = @timed ℚ_dist_to_Σ² = distance_to_cone(λ_ℚ, Q_ℚω, Δ_ℚ)
+        t = @timed ℚ_dist_to_Σ² = distance_to_cone(λ_ℚ, Q_ℚω, Δ_ℚ, len=len)
         info(logger, timed_msg(t))
         @assert isa(ℚ_dist_to_Σ², Rational)
         info(logger, "Augmentation-projected rational distance (to positive cone) ≥ $(Float64(trunc(ℚ_dist_to_Σ²,8)))")
