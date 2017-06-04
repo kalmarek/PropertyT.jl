@@ -125,16 +125,14 @@ function λandP(name::String, opts...)
     end
 end
 
-function compute_λandP(sdp_constraints, Δ::GroupRingElem, solver::AbstractMathProgSolver, upper_bound=Inf)
-
-    t = @timed SDP_problem = create_SDP_problem(sdp_constraints, Δ; upper_bound=upper_bound)
-    info(logger, timed_msg(t))
-
+function compute_λandP(m, varλ, varP)
     λ = 0.0
     P = nothing
     while λ == 0.0
         try
-            λ, P = solve_SDP(SDP_problem, solver)
+            solve_SDP(m)
+            λ = JuMP.getvalue(varλ)
+            P = JuMP.getvalue(varP)
         catch y
             warn(solver_logger, y)
         end
