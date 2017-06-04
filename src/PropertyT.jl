@@ -90,39 +90,27 @@ function λandP(name::String)
     return λ, P
 end
 
+function λandP(name::String, SDP_problem::JuMP.Model,  varλ, varP)
+   if isfile(joinpath(name, "solver.log"))
+       rm(joinpath(name, "solver.log"))
+   end
 
-function λandP(name::String, opts...)
-    try
-        return λandP(name)
-    catch err
-        if isa(err, ArgumentError)
-            if isfile(joinpath(name, "solver.log"))
-                rm(joinpath(name, "solver.log"))
-            end
+   add_handler(solver_logger, DefaultHandler(joinpath(name, "solver.log"), DefaultFormatter("{date}| {msg}")), "solver_log")
 
-            add_handler(solver_logger, DefaultHandler(joinpath(name, "solver.log"), DefaultFormatter("{date}| {msg}")), "solver_log")
+   λ, P = compute_λandP(SDP_problem, varλ, varP)
 
-            info(logger, "Creating SDP problem...")
+   remove_handler(solver_logger, "solver_log")
 
-            λ, P = compute_λandP(opts...)
+   λ_fname, P_fname = λSDPfilenames(name)
 
-            remove_handler(solver_logger, "solver_log")
+   if λ > 0
+       save(λ_fname, "λ", λ)
+       save(P_fname, "P", P)
+   else
+       throw(ErrorException("Solver $solver did not produce a valid solution!: λ = $λ"))
+   end
+   return λ, P
 
-            λ_fname, P_fname = λSDPfilenames(name)
-
-            if λ > 0
-                save(λ_fname, "λ", λ)
-                save(P_fname, "P", P)
-            else
-                throw(ErrorException("Solver $solver did not produce a valid solution!: λ = $λ"))
-            end
-            return λ, P
-
-        else
-            # throw(err)
-            error(logger, err)
-        end
-    end
 end
 
 function compute_λandP(m, varλ, varP)
