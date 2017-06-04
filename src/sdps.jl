@@ -77,12 +77,8 @@ function create_SDP_problem(Δ::GroupRingElem, matrix_constraints; upper_bound=I
     return m, λ, P
 end
 
-function solve_SDP(SDP_problem, solver)
-    JuMP.setsolver(SDP_problem, solver)
+function solve_SDP(SDP_problem)
     info(logger, Base.repr(SDP_problem))
-
-    # @time MathProgBase.writeproblem(SDP_problem, "/tmp/SDP_problem")
-    out = STDOUT
 
     # to change buffering mode of stdout to _IOLBF (line bufferin)
     # see https://github.com/JuliaLang/julia/issues/8765
@@ -101,7 +97,5 @@ function solve_SDP(SDP_problem, solver)
     end
     info(logger, solution_status)
 
-    λ = JuMP.getvalue(JuMP.getvariable(SDP_problem, :λ))
-    P = JuMP.getvalue(JuMP.getvariable(SDP_problem, :P))
-    return λ, P
+    return 0
 end
