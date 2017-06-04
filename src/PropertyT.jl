@@ -150,31 +150,45 @@ function check_property_T(name::String, generating_set::Function,
     info(logger, "length(Δ) = $(length(Δ))")
     info(logger, "|R(G)|.pm = $(size(parent(Δ).pm))")
 
-    λ, P = λandP(name, sdp_constraints, Δ, solver, upper_bound)
+   λ, P = try
+      λandP(name)
+   catch err
+      if isa(err, ArgumentError)
+         info(logger, "Creating SDP problem...")
 
-    info(logger, "λ = $λ")
-    info(logger, "sum(P) = $(sum(P))")
-    info(logger, "maximum(P) = $(maximum(P))")
-    info(logger, "minimum(P) = $(minimum(P))")
+         t = @timed SDP_problem, λ, P = create_SDP_problem(Δ, sdp_constraints, upper_bound=upper_bound)
+         info(logger, timed_msg(t))
 
-    if λ > 0
-        sgap = check_distance_to_positive_cone(Δ, λ, P, tol=tol, rational=false)
-        if isa(sgap, Interval)
-            sgap = sgap.lo
-        end
-        if sgap > 0
-            info(logger, "λ ≥ $(Float64(trunc(sgap,12)))")
-                Kazhdan_κ = Kazhdan_from_sgap(sgap, S)
-                Kazhdan_κ = Float64(trunc(Kazhdan_κ, 12))
-                info(logger, "κ($name, S) ≥ $Kazhdan_κ: Group HAS property (T)!")
+         JuMP.setsolver(SDP_problem, solver)
 
-        else
-            sgap = Float64(trunc(sgap, 12))
-            info(logger, "λ($name, S) ≥ $sgap: Group may NOT HAVE property (T)!")
-        end
-    else
-        info(logger, "κ($name, S) ≥ $λ < 0: Tells us nothing about property (T)")
-    end
+         λandP(name, SDP_problem, λ, P)
+      end
+   end
+
+   info(logger, "λ = $λ")
+   info(logger, "sum(P) = $(sum(P))")
+   info(logger, "maximum(P) = $(maximum(P))")
+   info(logger, "minimum(P) = $(minimum(P))")
+
+   if λ > 0
+      sgap = check_distance_to_positive_cone(Δ, λ, P, tol=tol, rational=false, len=2*radius)
+      if isa(sgap, Interval)
+           sgap = sgap.lo
+      end
+      if sgap > 0
+           info(logger, "λ ≥ $(Float64(trunc(sgap,12)))")
+            Kazhdan_κ = Kazhdan_from_sgap(sgap, S)
+            Kazhdan_κ = Float64(trunc(Kazhdan_κ, 12))
+            info(logger, "κ($name, S) ≥ $Kazhdan_κ: Group HAS property (T)!")
+            return true
+      else
+           sgap = Float64(trunc(sgap, 12))
+           info(logger, "λ($name, S) ≥ $sgap: Group may NOT HAVE property (T)!")
+           return false
+      end
+   end
+   info(logger, "κ($name, S) ≥ $λ < 0: Tells us nothing about property (T)")
+   return false
 end
 
 end # module Property(T)
