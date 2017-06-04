@@ -66,6 +66,15 @@ function ΔandSDPconstraints(name::String, generating_set::Function, radius::Int
     end
 end
 
+function timed_msg(t)
+    elapsed = t[2]
+    bytes_alloc = t[3]
+    gc_time = t[4]
+    gc_diff = t[5]
+
+    return "took: $elapsed s, allocated: $bytes_alloc bytes ($(gc_diff.poolalloc) allocations)."
+end
+
 function λandP(name::String)
     λ_fname, SDP_fname = λSDPfilenames(name)
     f₁ = isfile(λ_fname)
@@ -79,15 +88,6 @@ function λandP(name::String)
         throw(ArgumentError("You need to precompute λ and SDP matrix P to load it!"))
     end
     return λ, P
-end
-
-function timed_msg(t)
-    elapsed = t[2]
-    bytes_alloc = t[3]
-    gc_time = t[4]
-    gc_diff = t[5]
-
-    return "took: $elapsed s, allocated: $bytes_alloc bytes ($(gc_diff.poolalloc) allocations)."
 end
 
 
