@@ -63,15 +63,15 @@ function distance_to_cone{T<:Rational}(λ::T, sqrt_matrix::Array{T,2}, Δ::Group
     SOS = compute_SOS(sqrt_matrix, Δ)
 
     SOS_diff = EOI(Δ, λ) - SOS
-    eoi_SOS_L₁_dist = norm(SOS_diff,1)
+    eoi_SOS_L1_dist = norm(SOS_diff,1)
 
     info(logger, "λ = $λ (≈$(@sprintf("%.10f", float(λ)))")
     ɛ_dist = GroupRings.augmentation(SOS_diff)
     if ɛ_dist ≠ 0//1
-        warn(logger, "The SOS is not in the augmentation ideal, number below are meaningless!")
+        warn(logger, "The SOS is not in the augmentation ideal, numbers below are meaningless!")
     end
     info(logger, "ɛ(Δ² - λΔ - ∑ξᵢ*ξᵢ) = $ɛ_dist")
-    info(logger, "‖Δ² - λΔ - ∑ξᵢ*ξᵢ‖₁ = $(@sprintf("%.10f", float(eoi_SOS_L₁_dist)))")
+    info(logger, "‖Δ² - λΔ - ∑ξᵢ*ξᵢ‖₁ = $(@sprintf("%.10f", float(eoi_SOS_L1_dist)))")
 
     distance_to_cone = λ - 2^(len-1)*eoi_SOS_L1_dist
     return distance_to_cone
@@ -80,16 +80,16 @@ end
 function distance_to_cone{T<:Rational, S<:Interval}(λ::T, sqrt_matrix::Array{S,2}, Δ::GroupRingElem{T}; len=4)
     SOS = compute_SOS(sqrt_matrix, Δ)
     info(logger, "ɛ(∑ξᵢ*ξᵢ) ∈ $(GroupRings.augmentation(SOS))")
-    λⁱⁿᵗ = @interval(λ)
-    Δⁱⁿᵗ = GroupRingElem([@interval(c) for c in Δ.coeffs], parent(Δ).pm)
-    SOS_diff = EOI(Δⁱⁿᵗ, λⁱⁿᵗ) - SOS
-    eoi_SOS_L₁_dist = norm(SOS_diff,1)
+    λ_int = @interval(λ)
+    Δ_int = GroupRingElem([@interval(c) for c in Δ.coeffs], parent(Δ).pm)
+    SOS_diff = EOI(Δ_int, λ_int) - SOS
+    eoi_SOS_L1_dist = norm(SOS_diff,1)
 
     info(logger, "λ = $λ (≈≥$(@sprintf("%.10f",float(λ))))")
     ɛ_dist = GroupRings.augmentation(SOS_diff)
 
     info(logger, "ɛ(Δ² - λΔ - ∑ξᵢ*ξᵢ) ∈ $(ɛ_dist)")
-    info(logger, "‖Δ² - λΔ - ∑ξᵢ*ξᵢ‖₁ ∈ $(eoi_SOS_L₁_dist)")
+    info(logger, "‖Δ² - λΔ - ∑ξᵢ*ξᵢ‖₁ ∈ $(eoi_SOS_L1_dist)")
 
     distance_to_cone = λ - 2^(len-1)*eoi_SOS_L₁_dist
     return distance_to_cone
@@ -139,7 +139,7 @@ function check_distance_to_positive_cone(Δ::GroupRingElem, λ, P;
     Δ_ℚ = ℚ(Δ, δ)
 
     info(logger, "Checking in interval arithmetic")
-    Q_ℚωⁱⁿᵗ = Float64.(Q_ℚω) ± δ
+    Q_ℚω_int = Float64.(Q_ℚω) ± δ
     t = @timed Interval_dist_to_Σ² = distance_to_cone(λ_ℚ, Q_ℚω_int, Δ_ℚ, len=len)
     info(logger, timed_msg(t))
     info(logger, "The Augmentation-projected actual distance (to positive cone) ∈ $(Interval_dist_to_Σ²)")
