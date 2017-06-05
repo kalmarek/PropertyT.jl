@@ -4,6 +4,11 @@ using JLD
 using GroupRings
 using Memento
 
+
+using Groups
+import Nemo: Group, GroupElem
+
+
 const logger = Memento.config("info", fmt="{msg}")
 const solver_logger = Memento.config("info", fmt="{msg}")
 
@@ -43,23 +48,21 @@ function ΔandSDPconstraints(name::String, G::Group)
     return Δ, sdp_constraints
 end
 
-function ΔandSDPconstraints{T<:GroupElem}(name::String, S::Vector{T}, radius::Int)
-   S, Id = generating_set()
+function ΔandSDPconstraints{T<:GroupElem}(name::String, S::Vector{T}, Id::T; radius::Int=2)
    info(logger, "Computing pm, Δ, sdp_constraints...")
-   t = @timed Δ, sdp_constraints = ΔandSDPconstraints(S, radius)
-   info(logger, timed_msg(t))
+   Δ, sdp_constraints = ΔandSDPconstraints(S, Id, radius=radius)
    pm_fname, Δ_fname = pmΔfilenames(name)
    save(pm_fname, "pm", parent(Δ).pm)
    save(Δ_fname, "Δ", Δ.coeffs)
+   return Δ, sdp_constraints
 end
 
-function ΔandSDPconstraints{T<:GroupElem}(S::Vector{T}, r::Int=2)
-    Id = parent(S[1])()
-    B, sizes = Groups.generate_balls(S, Id, radius=2*r)
+function ΔandSDPconstraints{T<:GroupElem}(S::Vector{T}, Id::T; radius::Int=2)
+    B, sizes = Groups.generate_balls(S, Id, radius=2*radius)
     info(logger, "Generated balls of sizes $sizes")
 
     info(logger, "Creating product matrix...")
-    t = @timed pm = GroupRings.create_pm(B, GroupRings.reverse_dict(B), sizes[r]; twisted=true)
+    t = @timed pm = GroupRings.create_pm(B, GroupRings.reverse_dict(B), sizes[radius]; twisted=true)
     info(logger, timed_msg(t))
 
     info(logger, "Creating sdp_constratints...")
@@ -68,7 +71,7 @@ function ΔandSDPconstraints{T<:GroupElem}(S::Vector{T}, r::Int=2)
 
     RG = GroupRing(parent(Id), B, pm)
 
-    Δ = splaplacian(RG, S, B[1:sizes[r]], sizes[2*r])
+    Δ = splaplacian(RG, S, Id, sizes[2*radius])
     return Δ, sdp_constraints
 end
 
@@ -153,7 +156,7 @@ function setup_logging(name::String)
 end
 
 
-function check_property_T(name::String, S, solver, upper_bound, tol, radius)
+function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius)
 
     if !isdir(name)
         mkdir(name)
@@ -166,7 +169,7 @@ function check_property_T(name::String, S, solver, upper_bound, tol, radius)
         Δ, sdp_constraints = ΔandSDPconstraints(name, parent(S[1]))
     else
         # compute
-        Δ, sdp_constraints = ΔandSDPconstraints(name, S, radius)
+        Δ, sdp_constraints = ΔandSDPconstraints(name, S, Id, radius=radius)
     end
 
     info(logger, "|S| = $(length(S))")
