@@ -171,11 +171,13 @@ function check_property_T(name::String, S, solver, upper_bound, tol, radius)
 
     info(logger, "|S| = $(length(S))")
     info(logger, "length(Δ) = $(length(Δ))")
-    info(logger, "|R(G)|.pm = $(size(parent(Δ).pm))")
+    info(logger, "|R[G]|.pm = $(size(parent(Δ).pm))")
 
-   if all(isfile.(λandP(name)))
+   if all(isfile.(λSDPfilenames(name)))
+      # cached
       λ, P = λandP(name)
    else
+      # compute
       info(logger, "Creating SDP problem...")
 
       t = @timed SDP_problem, λ, P = create_SDP_problem(Δ, sdp_constraints, upper_bound=upper_bound)
