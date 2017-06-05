@@ -203,7 +203,7 @@ function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius)
       end
       if sgap > 0
            info(logger, "λ ≥ $(Float64(trunc(sgap,12)))")
-            Kazhdan_κ = Kazhdan_from_sgap(sgap, S)
+            Kazhdan_κ = Kazhdan_from_sgap(sgap, length(S))
             Kazhdan_κ = Float64(trunc(Kazhdan_κ, 12))
             info(logger, "κ($name, S) ≥ $Kazhdan_κ: Group HAS property (T)!")
             return true
