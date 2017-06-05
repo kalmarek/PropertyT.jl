@@ -162,19 +162,17 @@ function check_property_T(name::String, generating_set::Function,
     info(logger, "length(Δ) = $(length(Δ))")
     info(logger, "|R(G)|.pm = $(size(parent(Δ).pm))")
 
-   λ, P = try
-      λandP(name)
-   catch err
-      if isa(err, ArgumentError)
-         info(logger, "Creating SDP problem...")
+   if all(isfile.(λandP(name)))
+      λ, P = λandP(name)
+   else
+      info(logger, "Creating SDP problem...")
 
-         t = @timed SDP_problem, λ, P = create_SDP_problem(Δ, sdp_constraints, upper_bound=upper_bound)
-         info(logger, timed_msg(t))
+      t = @timed SDP_problem, λ, P = create_SDP_problem(Δ, sdp_constraints, upper_bound=upper_bound)
+      info(logger, timed_msg(t))
 
-         JuMP.setsolver(SDP_problem, solver)
+      JuMP.setsolver(SDP_problem, solver)
 
-         λandP(name, SDP_problem, λ, P)
-      end
+      λ, P = λandP(name, SDP_problem, λ, P)
    end
 
    info(logger, "λ = $λ")
