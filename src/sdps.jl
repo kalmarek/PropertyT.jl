@@ -38,12 +38,11 @@ end
 
 constraints_from_pm(pm) = constraints_from_pm(pm, maximum(pm))
 
-function splaplacian_coeff(S, basis, n=length(basis))
-    result = spzeros(n)
-    result[1] = float(length(S))
+function splaplacian(RG::GroupRing, S, basis, n=length(basis))
+    result = RG(spzeros(n))
+    result[RG.group()] = float(length(S))
     for s in S
-        ind = findfirst(basis, s)
-        result[ind] += -1.0
+        result[s] += -1.0
     end
     return result
 end
