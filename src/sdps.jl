@@ -24,7 +24,7 @@ end
 
 create_product_matrix{T}(basis::Vector{T}; twisted=twisted) = create_product_matrix(basis, length(basis); twisted=twisted)
 
-function constraints_from_pm(pm, total_length)
+function constraints_from_pm(pm, total_length=maximum(pm))
     n = size(pm,1)
     constraints = constraints = [Array{Int,1}[] for x in 1:total_length]
     for j in 1:n
@@ -35,8 +35,6 @@ function constraints_from_pm(pm, total_length)
     end
     return constraints
 end
-
-constraints_from_pm(pm) = constraints_from_pm(pm, maximum(pm))
 
 function splaplacian(RG::GroupRing, S, basis, n=length(basis))
     result = RG(spzeros(n))
