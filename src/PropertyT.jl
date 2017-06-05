@@ -30,12 +30,16 @@ function λSDPfilenames(name::String)
     return λ_filename, SDP_filename
 end
 
-function ΔandSDPconstraints(name::String)
+function ΔandSDPconstraints(name::String, G::Group)
     info(logger, "Loading precomputed pm, Δ, sdp_constraints...")
+    pm_fname, Δ_fname = pmΔfilenames(name)
+
     product_matrix = load(pm_fname, "pm")
-    L = load(Δ_fname, "Δ")[:, 1]
-    Δ = GroupRingElem(L, Array{Int,2}(product_matrix))
     sdp_constraints = constraints_from_pm(product_matrix)
+
+    RG = GroupRing(G, product_matrix)
+    Δ = GroupRingElem(load(Δ_fname, "Δ")[:, 1], RG)
+
     return Δ, sdp_constraints
 end
 
