@@ -49,6 +49,26 @@ function ΔandSDPconstraints{T<:GroupElem}(name::String, S::Vector{T}, radius::I
    save(Δ_fname, "Δ", Δ.coeffs)
 end
 
+function ΔandSDPconstraints{T<:GroupElem}(S::Vector{T}, r::Int=2)
+    Id = parent(S[1])()
+    B, sizes = Groups.generate_balls(S, Id, radius=2*r)
+    info(logger, "Generated balls of sizes $sizes")
+
+    info(logger, "Creating product matrix...")
+    t = @timed pm = GroupRings.create_pm(B, GroupRings.reverse_dict(B), sizes[r]; twisted=true)
+    info(logger, timed_msg(t))
+
+    info(logger, "Creating sdp_constratints...")
+    t = @timed sdp_constraints = PropertyT.constraints_from_pm(pm)
+    info(logger, timed_msg(t))
+
+    RG = GroupRing(parent(Id), B, pm)
+
+    Δ = splaplacian(RG, S, B[1:sizes[r]], sizes[2*r])
+    return Δ, sdp_constraints
+end
+
+
 function timed_msg(t)
     elapsed = t[2]
     bytes_alloc = t[3]
