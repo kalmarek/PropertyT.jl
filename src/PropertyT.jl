@@ -153,8 +153,7 @@ function setup_logging(name::String)
 end
 
 
-function check_property_T(name::String, generating_set,
-    solver, upper_bound, tol, radius)
+function check_property_T(name::String, S, solver, upper_bound, tol, radius)
 
     if !isdir(name)
         mkdir(name)
@@ -170,8 +169,7 @@ function check_property_T(name::String, generating_set,
         Δ, sdp_constraints = ΔandSDPconstraints(name, S, radius)
     end
 
-    S = countnz(Δ.coeffs) - 1
-    info(logger, "|S| = $S")
+    info(logger, "|S| = $(length(S))")
     info(logger, "length(Δ) = $(length(Δ))")
     info(logger, "|R(G)|.pm = $(size(parent(Δ).pm))")
 
