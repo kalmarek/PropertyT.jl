@@ -149,7 +149,7 @@ function setup_logging(name::String)
 end
 
 
-function check_property_T(name::String, generating_set::Function,
+function check_property_T(name::String, generating_set,
     solver, upper_bound, tol, radius)
 
     if !isdir(name)
