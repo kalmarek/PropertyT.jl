@@ -162,10 +162,12 @@ function check_property_T(name::String, generating_set,
 
     setup_logging(name)
 
-    if all(isfile.(pmΔfilenames(name))) && false
-        Δ, sdp_constraints = ΔandSDPconstraints(name)
+    if all(isfile.(pmΔfilenames(name)))
+        # cached
+        Δ, sdp_constraints = ΔandSDPconstraints(name, parent(S[1]))
     else
-        Δ, sdp_constraints = ΔandSDPconstraints(name, generating_set, radius)
+        # compute
+        Δ, sdp_constraints = ΔandSDPconstraints(name, S, radius)
     end
 
     S = countnz(Δ.coeffs) - 1
