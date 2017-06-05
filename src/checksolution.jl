@@ -115,7 +115,7 @@ function check_distance_to_positive_cone(Δ::GroupRingElem, λ, P;
 
     isapprox(eigvals(P), abs(eigvals(P)), atol=tol) ||
         warn("The solution matrix doesn't seem to be positive definite!")
-    @assert P == Symmetric(P)
+   #  @assert P == Symmetric(P)
     Q = real(sqrtm(P))
 
     info(logger, "------------------------------------------------------------")
