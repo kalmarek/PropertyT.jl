@@ -48,11 +48,6 @@ function splaplacian_coeff(S, basis, n=length(basis))
     return result
 end
 
-function laplacian_coeff(S, basis)
-    return full(splaplacian_coeff(S,basis))
-end
-
-
 function create_SDP_problem(Δ::GroupRingElem, matrix_constraints; upper_bound=Inf)
     N = size(parent(Δ).pm, 1)
     Δ² = Δ*Δ
