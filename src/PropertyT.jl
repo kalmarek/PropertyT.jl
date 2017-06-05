@@ -4,7 +4,6 @@ using JLD
 using GroupRings
 using Memento
 
-
 using Groups
 import Nemo: Group, GroupElem
 
