@@ -130,6 +130,16 @@ end
 
 Kazhdan_from_sgap(λ,N) = sqrt(2*λ/N)
 
+function setup_logging(name::String)
+
+   Memento.add_handler(logger, Memento.DefaultHandler(joinpath(name,"full.log"), Memento.DefaultFormatter("{date}| {msg}")), "full_log")
+
+   e = redirect_stderr(logger.handlers["full_log"].io)
+
+   return logger
+end
+
+
 function check_property_T(name::String, generating_set::Function,
     solver, upper_bound, tol, radius)
 
