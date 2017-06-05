@@ -144,6 +144,7 @@ end
 Kazhdan_from_sgap(λ,N) = sqrt(2*λ/N)
 
 function setup_logging(name::String)
+   isdir(name) || mkdir(name)
 
    Memento.add_handler(logger,
       Memento.DefaultHandler(joinpath(name,"full_$(string((now()))).log"),
@@ -158,11 +159,7 @@ end
 
 function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius)
 
-    if !isdir(name)
-        mkdir(name)
-    end
-
-    setup_logging(name)
+    isdir(name) || mkdir(name)
 
     if all(isfile.(pmΔfilenames(name)))
         # cached
