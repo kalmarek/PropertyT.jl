@@ -95,7 +95,10 @@ function λandP(name::String, SDP_problem::JuMP.Model, varλ, varP)
        rm(joinpath(name, "solver.log"))
    end
 
-   add_handler(solver_logger, DefaultHandler(joinpath(name, "solver.log"), DefaultFormatter("{date}| {msg}")), "solver_log")
+   add_handler(solver_logger,
+      DefaultHandler(joinpath(name, "solver_$(string(now())).log"),
+      DefaultFormatter("{date}| {msg}")),
+      "solver_log")
 
    λ, P = compute_λandP(SDP_problem, varλ, varP)
 
@@ -132,7 +135,10 @@ Kazhdan_from_sgap(λ,N) = sqrt(2*λ/N)
 
 function setup_logging(name::String)
 
-   Memento.add_handler(logger, Memento.DefaultHandler(joinpath(name,"full.log"), Memento.DefaultFormatter("{date}| {msg}")), "full_log")
+   Memento.add_handler(logger,
+      Memento.DefaultHandler(joinpath(name,"full_$(string((now()))).log"),
+      Memento.DefaultFormatter("{date}| {msg}")),
+      "full_log")
 
    e = redirect_stderr(logger.handlers["full_log"].io)
 
