@@ -90,7 +90,7 @@ function λandP(name::String)
     return λ, P
 end
 
-function λandP(name::String, SDP_problem::JuMP.Model,  varλ, varP)
+function λandP(name::String, SDP_problem::JuMP.Model, varλ, varP)
    if isfile(joinpath(name, "solver.log"))
        rm(joinpath(name, "solver.log"))
    end
