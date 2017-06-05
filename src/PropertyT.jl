@@ -31,39 +31,22 @@ function λSDPfilenames(name::String)
 end
 
 function ΔandSDPconstraints(name::String)
-    pm_fname, Δ_fname = pmΔfilenames(name)
-    f₁ = isfile(pm_fname)
-    f₂ = isfile(Δ_fname)
-    if f₁ && f₂ && false
-        info(logger, "Loading precomputed pm, Δ, sdp_constraints...")
-        product_matrix = load(pm_fname, "pm")
-        L = load(Δ_fname, "Δ")[:, 1]
-        Δ = GroupRingElem(L, Array{Int,2}(product_matrix))
-        sdp_constraints = constraints_from_pm(product_matrix)
-    else
-        throw(ArgumentError("You need to precompute pm and Δ to load it!"))
-    end
+    info(logger, "Loading precomputed pm, Δ, sdp_constraints...")
+    product_matrix = load(pm_fname, "pm")
+    L = load(Δ_fname, "Δ")[:, 1]
+    Δ = GroupRingElem(L, Array{Int,2}(product_matrix))
+    sdp_constraints = constraints_from_pm(product_matrix)
     return Δ, sdp_constraints
 end
 
-function ΔandSDPconstraints(name::String, generating_set::Function, radius::Int)
-    try
-        return ΔandSDPconstraints(name)
-    catch err
-        if isa(err, ArgumentError)
-            pm_fname, Δ_fname = pmΔfilenames(name)
-            S, Id = generating_set()
-            info(logger, "Computing pm, Δ, sdp_constraints...")
-            t = @timed Δ, sdp_constraints = Main.ΔandSDPconstraints(Id, S, radius)
-            info(logger, timed_msg(t))
-
-            save(pm_fname, "pm", parent(Δ).pm)
-            save(Δ_fname, "Δ", Δ.coeffs)
-            return Δ, sdp_constraints
-        else
-            error(logger, err)
-        end
-    end
+function ΔandSDPconstraints{T<:GroupElem}(name::String, S::Vector{T}, radius::Int)
+   S, Id = generating_set()
+   info(logger, "Computing pm, Δ, sdp_constraints...")
+   t = @timed Δ, sdp_constraints = ΔandSDPconstraints(S, radius)
+   info(logger, timed_msg(t))
+   pm_fname, Δ_fname = pmΔfilenames(name)
+   save(pm_fname, "pm", parent(Δ).pm)
+   save(Δ_fname, "Δ", Δ.coeffs)
 end
 
 function timed_msg(t)
@@ -155,7 +138,10 @@ function check_property_T(name::String, generating_set::Function,
 
     setup_logging(name)
 
-    Δ, sdp_constraints = ΔandSDPconstraints(name, generating_set, radius)
+    if all(isfile.(pmΔfilenames(name))) && false
+        Δ, sdp_constraints = ΔandSDPconstraints(name)
+    else
+        Δ, sdp_constraints = ΔandSDPconstraints(name, generating_set, radius)
 
     S = countnz(Δ.coeffs) - 1
     info(logger, "|S| = $S")
