@@ -4,6 +4,8 @@ using JLD
 using GroupRings
 using Memento
 
+import Nemo: Group, GroupElem
+
 const logger = Memento.config("info", fmt="{msg}")
 const solver_logger = Memento.config("info", fmt="{msg}")
 
