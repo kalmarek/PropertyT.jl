@@ -13,9 +13,9 @@ function constraints_from_pm(pm, total_length=maximum(pm))
     return constraints
 end
 
-function splaplacian(RG::GroupRing, S, basis, n=length(basis), T::Type=Int)
+function splaplacian(RG::GroupRing, S, Id=RG.group(), n=length(basis),T::Type=Int)
     result = RG(spzeros(T, n))
-    result[RG.group()] = T(length(S))
+    result[Id] = T(length(S))
     for s in S
         result[s] -= one(T)
     end
@@ -27,7 +27,7 @@ function create_SDP_problem(Δ::GroupRingElem, matrix_constraints; upper_bound=I
     Δ² = Δ*Δ
     @assert length(Δ.coeffs) == length(matrix_constraints)
     m = JuMP.Model();
-    JuMP.@variable(m, P[1:N, 1:N], SDP)
+    JuMP.@variable(m, P[1:N, 1:N])
     JuMP.@SDconstraint(m, P >= 0)
     JuMP.@constraint(m, sum(P[i] for i in eachindex(P)) == 0)
 
