@@ -1,29 +1,6 @@
 using JuMP
 import MathProgBase: AbstractMathProgSolver
 
-function create_product_matrix{T}(basis::Vector{T}, limit; twisted=true)
-    product_matrix = zeros(Int, (limit,limit))
-    basis_dict = Dict{T, Int}(x => i
-        for (i,x) in enumerate(basis))
-    for i in 1:limit
-        if twisted
-            x = inv(basis[i])
-        else
-            x = basis[i]
-        end
-        for j in 1:limit
-            w = x*basis[j]
-            product_matrix[i,j] = basis_dict[w]
-            # index = findfirst(basis, w)
-            # index ≠ 0 || throw(ArgumentError("Product is not supported on basis: $w"))
-            # product_matrix[i,j] = index
-        end
-    end
-    return product_matrix
-end
-
-create_product_matrix{T}(basis::Vector{T}; twisted=twisted) = create_product_matrix(basis, length(basis); twisted=twisted)
-
 function constraints_from_pm(pm, total_length=maximum(pm))
     n = size(pm,1)
     constraints = constraints = [Array{Int,1}[] for x in 1:total_length]
@@ -36,11 +13,12 @@ function constraints_from_pm(pm, total_length=maximum(pm))
     return constraints
 end
 
-function splaplacian(RG::GroupRing, S, Id=RG.group(), n=length(RG.basis))
+function splaplacian(RG::GroupRing, S, Id=RG.group(),
+   n=length(RG.basis), T::Type=Int)
     result = RG(spzeros(n))
     result[Id] = float(length(S))
     for s in S
-        result[s] += -1.0
+        result[s] -= one(T)
     end
     return result
 end
