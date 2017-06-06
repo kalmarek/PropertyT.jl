@@ -36,7 +36,7 @@ function constraints_from_pm(pm, total_length=maximum(pm))
     return constraints
 end
 
-function splaplacian(RG::GroupRing, S, Id=RG.group(), n=length(basis))
+function splaplacian(RG::GroupRing, S, Id=RG.group(), n=length(RG.basis))
     result = RG(spzeros(n))
     result[Id] = float(length(S))
     for s in S
