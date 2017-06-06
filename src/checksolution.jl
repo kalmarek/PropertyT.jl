@@ -13,7 +13,7 @@ end
 function groupring_square(vect, elt)
     zzz = zeros(eltype(vect), elt.coeffs)
     zzz[1:length(vect)] = vect
-    return GroupRings.groupring_mult(zzz, zzz, parent(elt).pm)
+    return GroupRings.mul(zzz, zzz, parent(elt).pm)
 end
 
 function compute_SOS(sqrt_matrix, elt)
