@@ -18,8 +18,8 @@ function pmΔfilenames(name::String)
         mkdir(name)
     end
     prefix = name
-    pm_filename = joinpath(prefix, "product_matrix.jld")
-    Δ_coeff_filename = joinpath(prefix, "delta.coeffs.jld")
+    pm_filename = joinpath(prefix, "pm.jld")
+    Δ_coeff_filename = joinpath(prefix, "delta.jld")
     return pm_filename, Δ_coeff_filename
 end
 
