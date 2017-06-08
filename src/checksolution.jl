@@ -95,7 +95,7 @@ function distance_to_cone{T<:Rational, S<:Interval}(λ::T, sqrt_matrix::Array{S,
     return distance_to_cone
 end
 
-function distance_to_cone{T<:AbstractFloat}(λ::T, sqrt_matrix::Array{T,2}, Δ::GroupRingElem{T}; len=4)
+function distance_to_cone(λ, sqrt_matrix::Array, Δ::GroupRingElem; len=4)
     SOS = compute_SOS(sqrt_matrix, Δ)
 
     SOS_diff = EOI(Δ, λ) - SOS
