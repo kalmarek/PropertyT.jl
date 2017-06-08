@@ -5,7 +5,7 @@ using GroupRings
 using Memento
 
 using Groups
-import Nemo: Group, GroupElem
+import Nemo: Ring, Group, GroupElem
 
 const logger = Memento.config("info", fmt="{msg}")
 const solver_logger = Memento.config("info", fmt="{msg}")
