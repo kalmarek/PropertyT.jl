@@ -192,7 +192,7 @@ function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius)
    info(logger, "minimum(P) = $(minimum(P))")
 
    if λ > 0
-      sgap = check_distance_to_positive_cone(Δ, λ, P, tol=tol, rational=false, len=2*radius)
+      sgap = check_distance_to_positive_cone(Δ, λ, P, 2*radius, tol=tol, rational=false)
       if isa(sgap, Interval)
            sgap = sgap.lo
       end
