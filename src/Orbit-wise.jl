@@ -81,26 +81,17 @@ end
 
 sparsify{T}(U::SparseMatrixCSC{T}, eps=eps(T)) = sparsify!(deepcopy(U), eps)
 
-function init_model(Uπs)
-    m = JuMP.Model();
-    l = size(Uπs,1)
-    P = Vector{Array{JuMP.Variable,2}}(l)
+function init_orbit_data(logger, sett::Settings; radius=2)
 
-    for k in 1:l
-        s = size(Uπs[k],2)
-        P[k] = JuMP.@variable(m, [i=1:s, j=1:s])
-        JuMP.@SDconstraint(m, P[k] >= 0.0)
-    end
+   ex(fname) = isfile(joinpath(sett.name, fname))
 
-    JuMP.@variable(m, λ >= 0.0)
-    JuMP.@objective(m, Max, λ)
-    return m, P
-end
+   files_exists = ex.(["delta.jld", "pm.jld", "U_pis.jld", "orbits.jld"])
 
+   if !all(files_exists)
+      compute_orbit_data(logger, sett.name, sett.G, sett.S, sett.AutS, radius=radius)
+   end
 
-
-
-
+   return 0
 end
 
 function transform(U::AbstractArray, V::AbstractArray; sparse=false)
@@ -136,6 +127,22 @@ function addconstraints!(m::JuMP.Model, data::OrbitData, l::Int=length(data.lapl
         end
         JuMP.@constraint(m, lhs == d² - λ*d)
     end
+end
+
+function init_model(Uπs)
+    m = JuMP.Model();
+    l = size(Uπs,1)
+    P = Vector{Array{JuMP.Variable,2}}(l)
+
+    for k in 1:l
+        s = size(Uπs[k],2)
+        P[k] = JuMP.@variable(m, [i=1:s, j=1:s])
+        JuMP.@SDconstraint(m, P[k] >= 0.0)
+    end
+
+    JuMP.@variable(m, λ >= 0.0)
+    JuMP.@objective(m, Max, λ)
+    return m, P
 end
 
 function create_SDP_problem(name::String; upper_bound=Inf)
@@ -174,19 +181,6 @@ function λandP(m::JuMP.Model, data::OrbitData, sett::Settings)
    fname = PropertyT.λSDPfilenames(data.name)[2]
    save(fname, "origP", Ps, "P", recP)
    return λ, recP
-end
-
-function init_orbit_data(logger, sett::Settings; radius=2)
-
-   ex(fname) = isfile(joinpath(sett.name, fname))
-
-   files_exists = ex.(["delta.jld", "pm.jld", "U_pis.jld", "orbits.jld"])
-
-   if !all(files_exists)
-      compute_orbit_data(logger, sett.name, sett.G, sett.S, sett.AutS, radius=radius)
-   end
-
-   return 0
 end
 
 function orbit_check_propertyT(logger, sett::Settings)
