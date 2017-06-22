@@ -1,15 +1,3 @@
-push!(LOAD_PATH, "./")
-
-using Nemo
-using Groups
-
-using GroupRings
-using PropertyT
-
-import Nemo.elements
-
-using JLD
-
 include("Projections.jl")
 
 ###############################################################################
