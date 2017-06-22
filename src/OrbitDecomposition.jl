@@ -105,7 +105,7 @@ function matrix_repr(g::GroupElem, E, E_dict)
    return rep_matrix
 end
 
-function matrix_reps{T<:GroupElem}(G::Nemo.Group, S::Vector{T}, AutS::Nemo.Group, radius::Int)
+function matrix_reps{T<:GroupElem}(G::Group, S::Vector{T}, AutS::Group, radius::Int)
    Id = (isa(G, Nemo.Ring) ? one(G) : G())
    E2, _ = Groups.generate_balls(S, Id, radius=radius)
    Edict = GroupRings.reverse_dict(E2)
