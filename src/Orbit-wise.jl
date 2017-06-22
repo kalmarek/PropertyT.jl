@@ -1,14 +1,7 @@
-using JLD
 using JuMP
 using SCS
 
-using GroupRings
-using PropertyT
-
-using ValidatedNumerics
-using ArgParse
-
-import Nemo: Group, GroupElem
+export Settings, OrbitData
 
 immutable Settings
    name::String

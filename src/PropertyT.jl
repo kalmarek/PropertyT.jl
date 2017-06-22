@@ -1,11 +1,15 @@
 module PropertyT
 
-using JLD
-using GroupRings
-using Memento
-
+using Nemo
 using Groups
-import Nemo: Ring, Group, GroupElem
+using GroupRings
+
+import Nemo: Group, GroupElem, Ring
+
+using JLD
+using JuMP
+
+using Memento
 
 const logger = Memento.config("info", fmt="{msg}")
 const solver_logger = Memento.config("info", fmt="{msg}")
