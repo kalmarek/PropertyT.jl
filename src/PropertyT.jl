@@ -192,7 +192,13 @@ function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius)
    info(logger, "minimum(P) = $(minimum(P))")
 
    if λ > 0
-      sgap = check_distance_to_positive_cone(Δ, λ, P, 2*radius, tol=tol, rational=false)
+
+      isapprox(eigvals(P), abs(eigvals(P)), atol=tol) ||
+          warn("The solution matrix doesn't seem to be positive definite!")
+     #  @assert P == Symmetric(P)
+      Q = real(sqrtm(Symmetric(P)))
+
+      sgap = check_distance_to_positive_cone(Δ, λ, Q, 2*radius, tol=tol, rational=false)
       if isa(sgap, Interval)
            sgap = sgap.lo
       end
