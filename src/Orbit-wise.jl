@@ -32,6 +32,32 @@ immutable OrbitData
    dims::Vector{Int}
 end
 
+function OrbitData(name::String)
+   splap = load(joinpath(name, "delta.jld"), "Δ");
+   pm = load(joinpath(name, "pm.jld"), "pm");
+   cnstr = PropertyT.constraints_from_pm(pm);
+   splap² = GroupRings.mul(splap, splap, pm);
+
+   Uπs = load(joinpath(name, "U_pis.jld"), "Uπs");
+   # Uπs = sparsify.(Uπs);
+   #dimensions of the corresponding πs:
+   dims = load(joinpath(name, "U_pis.jld"), "dims")
+
+   m, P = init_model(Uπs);
+
+   orbits = load(joinpath(name, "orbits.jld"), "orbits");
+   n = size(Uπs[1],1)
+   orb_spcnstrm = [orbit_constraint(cnstr[collect(orb)], n) for orb in orbits]
+   orb_splap = orbit_spvector(splap, orbits)
+   orb_splap² = orbit_spvector(splap², orbits)
+
+   orbData = OrbitData(name, Uπs, P, orb_spcnstrm, orb_splap, orb_splap², dims);
+
+   # orbData = OrbitData(name, Uπs, P, orb_spcnstrm, splap, splap², dims);
+
+   return m, orbData
+end
+
 include("OrbitDecomposition.jl")
 
 function sparsify{T}(U::Array{T}, eps=eps(T))
@@ -71,30 +97,10 @@ function init_model(Uπs)
     return m, P
 end
 
-function init_OrbitData(name::String)
-   splap = load(joinpath(name, "delta.jld"), "Δ");
-   pm = load(joinpath(name, "pm.jld"), "pm");
-   cnstr = PropertyT.constraints_from_pm(pm);
-   splap² = GroupRings.mul(splap, splap, pm);
 
-   Uπs = load(joinpath(name, "U_pis.jld"), "Uπs");
-   # Uπs = sparsify.(Uπs);
-   #dimensions of the corresponding πs:
-   dims = load(joinpath(name, "U_pis.jld"), "dims")
 
-   m, P = init_model(Uπs);
 
-   orbits = load(joinpath(name, "orbits.jld"), "orbits");
-   n = size(Uπs[1],1)
-   orb_spcnstrm = [orbit_constraint(cnstr[collect(orb)], n) for orb in orbits]
-   orb_splap = orbit_spvector(splap, orbits)
-   orb_splap² = orbit_spvector(splap², orbits)
 
-   orbData = OrbitData(name, Uπs, P, orb_spcnstrm, orb_splap, orb_splap², dims);
-
-   # orbData = OrbitData(name, Uπs, P, orb_spcnstrm, splap, splap², dims);
-
-   return m, orbData
 end
 
 function transform(U::AbstractArray, V::AbstractArray; sparse=false)
@@ -134,7 +140,7 @@ end
 
 function create_SDP_problem(name::String; upper_bound=Inf)
    info(PropertyT.logger, "Loading orbit data....")
-   t = @timed SDP_problem, orb_data = init_OrbitData(name);
+   t = @timed SDP_problem, orb_data = OrbitData(name);
    info(PropertyT.logger, PropertyT.timed_msg(t))
 
    if upper_bound < Inf
