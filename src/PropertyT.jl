@@ -14,9 +14,6 @@ using Memento
 const logger = Memento.config("info", fmt="{msg}")
 const solver_logger = Memento.config("info", fmt="{msg}")
 
-include("sdps.jl")
-include("checksolution.jl")
-
 function pmΔfilenames(name::String)
     if !isdir(name)
         mkdir(name)
@@ -221,5 +218,9 @@ function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius)
    info(logger, "κ($name, S) ≥ $λ < 0: Tells us nothing about property (T)")
    return false
 end
+
+include("SDPs.jl")
+include("CheckSolution.jl")
+include("Orbit-wise.jl")
 
 end # module Property(T)
