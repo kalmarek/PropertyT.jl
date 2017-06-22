@@ -1,8 +1,7 @@
 import Base: rationalize
 
 using ValidatedNumerics
-ValidatedNumerics.setrounding(Interval, :correct)
-# ValidatedNumerics.setrounding(Interval, :fast) #which is slower??
+ValidatedNumerics.setrounding(Interval, :accurate)
 ValidatedNumerics.setformat(:standard)
 # setprecision(Interval, 53) # slightly faster than 256
 
