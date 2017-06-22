@@ -1,6 +1,3 @@
-using DirectProducts
-using WreathProducts
-
 ###############################################################################
 #
 #  Characters of PermutationGroup
@@ -58,7 +55,7 @@ end
 #
 ###############################################################################
 
-function epsilon(i, g::DirectProducts.DirectProductGroupElem)
+function epsilon(i, g::DirectProductGroupElem)
     return reduce(*, 1, ((-1)^isone(g.elts[j]) for j in 1:i))
 end
 
@@ -102,7 +99,7 @@ function rankOne_projections(G::PermutationGroup, T::Type=Rational{Int})
    end
 end
 
-function rankOne_projections(BN::WreathProducts.WreathProduct, T::Type=Rational{Int})
+function rankOne_projections(BN::WreathProduct, T::Type=Rational{Int})
 
    N = BN.P.n
     # projections as elements of the group rings RSₙ
