@@ -183,7 +183,7 @@ function λandP(m::JuMP.Model, data::OrbitData, sett::Settings)
    return λ, recP
 end
 
-function orbit_check_propertyT(logger, sett::Settings)
+function check_property_T(sett::Settings)
 
    init_orbit_data(logger, sett, radius=sett.radius)
 
