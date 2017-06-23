@@ -114,17 +114,20 @@ function matrix_reps{T<:GroupElem}(G::Group, S::Vector{T}, AutS::Group, radius::
    return mreps
 end
 
-function reconstruct_sol(mreps::Dict, Us::Vector, Ps::Vector, dims::Vector)
-   recP = zeros(size(Us[1],1), size(Us[1],1))
+function reconstruct_sol{T<:GroupElem, S<:AbstractArray}(mreps::Dict{T, S},
+    Us::Vector, Ps::Vector, dims::Vector)
 
-   for g in keys(mreps)
-      for π in 1:endof(Us)
-         recP .+= dims[π] .* mreps[g]*transform(Us[π]', Ps[π])*mreps[inv(g)]
-      end
-   end
-   recP .*= 1/length(collect(keys(mreps)))
-
-   return recP
+    n = size(Us[1],1)
+    recP = zeros(Float64, (n,n))
+    Ust = transpose.(Us)
+    for g in keys(mreps)
+        A, B = mreps[g], mreps[inv(g)]
+        for π in 1:length(Us)
+            recP .+= dims[π].* (A * Us[π]*Ps[π]*Ust[π] * B)
+        end
+    end
+    recP .*= 1/length(keys(mreps))
+    return recP
 end
 
 function Cstar_repr(x::GroupRingElem, mreps)
