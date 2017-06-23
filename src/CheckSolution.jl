@@ -126,7 +126,7 @@ function check_distance_to_positive_cone(Δ::GroupRingElem, λ, Q, wlen;
 
     info(logger, "")
     info(logger, "Projecting columns of rationalized Q to the augmentation ideal...")
-    δ = eps(λ)
+    δ = tol
     Q_ℚ = ℚ(Q, δ)
     t = @timed Q_ℚω = correct_to_augmentation_ideal(Q_ℚ)
     info(logger, timed_msg(t))
