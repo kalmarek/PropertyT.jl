@@ -77,7 +77,7 @@ function distance_to_cone{T<:Rational}(λ::T, sqrt_matrix::Array{T,2}, Δ::Group
     return distance_to_cone
 end
 
-function distance_to_cone{T<:Rational, S<:Interval}(λ::T, sqrt_matrix::Array{S,2}, Δ::GroupRingElem{T}, wlen)
+function distance_to_cone{T<:Rational, S<:Interval}(λ::T, sqrt_matrix::AbstractArray{S,2}, Δ::GroupRingElem{T}, wlen)
     SOS = compute_SOS(sqrt_matrix, Δ)
     info(logger, "ɛ(∑ξᵢ*ξᵢ) ∈ $(GroupRings.augmentation(SOS))")
     λ_int = @interval(λ)
@@ -95,7 +95,7 @@ function distance_to_cone{T<:Rational, S<:Interval}(λ::T, sqrt_matrix::Array{S,
     return distance_to_cone
 end
 
-function distance_to_cone(λ, sqrt_matrix::Array, Δ::GroupRingElem, wlen)
+function distance_to_cone(λ, sqrt_matrix::AbstractArray, Δ::GroupRingElem, wlen)
     SOS = compute_SOS(sqrt_matrix, Δ)
 
     SOS_diff = EOI(Δ, λ) - SOS
