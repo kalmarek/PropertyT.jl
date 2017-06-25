@@ -1,9 +1,12 @@
 import Base: rationalize
 
-using ValidatedNumerics
-ValidatedNumerics.setrounding(Interval, :accurate)
-ValidatedNumerics.setformat(:standard)
-# setprecision(Interval, 53) # slightly faster than 256
+using IntervalArithmetic
+
+IntervalArithmetic.setrounding(Interval, :accurate)
+IntervalArithmetic.setformat(sigfigs=10)
+IntervalArithmetic.setprecision(Interval, 53) # slightly faster than 256
+
+import IntervalArithmetic.±
 
 function EOI{T<:Number}(Δ::GroupRingElem{T}, λ::T)
     return Δ*Δ - λ*Δ
@@ -40,8 +43,6 @@ function correct_to_augmentation_ideal{T<:Rational}(sqrt_matrix::Array{T,2})
     end
     return sqrt_corrected
 end
-
-import ValidatedNumerics.±
 
 function (±){T<:Number}(X::AbstractArray{T}, tol::Real)
     r{T}(x::T) = (x == zero(T)? @interval(0) : x ± tol)
