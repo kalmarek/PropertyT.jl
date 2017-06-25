@@ -8,6 +8,21 @@ IntervalArithmetic.setprecision(Interval, 53) # slightly faster than 256
 
 import IntervalArithmetic.±
 
+function (±){T<:Number}(X::AbstractArray{T}, tol::Real)
+    r{T}(x::T) = (x == zero(T)? @interval(0) : x ± tol)
+    return r.(X)
+end
+
+(±)(X::GroupRingElem, tol::Real) = GroupRingElem(X.coeffs ± tol, parent(X))
+
+function Base.rationalize{T<:Integer, S<:Real}(::Type{T},
+    X::AbstractArray{S}; tol::Real=eps(eltype(X)))
+    r(x) = rationalize(T, x, tol=tol)
+    return r.(X)
+end
+
+ℚ(x, tol::Real) = rationalize(BigInt, x, tol=tol)
+
 function EOI{T<:Number}(Δ::GroupRingElem{T}, λ::T)
     return Δ*Δ - λ*Δ
 end
@@ -43,21 +58,6 @@ function correct_to_augmentation_ideal{T<:Rational}(sqrt_matrix::Array{T,2})
     end
     return sqrt_corrected
 end
-
-function (±){T<:Number}(X::AbstractArray{T}, tol::Real)
-    r{T}(x::T) = (x == zero(T)? @interval(0) : x ± tol)
-    return r.(X)
-end
-
-(±)(X::GroupRingElem, tol::Real) = GroupRingElem(X.coeffs ± tol, parent(X))
-
-function Base.rationalize{T<:Integer, S<:Real}(::Type{T},
-    X::AbstractArray{S}; tol::Real=eps(eltype(X)))
-    r(x) = rationalize(T, x, tol=tol)
-    return r.(X)
-end
-
-ℚ(x, tol::Real) = rationalize(BigInt, x, tol=tol)
 
 function distance_to_cone{T<:Rational}(λ::T, sqrt_matrix::Array{T,2}, Δ::GroupRingElem{T}, wlen)
     SOS = compute_SOS(sqrt_matrix, Δ)
