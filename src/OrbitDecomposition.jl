@@ -140,6 +140,19 @@ function Cstar_repr(x::GroupRingElem, mreps)
     return res
 end
 
+dens(M::SparseMatrixCSC) = length(M.nzval)/length(M)
+dens(M::AbstractArray) = sum(abs.(M) .!= 0)/length(M)
+
+function sparsify2(M::AbstractArray)
+   println("Density before sparsification: \t$(dens(M))")
+   M = deepcopy(M)
+   M[M .< eps(eltype(M))] .= zero(eltype(M))
+   M = sparse(M)
+   dropzeros!(M)
+   println("Density after sparsification: \t$(dens(M))")
+   return M
+end
+
 function orthSVD(M::AbstractMatrix)
     M = full(M)
     fact = svdfact(M)
