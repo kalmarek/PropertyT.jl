@@ -201,7 +201,7 @@ function check_property_T(sett::Settings)
 
    if λ > 0
 
-      isapprox(eigvals(P), abs(eigvals(P)), atol=sett.tol) ||
+      isapprox(eigvals(P), abs.(eigvals(P)), atol=sett.tol) ||
           warn("The solution matrix doesn't seem to be positive definite!")
      #  @assert P == Symmetric(P)
       Q = real(sqrtm(Symmetric(P)))
