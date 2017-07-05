@@ -2,7 +2,7 @@ import Base: rationalize
 
 using IntervalArithmetic
 
-IntervalArithmetic.setrounding(Interval, :correct)
+IntervalArithmetic.setrounding(Interval, :accurate)
 IntervalArithmetic.setformat(sigfigs=10)
 IntervalArithmetic.setprecision(Interval, 53) # slightly faster than 256
 

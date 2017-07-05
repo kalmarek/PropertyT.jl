@@ -1,7 +1,7 @@
-julia 0.5
+julia
 JuMP
 SCS
-IntervalArithmetic 0.9.1
+IntervalArithmetic
 JLD
 Memento
 Nemo
