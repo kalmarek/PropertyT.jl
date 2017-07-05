@@ -27,8 +27,8 @@ function EOI{T<:Number}(Δ::GroupRingElem{T}, λ::T)
     return Δ*Δ - λ*Δ
 end
 
-function groupring_square(vect, elt)
-    zzz = zeros(eltype(vect), elt.coeffs)
+function groupring_square(vect::Vector, elt::GroupRingElem)
+    zzz = zeros(eltype(vect), length(elt.coeffs))
     zzz[1:length(vect)] = vect
     return GroupRings.mul(zzz, zzz, parent(elt).pm)
 end
