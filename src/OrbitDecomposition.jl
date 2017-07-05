@@ -205,6 +205,6 @@ function compute_orbit_data{T<:GroupElem}(logger, name::String, G::Nemo.Group, S
    info(logger, "dimensions = $dimensions")
    @assert dot(multiplicities, dimensions) == sizes[radius]
 
-   save(joinpath(name, "U_pis.jld"), "Uπs", Uπs, "dims", dimensions)
+   save(joinpath(name, "U_pis.jld"), "Uπs", Uπs, "spUπs", sparsify2.(Uπs), "dims", dimensions)
    return 0
 end
