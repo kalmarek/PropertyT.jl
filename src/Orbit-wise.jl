@@ -32,7 +32,6 @@ function OrbitData(name::String)
    splap² = GroupRings.mul(splap, splap, pm);
 
    Uπs = load(joinpath(name, "U_pis.jld"), "Uπs");
-   # Uπs = sparsify.(Uπs);
    #dimensions of the corresponding πs:
    dims = load(joinpath(name, "U_pis.jld"), "dims")
 
@@ -80,11 +79,11 @@ end
 
 function transform(U::AbstractArray, V::AbstractArray; sparse=false)
     w = U'*V*U
-    sparse && sparsify!(w)
+    sparse && w = sparsify(w)
     return w
 end
 
-A(data::OrbitData, π, t) = data.dims[π]*transform(data.Us[π], data.cnstr[t])
+A(data::OrbitData, π, t) = data.dims[π]*transform(data.Us[π], data.cnstr[t], sparse=true)
 
 function constrLHS(m::JuMP.Model, data::OrbitData, t)
     l = endof(data.Us)
