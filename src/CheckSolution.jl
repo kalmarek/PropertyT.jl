@@ -111,7 +111,7 @@ function distance_to_cone(λ, sqrt_matrix::AbstractArray, Δ::GroupRingElem, wle
 end
 
 function check_distance_to_positive_cone(Δ::GroupRingElem, λ, Q, wlen;
-    tol=1e-7, rational=false)
+    tol=1e-14, rational=false)
 
     info(logger, "------------------------------------------------------------")
     info(logger, "")
