@@ -130,7 +130,7 @@ function reconstruct_sol{T<:GroupElem, S<:AbstractArray}(mreps::Dict{T, S},
     return recP
 end
 
-function Cstar_repr(x::GroupRingElem, mreps)
+function Cstar_repr(x::GroupRingElem, mreps::Dict)
     k = collect(keys(mreps))[1]
     res = zeros(size(mreps[k])...)
 
