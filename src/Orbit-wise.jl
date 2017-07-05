@@ -53,11 +53,10 @@ end
 
 include("OrbitDecomposition.jl")
 
-function sparsify{T}(U::Array{T}, eps=eps(T))
-    n = rank(U)
+function sparsify{T}(U::AbstractArray{T}, eps=eps(T), check=true)
     W = deepcopy(U)
     W[abs.(W) .< eps] = zero(T)
-    if rank(W) != n
+    if check && rank(W) != rank(U)
         warn("Sparsification would decrease the rank!")
         W = U
     end
@@ -65,14 +64,6 @@ function sparsify{T}(U::Array{T}, eps=eps(T))
     dropzeros!(W)
     return W
 end
-
-function sparsify!{T}(U::SparseMatrixCSC{T}, eps=eps(T))
-    U[abs.(U) .< eps] = zero(T)
-    dropzeros!(U)
-    return U
-end
-
-sparsify{T}(U::SparseMatrixCSC{T}, eps=eps(T)) = sparsify!(deepcopy(U), eps)
 
 function init_orbit_data(logger, sett::Settings; radius=2)
 
