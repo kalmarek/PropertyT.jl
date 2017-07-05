@@ -78,9 +78,11 @@ function init_orbit_data(logger, sett::Settings; radius=2)
 end
 
 function transform(U::AbstractArray, V::AbstractArray; sparse=false)
-    w = U'*V*U
-    sparse && w = sparsify(w)
-    return w
+   w = U'*V*U
+   if sparse
+      w = sparsify(w)
+   end
+   return w
 end
 
 A(data::OrbitData, π, t) = data.dims[π]*transform(data.Us[π], data.cnstr[t], sparse=true)
