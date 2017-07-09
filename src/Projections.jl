@@ -68,9 +68,11 @@ end
 function central_projection(RG::GroupRing, char::Function, T::Type=Rational{Int})
     result = RG(T)
     for g in RG.basis
-        result[g] = char(inv(g))
+        result[g] = char(g)
     end
-    return convert(T, char(RG.group())//Int(order(RG.group))*result)
+    dim = char(RG.group())
+    ord = Int(order(RG.group))
+    return convert(T, (dim//ord)*result)
 end
 
 function rankOne_projections(G::PermutationGroup, T::Type=Rational{Int})
