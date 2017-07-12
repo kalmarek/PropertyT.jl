@@ -19,31 +19,29 @@ function chars(G::PermutationGroup)
 
    χ_regsgn(σ::Nemo.perm) = sign(σ)*χ_reg(σ)
 
-   function χ_regviaS3(σ::Nemo.perm)
-      @assert parent(σ).n == 4
-      t = permtype(σ)
-         if t == [1,1,1,1]
-            result = 2
-         elseif t == [2,2]
-            result = 2
-         elseif t == [1,3]
-            result = -1
-         else
-            result = 0
-         end
-      return result
-   end
-
-   chars = [χ_id, χ_sgn, χ_regviaS3, χ_reg, χ_regsgn]
-
    if G.n == 1
-      return chars[1:1]
+      return [χ_id]
+
    elseif G.n == 2
-      return chars[1:2]
+      return [χ_id, χ_sgn]
+
    elseif G.n == 3
-      return [chars[1:2]..., chars[4]]
+      return [χ_id, χ_sgn, χ_reg]
+
    elseif G.n == 4
-      return chars[1:5]
+
+      function χ_regviaS3(σ::Nemo.perm)
+         vals = Dict{Vector{Int}, Int}(
+            [1,1,1,1] => 2,
+            [1,1,2]   => 0,
+            [2,2]     => 2,
+            [1,3]     =>-1,
+            [4]       => 0
+         )
+         return vals[permtype(σ)]
+      end
+
+      return [χ_id, χ_sgn, χ_regviaS3, χ_reg, χ_regsgn]
    else
       throw("Characters for $G unknown!")
    end
