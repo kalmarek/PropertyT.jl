@@ -128,6 +128,22 @@ function rankOne_projections(G::PermutationGroup, T::Type=Rational{Int})
          1//2*(one(RG, T) + RG(G([2,1,3,4]), T))*projections[5]
       ]
       return rankone_projs
+   elseif G.n == 5
+      p⁺ = 1//2*(one(RG, T) + RG(G([2,1,3,4,5]), T))
+      p⁻ = 1//2*(one(RG, T) - RG(G([2,1,3,4,5]), T))
+
+      q⁺ = 1//2*(one(RG, T) + RG(G([1,2,4,3,5]), T))
+      q⁻ = 1//2*(one(RG, T) - RG(G([1,2,4,3,5]), T))
+
+      rankone_projs = [
+         projections[1],
+         projections[2],
+         p⁻*projections[3],
+         p⁺*projections[4],
+         p⁺*q⁺*projections[5],
+         p⁻*q⁻*projections[6],
+         p⁺*q⁺*projections[7]
+      ]
    else
       throw("Rank-one projections for $G unknown!")
    end
