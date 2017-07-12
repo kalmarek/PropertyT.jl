@@ -10,14 +10,14 @@ function chars(G::PermutationGroup)
 
    χ_id(σ::Nemo.perm) = 1
 
-   χ_sgn(σ::Nemo.perm) = (-1)^parity(σ)
+   χ_sgn(σ::Nemo.perm) = sign(σ)
 
    function χ_reg(σ::Nemo.perm)
       fixed_points = countnz([(x == y? 1 : 0) for (x,y) in enumerate(σ.d)])
       return fixed_points - 1
    end
 
-   χ_regsgn(σ::Nemo.perm) = (-1)^parity(σ)*χ_reg(σ)
+   χ_regsgn(σ::Nemo.perm) = sign(σ)*χ_reg(σ)
 
    function χ_regviaS3(σ::Nemo.perm)
       @assert parent(σ).n == 4
