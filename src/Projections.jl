@@ -97,6 +97,7 @@ end
 
 function central_projection(RG::GroupRing, char::Function, T::Type=Rational{Int})
     result = RG(T)
+    result.coeffs = full(result.coeffs)
     for g in RG.basis
         result[g] = char(g)
     end
