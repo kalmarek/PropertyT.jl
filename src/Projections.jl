@@ -42,6 +42,38 @@ function chars(G::PermutationGroup)
       end
 
       return [χ_id, χ_sgn, χ_regviaS3, χ_reg, χ_regsgn]
+
+   elseif G.n == 5
+
+      function ϱ(σ::Nemo.perm)
+         vals = Dict{Vector{Int}, Int}(
+            [1,1,1,1,1] => 5,
+            [1,1,1,2]   => 1,
+            [1,2,2]     => 1,
+            [1,1,3]     =>-1,
+            [2,3]       => 1,
+            [1,4]       =>-1,
+            [5]         => 0
+         )
+         return vals[permtype(σ)]
+      end
+
+      ϱ_sgn(σ::Nemo.perm) = sign(σ)*ϱ(σ)
+
+      function ψ(σ::Nemo.perm)
+         vals = Dict{Vector{Int}, Int}(
+            [1,1,1,1,1] => 6,
+            [1,1,1,2]   => 0,
+            [1,2,2]     => -2,
+            [1,1,3]     => 0,
+            [2,3]       => 0,
+            [1,4]       => 0,
+            [5]         => 1
+         )
+         return vals[permtype(σ)]
+      end
+
+      return [χ_id, χ_sgn, χ_reg, χ_regsgn, ϱ, ϱ_sgn, ψ]
    else
       throw("Characters for $G unknown!")
    end
