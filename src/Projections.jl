@@ -6,7 +6,7 @@
 
 function chars(G::PermutationGroup)
    permtype_unsorted(σ::Nemo.perm) = [length(c) for c in cycles(σ)]
-   permtype(σ::Nemo.perm) = sort(permtype_unsorted(σ))
+   permtype(σ::Nemo.perm) = sort(permtype_unsorted(σ), rev=true)
 
    χ_id(σ::Nemo.perm) = 1
 
@@ -33,9 +33,9 @@ function chars(G::PermutationGroup)
       function χ_regviaS3(σ::Nemo.perm)
          vals = Dict{Vector{Int}, Int}(
             [1,1,1,1] => 2,
-            [1,1,2]   => 0,
+            [2,1,1]   => 0,
             [2,2]     => 2,
-            [1,3]     =>-1,
+            [3,1]     =>-1,
             [4]       => 0
          )
          return vals[permtype(σ)]
@@ -48,11 +48,11 @@ function chars(G::PermutationGroup)
       function ϱ(σ::Nemo.perm)
          vals = Dict{Vector{Int}, Int}(
             [1,1,1,1,1] => 5,
-            [1,1,1,2]   => 1,
-            [1,2,2]     => 1,
-            [1,1,3]     =>-1,
-            [2,3]       => 1,
-            [1,4]       =>-1,
+            [2,1,1,1]   => 1,
+            [2,2,1]     => 1,
+            [3,1,1]     =>-1,
+            [3,2]       => 1,
+            [4,1]       =>-1,
             [5]         => 0
          )
          return vals[permtype(σ)]
@@ -63,11 +63,11 @@ function chars(G::PermutationGroup)
       function ψ(σ::Nemo.perm)
          vals = Dict{Vector{Int}, Int}(
             [1,1,1,1,1] => 6,
-            [1,1,1,2]   => 0,
-            [1,2,2]     => -2,
-            [1,1,3]     => 0,
-            [2,3]       => 0,
-            [1,4]       => 0,
+            [2,1,1,1]   => 0,
+            [2,2,1]     => -2,
+            [3,1,1]     => 0,
+            [3,2]       => 0,
+            [4,1]       => 0,
             [5]         => 1
          )
          return vals[permtype(σ)]
