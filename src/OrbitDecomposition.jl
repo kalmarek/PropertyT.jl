@@ -98,8 +98,8 @@ end
 
 function matrix_repr(g::GroupElem, E, E_dict)
    rep_matrix = spzeros(Int, length(E), length(E))
-   for (i,e) in enumerate(E)
-      j = E_dict[g(e)]
+   for (i,elt) in enumerate(E)
+      j = E_dict[g(elt)]
       rep_matrix[i,j] = 1
    end
    return rep_matrix
