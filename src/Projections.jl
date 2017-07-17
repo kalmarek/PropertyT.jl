@@ -95,15 +95,17 @@ end
 #
 ###############################################################################
 
-function central_projection(RG::GroupRing, char::Function, T::Type=Rational{Int})
+function central_projection(RG::GroupRing, chi::Function, T::Type=Rational{Int})
     result = RG(T)
     result.coeffs = full(result.coeffs)
-    for g in RG.basis
-        result[g] = char(g)
-    end
-    dim = result[RG.group()]
+    dim = chi(RG.group())
     ord = Int(order(RG.group))
-    return convert(T, (dim//ord)*result)
+
+    for g in RG.basis
+        result[g] = convert(T, (dim//ord)*chi(g))
+    end
+
+    return result)
 end
 
 function rankOne_projections(G::PermutationGroup, T::Type=Rational{Int})
