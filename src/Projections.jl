@@ -101,7 +101,7 @@ function central_projection(RG::GroupRing, char::Function, T::Type=Rational{Int}
     for g in RG.basis
         result[g] = char(g)
     end
-    dim = char(RG.group())
+    dim = result[RG.group()]
     ord = Int(order(RG.group))
     return convert(T, (dim//ord)*result)
 end
