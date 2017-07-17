@@ -80,27 +80,27 @@ function rankOne_projections(BN::WreathProduct, T::Type=Rational{Int})
 
    # embedding into group ring of BN
    RBN = GroupRing(BN)
-   RFFFF_projs = [central_projection(GroupRing(BN.N), g->epsilon(i,g), T)
-   for i in 1:BN.P.n]
+   RFFFF_projs = [
+      central_projection(GroupRing(BN.N), g->epsilon(i,g), T) for i in 1:BN.P.n
+      ]
 
-      e0 = central_projection(GroupRing(BN.N), g->epsilon(0,g), T)
-      Q0 = RBN(e0, g -> BN(g))
-      Qs = [RBN(q, g -> BN(g)) for q in RFFFF_projs]
+   e0 = central_projection(GroupRing(BN.N), g->epsilon(0,g), T)
+   Q0 = RBN(e0, g -> BN(g))
+   Qs = [RBN(q, g -> BN(g)) for q in RFFFF_projs]
 
-      all_projs = [Q0*RBN(p, g->BN(g)) for p in SNprojs_nc[N]]
+   all_projs = [Q0*RBN(p, g->BN(g)) for p in SNprojs_nc[N]]
 
-      range = collect(1:N)
-      for i in 1:N-1
+   range = collect(1:N)
+   for i in 1:N-1
 
-         Sk_first = [RBN(p, g->BN(Nemo.emb!(BN.P(), g, range[1:i]))) for p in SNprojs_nc[i]]
-         Sk_last = [RBN(p, g->BN(Nemo.emb!(BN.P(), g, range[i+1:end]))) for p in SNprojs_nc[N-i]]
+      Sk_first = [RBN(p, g->BN(Nemo.emb!(BN.P(), g, range[1:i]))) for p in SNprojs_nc[i]]
+      Sk_last = [RBN(p, g->BN(Nemo.emb!(BN.P(), g, range[i+1:end]))) for p in SNprojs_nc[N-i]]
 
-         append!(all_projs,
-         [Qs[i]*p1*p2 for (p1,p2) in Base.product(Sk_first,Sk_last)])
-      end
-
-      append!(all_projs, [Qs[N]*RBN(p, g->BN(g)) for p in SNprojs_nc[N]])
-
-      return all_projs
+      append!(all_projs,
+      [Qs[i]*p1*p2 for (p1,p2) in Base.product(Sk_first,Sk_last)])
    end
+
+   append!(all_projs, [Qs[N]*RBN(p, g->BN(g)) for p in SNprojs_nc[N]])
+
+   return all_projs
 end
