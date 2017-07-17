@@ -29,26 +29,27 @@ end
 
 function rankOne_projections(G::PermutationGroup, T::Type=Rational{Int})
    RG = GroupRing(G)
-   projections = [central_projection(RG, χ, T) for χ in chars(G)]
+   cprojs = [central_projection(RG, χ, T) for χ in (character(λ) for λ in IntPartitions(G.n))]
 
    if G.n == 1 || G.n == 2
-      return  projections
+      return  cprojs
    elseif G.n == 3
+      p = 1//2*(one(RG, T) - RG(G([2,1,3]), T))
       rankone_projs = [
-         projections[1],
-         projections[2],
-         1//2*(one(RG, T) - RG(G([2,1,3]), T))*projections[3]
+         cprojs[1],        # alternating
+         p*cprojs[2],      # regular
+         cprojs[3]         # trivial
       ]
-      return rankone_projs
    elseif G.n == 4
-      rankone_projs = [
-         projections[1],
-         projections[2],
-         1//2*(one(RG, T) - RG(G([2,1,3,4]), T))*projections[3],
-         1//2*(one(RG, T) - RG(G([2,1,3,4]), T))*projections[4],
-         1//2*(one(RG, T) + RG(G([2,1,3,4]), T))*projections[5]
+       p⁺ = 1//2*(one(RG, T) + RG(G([2,1,3,4]), T))
+       p⁻ = 1//2*(one(RG, T) - RG(G([2,1,3,4]), T))
+       rankone_projs = [
+         cprojs[1],        # alternating
+         p⁺*cprojs[2],     # alt_regular
+         p⁻*cprojs[3],     # regular
+         p⁻*cprojs[4],     # via projection to S₃
+         cprojs[5]         # trivial
       ]
-      return rankone_projs
    elseif G.n == 5
       p⁺ = 1//2*(one(RG, T) + RG(G([2,1,3,4,5]), T))
       p⁻ = 1//2*(one(RG, T) - RG(G([2,1,3,4,5]), T))
@@ -57,17 +58,18 @@ function rankOne_projections(G::PermutationGroup, T::Type=Rational{Int})
       q⁻ = 1//2*(one(RG, T) - RG(G([1,2,4,3,5]), T))
 
       rankone_projs = [
-         projections[1],
-         projections[2],
-         p⁻*projections[3],
-         p⁺*projections[4],
-         p⁺*q⁺*projections[5],
-         p⁻*q⁻*projections[6],
-         p⁺*q⁺*projections[7]
+         cprojs[1],        # alternating
+         p⁺*cprojs[2],     # alt_regular
+         p⁺*q⁺*cprojs[3],  # ψ
+         p⁻*q⁻*cprojs[4],  # alt_ϱ
+         p⁻*cprojs[5],     # regular
+         p⁺*q⁺*cprojs[6],  # ϱ
+         cprojs[7]         # trivial
       ]
    else
       throw("Rank-one projections for $G unknown!")
    end
+   return rankone_projs
 end
 
 function rankOne_projections(BN::WreathProduct, T::Type=Rational{Int})
