@@ -105,7 +105,7 @@ function central_projection(RG::GroupRing, chi::Function, T::Type=Rational{Int})
         result[g] = convert(T, (dim//ord)*chi(g))
     end
 
-    return result)
+    return result
 end
 
 function rankOne_projections(G::PermutationGroup, T::Type=Rational{Int})
