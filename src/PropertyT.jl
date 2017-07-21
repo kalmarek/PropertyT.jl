@@ -14,6 +14,18 @@ using Memento
 const logger = Memento.config("info", fmt="{msg}")
 const solver_logger = Memento.config("info", fmt="{msg}")
 
+function setup_logging(name::String)
+   isdir(name) || mkdir(name)
+
+   Memento.add_handler(logger,
+      Memento.DefaultHandler(joinpath(name,"full_$(string((now()))).log"),
+      Memento.DefaultFormatter("{date}| {msg}")), "full_log")
+
+   # e = redirect_stderr(logger.handlers["full_log"].io)
+
+   return logger
+end
+
 function pmΔfilenames(name::String)
     if !isdir(name)
         mkdir(name)
@@ -141,19 +153,6 @@ function compute_λandP(m, varλ, varP)
 end
 
 Kazhdan_from_sgap(λ,N) = sqrt(2*λ/N)
-
-function setup_logging(name::String)
-   isdir(name) || mkdir(name)
-
-   Memento.add_handler(logger,
-      Memento.DefaultHandler(joinpath(name,"full_$(string((now()))).log"),
-      Memento.DefaultFormatter("{date}| {msg}")), "full_log")
-
-   # e = redirect_stderr(logger.handlers["full_log"].io)
-
-   return logger
-end
-
 
 function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius)
 
