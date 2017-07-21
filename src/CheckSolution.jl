@@ -23,9 +23,7 @@ end
 
 ℚ(x, tol::Real) = rationalize(BigInt, x, tol=tol)
 
-function EOI{T<:Number}(Δ::GroupRingElem{T}, λ::T)
-    return Δ*Δ - λ*Δ
-end
+EOI{T<:Number}(Δ::GroupRingElem{T}, λ::T) = Δ*Δ - λ*Δ
 
 function groupring_square(vect::AbstractVector, elt::GroupRingElem)
     zzz = zeros(eltype(vect), length(elt.coeffs))
