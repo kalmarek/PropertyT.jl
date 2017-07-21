@@ -27,10 +27,10 @@ function EOI{T<:Number}(Δ::GroupRingElem{T}, λ::T)
     return Δ*Δ - λ*Δ
 end
 
-function groupring_square(vect::Vector, elt::GroupRingElem)
+function groupring_square(vect::AbstractVector, elt::GroupRingElem)
     zzz = zeros(eltype(vect), length(elt.coeffs))
     zzz[1:length(vect)] = vect
-    return GroupRings.mul(zzz, zzz, parent(elt).pm)
+    return GroupRings.mul!(similar(zzz), zzz, zzz, parent(elt).pm)
 end
 
 function compute_SOS(sqrt_matrix, elt)

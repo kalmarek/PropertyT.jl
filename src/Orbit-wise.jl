@@ -29,7 +29,8 @@ function OrbitData(name::String)
    splap = load(joinpath(name, "delta.jld"), "Δ");
    pm = load(joinpath(name, "pm.jld"), "pm");
    cnstr = PropertyT.constraints_from_pm(pm);
-   splap² = GroupRings.mul(splap, splap, pm);
+   splap² = similar(splap)
+   splap² = GroupRings.mul!(splap², splap, splap, pm);
 
    Uπs = load(joinpath(name, "U_pis.jld"), "Uπs");
    #dimensions of the corresponding πs:
