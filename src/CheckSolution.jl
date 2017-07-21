@@ -27,22 +27,22 @@ EOI{T<:Number}(Δ::GroupRingElem{T}, λ::T) = Δ*Δ - λ*Δ
 
 function groupring_square(vect::AbstractVector, elt::GroupRingElem)
     zzz = zeros(eltype(vect), length(elt.coeffs))
-    zzz[1:length(vect)] = vect
+    zzz[1:length(vect)] .= vect
     return GroupRings.mul!(similar(zzz), zzz, zzz, parent(elt).pm)
 end
 
 function compute_SOS(sqrt_matrix, elt)
     n = size(sqrt_matrix,2)
-    T = eltype(sqrt_matrix)
 
-    # result = zeros(T, length(elt.coeffs))
-    # for i in 1:n
-    #     result += groupring_square(sqrt_matrix[:,i], elt)
-    # end
-
-    result = @parallel (+) for i in 1:n
-        groupring_square(sqrt_matrix[:,i], elt)
+    result = zeros(eltype(sqrt_matrix), length(elt.coeffs))
+    for i in 1:n
+        result .+= (groupring_square(view(sqrt_matrix,:,i), elt))
     end
+
+   #  result = @parallel (+) for i in 1:n
+      #   groupring_square(sqrt_matrix[:,i], elt)
+   #  end
+
     return GroupRingElem(result, parent(elt))
 end
 
@@ -50,8 +50,8 @@ function correct_to_augmentation_ideal{T<:Rational}(sqrt_matrix::Array{T,2})
     sqrt_corrected = similar(sqrt_matrix)
     l = size(sqrt_matrix,2)
     for i in 1:l
-        col = sqrt_matrix[:,i]
-        sqrt_corrected[:,i] = col - sum(col)//l
+        col = view(sqrt_matrix, :,i)
+        sqrt_corrected[:,i] .= col .- sum(col)//l
         # @assert sum(sqrt_corrected[:,i]) == 0
     end
     return sqrt_corrected
