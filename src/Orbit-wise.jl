@@ -83,7 +83,7 @@ function init_orbit_data(logger, sett::Settings; radius=2)
    return 0
 end
 
-function transform(U::AbstractArray, V::AbstractArray; sparse=false)
+function transform(U::AbstractArray, V::AbstractArray; sparse=true)
    if sparse
       return sparsify(U'*V*U)
    else
