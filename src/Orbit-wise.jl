@@ -58,7 +58,7 @@ dens(M::AbstractArray) = sum(abs.(M) .!= 0)/length(M)
 
 function sparsify{T}(U::AbstractArray{T}, check=true)
     W = deepcopy(U)
-    W[W .< eps(T)] .= zero(T)
+    W[abs.(W) .< eps(T)] .= zero(T)
     if check && rank(W) != rank(U)
         info("Sparsification would decrease the rank!")
         W = U
