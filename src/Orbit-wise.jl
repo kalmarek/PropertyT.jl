@@ -53,13 +53,18 @@ end
 
 include("OrbitDecomposition.jl")
 
-function sparsify{T}(U::AbstractArray{T}, eps=eps(T), check=true)
+dens(M::SparseMatrixCSC) = length(M.nzval)/length(M)
+dens(M::AbstractArray) = sum(abs.(M) .!= 0)/length(M)
+
+function sparsify{T}(U::AbstractArray{T}, check=true)
     W = deepcopy(U)
-    W[abs.(W) .< eps] = zero(T)
+    W[abs.(W) .< eps(T)] .= zero(T)
     if check && rank(W) != rank(U)
-        warn("Sparsification would decrease the rank!")
+        info("Sparsification would decrease the rank!")
         W = U
-    end
+    else
+      info("Sparsified:", rpad(dens(U), 10), "\t", rpad(dens(W),10))
+   end
     W = sparse(W)
     dropzeros!(W)
     return W
@@ -78,15 +83,15 @@ function init_orbit_data(logger, sett::Settings; radius=2)
    return 0
 end
 
-function transform(U::AbstractArray, V::AbstractArray; sparse=false)
-   w = U'*V*U
+function transform(U::AbstractArray, V::AbstractArray; sparse=true)
    if sparse
-      w = sparsify(w)
+      return sparsify(U'*V*U)
+   else
+      return U'*V*U
    end
-   return w
 end
 
-A(data::OrbitData, π, t) = data.dims[π]*transform(data.Us[π], data.cnstr[t], sparse=true)
+A(data::OrbitData, π, t) = data.dims[π]*transform(data.Us[π], data.cnstr[t])
 
 function constrLHS(m::JuMP.Model, data::OrbitData, t)
     l = endof(data.Us)

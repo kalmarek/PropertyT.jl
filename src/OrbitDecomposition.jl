@@ -123,7 +123,7 @@ function reconstruct_sol{T<:GroupElem, S<:AbstractArray}(mreps::Dict{T, S},
     for g in keys(mreps)
         A, B = mreps[g], mreps[inv(g)]
         for π in 1:length(Us)
-            recP .+= dims[π].* (A * Us[π]*Ps[π]*Ust[π] * B)
+            recP .+= sparsify(dims[π].* (A * Us[π]*Ps[π]*Ust[π] * B))
         end
     end
     recP .*= 1/length(keys(mreps))
@@ -138,19 +138,6 @@ function Cstar_repr(x::GroupRingElem, mreps::Dict)
         res .+= x[g]*mreps[g]
     end
     return res
-end
-
-dens(M::SparseMatrixCSC) = length(M.nzval)/length(M)
-dens(M::AbstractArray) = sum(abs.(M) .!= 0)/length(M)
-
-function sparsify2(M::AbstractArray)
-   println("Density before sparsification: \t$(dens(M))")
-   M = deepcopy(M)
-   M[M .< eps(eltype(M))] .= zero(eltype(M))
-   M = sparse(M)
-   dropzeros!(M)
-   println("Density after sparsification: \t$(dens(M))")
-   return M
 end
 
 function orthSVD(M::AbstractMatrix)
@@ -205,6 +192,6 @@ function compute_orbit_data{T<:GroupElem}(logger, name::String, G::Nemo.Group, S
    info(logger, "dimensions = $dimensions")
    @assert dot(multiplicities, dimensions) == sizes[radius]
 
-   save(joinpath(name, "U_pis.jld"), "Uπs", Uπs, "spUπs", sparsify2.(Uπs), "dims", dimensions)
+   save(joinpath(name, "U_pis.jld"), "Uπs", Uπs, "spUπs", sparsify.(Uπs), "dims", dimensions)
    return 0
 end
