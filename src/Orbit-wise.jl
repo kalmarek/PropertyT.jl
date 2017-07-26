@@ -91,7 +91,7 @@ function transform(U::AbstractArray, V::AbstractArray; sparse=true)
    end
 end
 
-A(data::OrbitData, π, t) = data.dims[π]*transform(data.Us[π], data.cnstr[t])
+A(data::OrbitData, π, t) = data.dims[π].*transform(data.Us[π], data.cnstr[t])
 
 function constrLHS(m::JuMP.Model, data::OrbitData, t)
     l = endof(data.Us)
@@ -99,13 +99,18 @@ function constrLHS(m::JuMP.Model, data::OrbitData, t)
     return lhs
 end
 
+function constrLHS(m::JuMP.Model, cnstr, Us, Ust, dims, vars)
+   lhs = @expression(m,
+      sum(vecdot(dims[π].*Ust[π]*cnstr*Us[π], vars[π]) for π in 1:endof(Us)))
+   return lhs
+end
+
 function addconstraints!(m::JuMP.Model, data::OrbitData, l::Int=length(data.laplacian); var::Symbol = :λ)
     λ = m[var]
-   #  orbits = load(joinpath(data.name, "orbits.jld"), "orbits");
-   #  locate(t, orb=orbits) = findfirst(x->t in x, orb)
+    Ust = [U' for U in data.Us]
     for t in 1:l
-      #   lhs = constrLHS(m, data, locate(t))
-        lhs = constrLHS(m, data, t)
+      #   lhs = constrLHS(m, data, t)
+         lhs = constrLHS(m, data.cnstr[t], data.Us, Ust, data.dims, data.Ps)
 
         d, d² = data.laplacian[t], data.laplacianSq[t]
         if lhs == zero(lhs)
