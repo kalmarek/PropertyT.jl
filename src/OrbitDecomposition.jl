@@ -140,19 +140,6 @@ function Cstar_repr(x::GroupRingElem, mreps::Dict)
     return res
 end
 
-dens(M::SparseMatrixCSC) = length(M.nzval)/length(M)
-dens(M::AbstractArray) = sum(abs.(M) .!= 0)/length(M)
-
-function sparsify2(M::AbstractArray)
-   println("Density before sparsification: \t$(dens(M))")
-   M = deepcopy(M)
-   M[M .< eps(eltype(M))] .= zero(eltype(M))
-   M = sparse(M)
-   dropzeros!(M)
-   println("Density after sparsification: \t$(dens(M))")
-   return M
-end
-
 function orthSVD(M::AbstractMatrix)
     M = full(M)
     fact = svdfact(M)
@@ -205,6 +192,6 @@ function compute_orbit_data{T<:GroupElem}(logger, name::String, G::Nemo.Group, S
    info(logger, "dimensions = $dimensions")
    @assert dot(multiplicities, dimensions) == sizes[radius]
 
-   save(joinpath(name, "U_pis.jld"), "Uπs", Uπs, "spUπs", sparsify2.(Uπs), "dims", dimensions)
+   save(joinpath(name, "U_pis.jld"), "Uπs", Uπs, "spUπs", sparsify.(Uπs), "dims", dimensions)
    return 0
 end
