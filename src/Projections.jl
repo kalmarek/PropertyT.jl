@@ -47,14 +47,15 @@ end
 #
 ###############################################################################
 
-function central_projection(RG::GroupRing, chi::Function, T::Type=Rational{Int})
+function central_projection(RG::GroupRing, chi::AbstractCharacter,
+    T::Type=Rational{Int})
     result = RG(T)
     result.coeffs = full(result.coeffs)
     dim = chi(RG.group())
     ord = Int(order(RG.group))
 
     for g in RG.basis
-        result[g] = convert(T, (Int(dim)//ord)*Int(chi(g)))
+        result[g] = convert(T, (dim//ord)*chi(g))
     end
 
     return result
