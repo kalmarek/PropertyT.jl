@@ -1,11 +1,28 @@
 ###############################################################################
 #
-#  Character of DirectProducts
+#  Characters of Symmetric Group and DirectProduct
 #
 ###############################################################################
 
-function epsilon(i, g::DirectProductGroupElem)
-    return reduce(*, 1, ((-1)^isone(g.elts[j]) for j in 1:i))
+abstract AbstractCharacter <: Function
+
+immutable PermCharacter <: AbstractCharacter
+   p::Partition
+end
+
+immutable DirectProdCharacter <: AbstractCharacter
+   i::Int
+end
+
+function (chi::PermCharacter)(g::Nemo.perm)
+   R = Nemo.partitionseq(chi.p)
+   p = Partition(Nemo.permtype(g))
+   return Int(Nemo.MN1inner(R, p, 1, Nemo._charvalsTable))
+end
+
+## NOTE: this works only for Z/2!!!!
+function (chi::DirectProdCharacter)(g::DirectProductGroupElem)
+   return reduce(*, 1, ((-1)^isone(g.elts[j]) for j in 1:chi.i))
 end
 
 ###############################################################################
