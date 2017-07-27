@@ -25,6 +25,22 @@ function (chi::DirectProdCharacter)(g::DirectProductGroupElem)
    return reduce(*, 1, ((-1)^isone(g.elts[j]) for j in 1:chi.i))
 end
 
+for T in [PermCharacter, DirectProdCharacter]
+   @eval begin
+      function (chi::$T)(X::GroupRingElem)
+         RG = parent(X)
+         z = zero(eltype(X))
+         result = z
+         for i in 1:length(X.coeffs)
+            if X.coeffs[i] != z
+               result += chi(RG.basis[i])*X.coeffs[i]
+            end
+         end
+         return result
+      end
+   end
+end
+
 ###############################################################################
 #
 #  Projections
