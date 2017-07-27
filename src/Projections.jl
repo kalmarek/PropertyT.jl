@@ -21,7 +21,7 @@ function central_projection(RG::GroupRing, chi::Function, T::Type=Rational{Int})
     ord = Int(order(RG.group))
 
     for g in RG.basis
-        result[g] = convert(T, (dim//ord)*chi(g))
+        result[g] = convert(T, (Int(dim)//ord)*Int(chi(g)))
     end
 
     return result
@@ -29,7 +29,7 @@ end
 
 function rankOne_projections(G::PermutationGroup, T::Type=Rational{Int})
    RG = GroupRing(G)
-   cprojs = [central_projection(RG, χ, T) for χ in (character(λ) for λ in IntPartitions(G.n))]
+   cprojs = [central_projection(RG, χ, T) for χ in (character(λ) for λ in Partitions(G.n))]
 
    if G.n == 1 || G.n == 2
       return  cprojs
