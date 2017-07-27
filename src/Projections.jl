@@ -61,9 +61,9 @@ function rankOne_projections(G::PermutationGroup, T::Type=Rational{Int})
          cprojs[1],        # alternating
          p⁺*cprojs[2],     # alt_regular
          p⁺*q⁺*cprojs[3],  # ψ
-         p⁻*q⁻*cprojs[4],  # alt_ϱ
+         p⁺*q⁺*cprojs[4],  # alt_ϱ
          p⁻*cprojs[5],     # regular
-         p⁺*q⁺*cprojs[6],  # ϱ
+         p⁻*q⁻*cprojs[6],  # ϱ
          cprojs[7]         # trivial
       ]
    else
