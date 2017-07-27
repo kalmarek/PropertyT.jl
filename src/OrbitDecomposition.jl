@@ -130,14 +130,16 @@ function reconstruct_sol{T<:GroupElem, S<:AbstractArray}(mreps::Dict{T, S},
     return recP
 end
 
-function Cstar_repr(x::GroupRingElem, mreps::Dict)
-    k = collect(keys(mreps))[1]
-    res = zeros(size(mreps[k])...)
+function Cstar_repr{T}(x::GroupRingElem{T}, mreps::Dict)
+   res = zeros(size(mreps[first(keys(mreps))])...)
 
-    for g in parent(x).basis
-        res .+= x[g]*mreps[g]
-    end
-    return res
+   for g in parent(x).basis
+      if x[g] != zero(T)
+         res .+= x[g].*mreps[g]
+      end
+   end
+
+   return res
 end
 
 function orthSVD(M::AbstractMatrix)
