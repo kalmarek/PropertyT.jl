@@ -123,10 +123,11 @@ function reconstruct_sol{T<:GroupElem, S<:AbstractArray}(mreps::Dict{T, S},
     for g in keys(mreps)
         A, B = mreps[g], mreps[inv(g)]
         for π in 1:length(Us)
-            recP .+= sparsify(dims[π].* (A * Us[π]*Ps[π]*Ust[π] * B))
+            recP .+= dims[π].* (A * Us[π]*Ps[π]*Ust[π] * B)
         end
     end
     recP .*= 1/length(keys(mreps))
+    recP[abs.(recP) .< eps(eltype(recP))] = zero(eltype(recP))
     return recP
 end
 
