@@ -63,7 +63,7 @@ end
 
 function rankOne_projections(G::PermutationGroup, T::Type=Rational{Int})
    RG = GroupRing(G)
-   cprojs = [central_projection(RG, χ, T) for χ in (character(λ) for λ in Partitions(G.n))]
+   cprojs = [central_projection(RG, χ, T) for χ in (PermCharacter(λ) for λ in Partitions(G.n))]
 
    if G.n == 1 || G.n == 2
       return  cprojs
@@ -114,11 +114,10 @@ function rankOne_projections(BN::WreathProduct, T::Type=Rational{Int})
 
    # embedding into group ring of BN
    RBN = GroupRing(BN)
-   RFFFF_projs = [
-      central_projection(GroupRing(BN.N), g->epsilon(i,g), T) for i in 1:BN.P.n
-      ]
+   RFFFF_projs = [central_projection(GroupRing(BN.N), DirectProdCharacter(i),T)
+      for i in 1:BN.P.n]
 
-   e0 = central_projection(GroupRing(BN.N), g->epsilon(0,g), T)
+   e0 = central_projection(GroupRing(BN.N), DirectProdCharacter(0), T)
    Q0 = RBN(e0, g -> BN(g))
    Qs = [RBN(q, g -> BN(g)) for q in RFFFF_projs]
 
