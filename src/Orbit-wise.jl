@@ -32,7 +32,8 @@ function OrbitData(name::String)
    splap² = similar(splap)
    splap² = GroupRings.mul!(splap², splap, splap, pm);
 
-   Uπs = load(joinpath(name, "U_pis.jld"), "Uπs");
+   # Uπs = load(joinpath(name, "U_pis.jld"), "Uπs");
+   Uπs = load(joinpath(name, "U_pis.jld"), "spUπs");
    #dimensions of the corresponding πs:
    dims = load(joinpath(name, "U_pis.jld"), "dims")
 
