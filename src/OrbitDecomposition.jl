@@ -132,7 +132,7 @@ function reconstruct_sol{T<:GroupElem, S<:AbstractArray}(mreps::Dict{T, S},
 end
 
 function Cstar_repr{T}(x::GroupRingElem{T}, mreps::Dict)
-   res = zeros(size(mreps[first(keys(mreps))])...)
+   res = spzeros(size(mreps[first(keys(mreps))])...)
 
    for g in parent(x).basis
       if x[g] != zero(T)
