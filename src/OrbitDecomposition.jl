@@ -136,7 +136,7 @@ function Cstar_repr{T}(x::GroupRingElem{T}, mreps::Dict)
 
    for g in parent(x).basis
       if x[g] != zero(T)
-         res .+= x[g].*mreps[g]
+         res .+= Float64(x[g]).*mreps[g]
       end
    end
 
