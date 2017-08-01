@@ -171,9 +171,9 @@ function λandP(m::JuMP.Model, data::OrbitData, sett::Settings)
    λ, Ps = λandP(m, data)
 
    info(PropertyT.logger, "Reconstructing P...")
-   mreps = matrix_reps(sett.G, sett.S, sett.AutS, sett.radius)
+   @time mreps = matrix_reps(sett.G, sett.S, sett.AutS, sett.radius)
 
-   recP = reconstruct_sol(mreps, data.Us, Ps, data.dims)
+   @time recP = reconstruct_sol(mreps, data.Us, Ps, data.dims)
 
    fname = PropertyT.λSDPfilenames(data.name)[2]
    save(fname, "origP", Ps, "P", recP)
