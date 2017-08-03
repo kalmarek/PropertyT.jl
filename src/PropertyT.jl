@@ -21,7 +21,7 @@ function setup_logging(name::String)
       Memento.DefaultHandler(joinpath(name,"full_$(string((now()))).log"),
       Memento.DefaultFormatter("{date}| {msg}")), "full_log")
 
-   # e = redirect_stderr(logger.handlers["full_log"].io)
+   e = redirect_stderr(logger.handlers["full_log"].io)
 
    return logger
 end
