@@ -115,20 +115,21 @@ function matrix_reps{T<:GroupElem}(G::Group, S::Vector{T}, AutS::Group, radius::
 end
 
 function reconstruct_sol{T<:GroupElem, S<:AbstractArray}(mreps::Dict{T, S},
-    Us::Vector, Ps::Vector, dims::Vector)
+   Us::Vector, Ps::Vector, dims::Vector)
 
-    n = size(Us[1],1)
-    recP = zeros(Float64, (n,n))
-    Ust = transpose.(Us)
-    for g in keys(mreps)
-        A, B = mreps[g], mreps[inv(g)]
-        for π in 1:length(Us)
-            recP .+= dims[π].* (A * Us[π]*Ps[π]*Ust[π] * B)
-        end
-    end
-    recP .*= 1/length(keys(mreps))
-    recP[abs.(recP) .< eps(eltype(recP))] = zero(eltype(recP))
-    return recP
+   s = size(first(mreps).second)
+   recP = zeros(Float64, s)
+   tmp = [zeros(Float64, s) for _ in 1:length(Us)]
+   ks = [(g, inv(g)) for g in keys(mreps)]
+
+   Threads.@threads for π in 1:length(Us)
+      for (g, invg) in ks
+         tmp[π] += dims[π]*mreps[g]*Us[π]*Ps[π]*Us[π]'*mreps[invg]
+      end
+   end
+   recP += 1/length(keys(mreps)) .* sum(tmp)
+   recP[abs.(recP) .< eps(eltype(recP))] = zero(eltype(recP))
+   return recP
 end
 
 function Cstar_repr{T}(x::GroupRingElem{T}, mreps::Dict)
