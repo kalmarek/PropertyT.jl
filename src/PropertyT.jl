@@ -193,24 +193,24 @@ function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius)
    if λ > 0
 
       isapprox(eigvals(P), abs(eigvals(P)), atol=tol) ||
-          warn("The solution matrix doesn't seem to be positive definite!")
+         warn("The solution matrix doesn't seem to be positive definite!")
      #  @assert P == Symmetric(P)
       Q = real(sqrtm(Symmetric(P)))
 
-      sgap = check_distance_to_positive_cone(Δ, λ, Q, 2*radius, tol=tol, rational=false)
+      sgap = check_distance_to_positive_cone(Δ, λ, Q, 2*radius, tol=tol)
       if isa(sgap, Interval)
-           sgap = sgap.lo
+         sgap = sgap.lo
       end
       if sgap > 0
-           info(logger, "λ ≥ $(Float64(trunc(sgap,12)))")
-            Kazhdan_κ = Kazhdan_from_sgap(sgap, length(S))
-            Kazhdan_κ = Float64(trunc(Kazhdan_κ, 12))
-            info(logger, "κ($name, S) ≥ $Kazhdan_κ: Group HAS property (T)!")
-            return true
+         info(logger, "λ ≥ $(Float64(trunc(sgap,12)))")
+         Kazhdan_κ = Kazhdan_from_sgap(sgap, length(S))
+         Kazhdan_κ = Float64(trunc(Kazhdan_κ, 12))
+         info(logger, "κ($name, S) ≥ $Kazhdan_κ: Group HAS property (T)!")
+         return true
       else
-           sgap = Float64(trunc(sgap, 12))
-           info(logger, "λ($name, S) ≥ $sgap: Group may NOT HAVE property (T)!")
-           return false
+         sgap = Float64(trunc(sgap, 12))
+         info(logger, "λ($name, S) ≥ $sgap: Group may NOT HAVE property (T)!")
+         return false
       end
    end
    info(logger, "κ($name, S) ≥ $λ < 0: Tells us nothing about property (T)")
