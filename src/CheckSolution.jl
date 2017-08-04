@@ -36,16 +36,18 @@ function compute_SOS(sqrt_matrix, elt::GroupRingElem)
    l = length(elt.coeffs)
    pm = parent(elt).pm
 
-   result = zeros(eltype(sqrt_matrix), l)
-   for i in 1:n
-      result .+= groupring_square(view(sqrt_matrix,:,i), l, pm)
+   # result = zeros(eltype(sqrt_matrix), l)
+   # for i in 1:n
+   #    result .+= groupring_square(view(sqrt_matrix,:,i), l, pm)
+   # end
+
+   @everywhere groupring_square = PropertyT.groupring_square
+
+   result = @parallel (+) for i in 1:n
+      groupring_square(view(sqrt_matrix,:,i), length(elt.coeffs), parent(elt).pm)
    end
 
-   #  result = @parallel (+) for i in 1:n
-      #   groupring_square(sqrt_matrix[:,i], elt)
-   #  end
-
-    return GroupRingElem(result, parent(elt))
+   return GroupRingElem(result, parent(elt))
 end
 
 function correct_to_augmentation_ideal{T<:Rational}(sqrt_matrix::Array{T,2})
