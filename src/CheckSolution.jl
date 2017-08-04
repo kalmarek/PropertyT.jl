@@ -147,7 +147,7 @@ function check_distance_to_positive_cone(Δ::GroupRingElem, λ, Q, wlen;
 
     info(logger, "")
     info(logger, "Projecting columns of the rationalized Q to the augmentation ideal...")
-    Q_ℚω_int = rationalize_and_project(Q, tol, logger)
+    Q_ℚω_int = rationalize_and_project(Q, max(tol, 1e-12), logger)
     λ_ℚ = ℚ(λ, tol)
     Δ_ℚ = ℚ(Δ, tol)
 
