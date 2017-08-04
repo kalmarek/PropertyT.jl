@@ -50,9 +50,9 @@ function compute_SOS(sqrt_matrix, elt::GroupRingElem)
    return GroupRingElem(result, parent(elt))
 end
 
-function correct_to_augmentation_ideal{T<:Rational}(sqrt_matrix::Array{T,2})
+function correct_to_augmentation_ideal!{T<:Rational}(sqrt_matrix::Array{T,2})
    l = size(sqrt_matrix, 2)
-   sqrt_corrected = copy(sqrt_matrix)
+   sqrt_corrected = sqrt_matrix
    Threads.@threads for j in 1:l
       col = sum(view(sqrt_matrix, :,j))//l
       for i in 1:l
