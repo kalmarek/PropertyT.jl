@@ -47,14 +47,15 @@ function compute_SOS(sqrt_matrix, elt)
 end
 
 function correct_to_augmentation_ideal{T<:Rational}(sqrt_matrix::Array{T,2})
-    sqrt_corrected = similar(sqrt_matrix)
-    l = size(sqrt_matrix,2)
-    for i in 1:l
-        col = view(sqrt_matrix, :,i)
-        sqrt_corrected[:,i] .= col .- sum(col)//l
-        # @assert sum(sqrt_corrected[:,i]) == 0
-    end
-    return sqrt_corrected
+   l = size(sqrt_matrix, 2)
+   sqrt_corrected = copy(sqrt_matrix)
+   Threads.@threads for j in 1:l
+      col = sum(view(sqrt_matrix, :,j))//l
+      for i in 1:l
+           sqrt_corrected[i,j] -= col
+      end
+   end
+   return sqrt_corrected
 end
 
 function distance_to_cone{T<:Rational}(λ::T, sqrt_matrix::Array{T,2}, Δ::GroupRingElem{T}, wlen)
