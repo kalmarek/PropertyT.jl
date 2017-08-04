@@ -111,6 +111,23 @@ function distance_to_cone(λ, sqrt_matrix::AbstractArray, Δ::GroupRingElem, wle
     return distance_to_cone
 end
 
+function rationalize_and_project{T}(Q::AbstractArray{T}, δ::T, logger)
+   info(logger, "")
+   info(logger, "Rationalizing")
+   t = @timed Q_ℚ = ℚ(Q, δ)
+   info(logger, timed_msg(t))
+
+   info(logger, "Projecting columns of the rationalized Q to the augmentation ideal...")
+   t = @timed Q_ℚω = correct_to_augmentation_ideal!(Q_ℚ)
+   info(logger, timed_msg(t))
+
+   info(logger, "Intervalizing Q")
+   t = @timed Q_ℚω_int = Float64.(Q_ℚω) ± 10*eps(δ)
+   info(logger, timed_msg(t))
+
+   return Q_ℚω_int
+end
+
 function check_distance_to_positive_cone(Δ::GroupRingElem, λ, Q, wlen;
     tol=1e-14, rational=false)
 
@@ -127,16 +144,13 @@ function check_distance_to_positive_cone(Δ::GroupRingElem, λ, Q, wlen;
     end
 
     info(logger, "")
-    info(logger, "Projecting columns of rationalized Q to the augmentation ideal...")
-    δ = tol
-    Q_ℚ = ℚ(Q, δ)
-    t = @timed Q_ℚω = correct_to_augmentation_ideal(Q_ℚ)
-    info(logger, timed_msg(t))
-    λ_ℚ = ℚ(λ, δ)
-    Δ_ℚ = ℚ(Δ, δ)
+    info(logger, "Projecting columns of the rationalized Q to the augmentation ideal...")
+    Q_ℚω_int = rationalize_and_project(Q, tol, logger)
+    λ_ℚ = ℚ(λ, tol)
+    Δ_ℚ = ℚ(Δ, tol)
 
     info(logger, "Checking in interval arithmetic")
-    Q_ℚω_int = Float64.(Q_ℚω) ± δ
+
     t = @timed Interval_dist_to_ΣSq = distance_to_cone(λ_ℚ, Q_ℚω_int, Δ_ℚ, wlen)
     info(logger, timed_msg(t))
     info(logger, "The Augmentation-projected actual distance (to positive cone) ∈ $(Interval_dist_to_ΣSq)")
