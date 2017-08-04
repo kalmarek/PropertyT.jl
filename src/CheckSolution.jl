@@ -25,19 +25,21 @@ end
 
 EOI{T<:Number}(Δ::GroupRingElem{T}, λ::T) = Δ*Δ - λ*Δ
 
-function groupring_square(vect::AbstractVector, elt::GroupRingElem)
-    zzz = zeros(eltype(vect), length(elt.coeffs))
+function groupring_square(vect::AbstractVector, l, pm)
+    zzz = zeros(eltype(vect), l)
     zzz[1:length(vect)] .= vect
-    return GroupRings.mul!(similar(zzz), zzz, zzz, parent(elt).pm)
+    return GroupRings.mul!(similar(zzz), zzz, zzz, pm)
 end
 
-function compute_SOS(sqrt_matrix, elt)
-    n = size(sqrt_matrix,2)
+function compute_SOS(sqrt_matrix, elt::GroupRingElem)
+   n = size(sqrt_matrix,2)
+   l = length(elt.coeffs)
+   pm = parent(elt).pm
 
-    result = zeros(eltype(sqrt_matrix), length(elt.coeffs))
-    for i in 1:n
-        result .+= (groupring_square(view(sqrt_matrix,:,i), elt))
-    end
+   result = zeros(eltype(sqrt_matrix), l)
+   for i in 1:n
+      result .+= groupring_square(view(sqrt_matrix,:,i), l, pm)
+   end
 
    #  result = @parallel (+) for i in 1:n
       #   groupring_square(sqrt_matrix[:,i], elt)
