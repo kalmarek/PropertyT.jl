@@ -55,7 +55,7 @@ end
 include("OrbitDecomposition.jl")
 
 dens(M::SparseMatrixCSC) = length(M.nzval)/length(M)
-dens(M::AbstractArray) = sum(abs.(M) .!= 0)/length(M)
+dens(M::AbstractArray) = length(findn(M)[1])/length(M)
 
 function sparsify{T}(U::AbstractArray{T}, check=true)
     W = deepcopy(U)
