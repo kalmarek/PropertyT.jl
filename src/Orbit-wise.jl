@@ -57,19 +57,41 @@ include("OrbitDecomposition.jl")
 dens(M::SparseMatrixCSC) = length(M.nzval)/length(M)
 dens(M::AbstractArray) = length(findn(M)[1])/length(M)
 
-function sparsify{T}(U::AbstractArray{T}, check=true)
-    W = deepcopy(U)
-    W[abs.(W) .< eps(T)] .= zero(T)
-    if check && rank(W) != rank(U)
-        info("Sparsification would decrease the rank!")
-        W = U
-    else
-      info("Sparsified:", rpad(dens(U), 10), "\t", rpad(dens(W),10))
+function sparsify!{Tv,Ti}(M::SparseMatrixCSC{Tv,Ti}, eps=eps(Tv))
+   n = nnz(M)
+   for i in eachindex(M.nzval)
+      if abs(M.nzval[i]) < eps
+         M.nzval[i] = zero(Tv)
+      end
    end
-    W = sparse(W)
-    dropzeros!(W)
-    return W
+   dropzeros!(M)
+   m = nnz(M)
+
+   info("Sparsified density:", rpad(dens(U), 15), "→", rpad(dens(W),15))
+
+   return M
 end
+
+function sparsify!{T}(U::AbstractArray{T}, eps=eps(T); check=true)
+   if check
+      W = deepcopy(U)
+   else
+      W = U
+   end
+
+   W[abs.(W) .< eps] .= zero(T)
+
+   if check
+      info("Sparsification would decrease the rank!")
+      W = U
+   else
+      info("Sparsified density:", rpad(dens(U), 15), "→", rpad(dens(W),15))
+   end
+   W = sparse(W)
+   return W
+end
+
+sparsify{T}(U::AbstractArray{T}, tol=eps(T)) = sparsify!(deepcopy(U), tol)
 
 function init_orbit_data(logger, sett::Settings; radius=2)
 
