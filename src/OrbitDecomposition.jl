@@ -108,14 +108,16 @@ function matrix_reps{T<:GroupElem}(G::Group, S::Vector{T}, AutS::Group, radius::
    Id = (isa(G, Nemo.Ring) ? one(G) : G())
    E2, _ = Groups.generate_balls(S, Id, radius=radius)
    Edict = GroupRings.reverse_dict(E2)
-   elts = collect(elements(AutS))
-   mreps = Vector{SparseMatrixCSC{Int, Int}}(length(elts))
 
-   Threads.@threads for i in 1:length(elts)
+   elts = collect(elements(AutS))
+   l = length(elts)
+   mreps = Vector{SparseMatrixCSC{Int, Int}}(l)
+
+   Threads.@threads for i in 1:l
       mreps[i] = PropertyT.matrix_repr(elts[i], E2, Edict)
    end
 
-   mreps_dict = Dict(elts[i]=>mreps[i] for i in 1:length(elts))
+   mreps_dict = Dict(elts[i]=>mreps[i] for i in 1:l)
 
    return mreps_dict
 end
