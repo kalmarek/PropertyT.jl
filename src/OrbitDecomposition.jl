@@ -122,9 +122,50 @@ function matrix_reps{T<:GroupElem}(G::Group, S::Vector{T}, AutS::Group, radius::
    return mreps_dict
 end
 
-function reconstruct_sol{T<:GroupElem, S<:AbstractArray}(mreps::Dict{T, S},
-   Us::Vector, Ps::Vector, dims::Vector)
+function matrix_reps(G::Group, E2, E_dict)
+   elts = collect(elements(G))
+   l = length(elts)
+   mreps = Vector{SparseMatrixCSC{Int, Int}}(l)
 
+   Threads.@threads for i in 1:l
+      mreps[i] = matrix_repr(elts[i], E2, E_dict)
+   end
+
+   return Dict(elts[i]=>mreps[i] for i in 1:l)
+end
+
+function perm_reps{T<:GroupElem}(G::Group, S::Vector{T}, AutS::Group, radius::Int)
+   Id = (isa(G, Nemo.Ring) ? one(G) : G())
+   E_R, _ = Groups.generate_balls(S, Id, radius=radius)
+   Edict = GroupRings.reverse_dict(E_R)
+
+   elts = collect(elements(AutS))
+   l = length(elts)
+   preps = Vector{Nemo.perm}(l)
+
+   G = Nemo.PermutationGroup(length(E_R))
+
+   Threads.@threads for i in 1:l
+      preps[i] = G(perm_repr(elts[i], E_R, Edict))
+   end
+
+   preps_dict = Dict(elts[i]=>preps[i] for i in 1:l)
+
+   return preps_dict
+end
+
+function perm_repr(g::GroupElem, E, E_dict)
+   l = length(E)
+   p = Vector{Int}(l)
+   for (i,elt) in enumerate(E)
+      j = E_dict[g(elt)]
+      p[i] = j
+   end
+   return p
+end
+
+function reconstruct_sol{T<:GroupElem, S<:Nemo.perm}(preps::Dict{T, S},
+   aUs::Vector, aPs::Vector, adims::Vector)
    s = size(first(mreps).second)
    recP = zeros(Float64, s)
    tmp = [zeros(Float64, s) for _ in 1:length(Us)]
