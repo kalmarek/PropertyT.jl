@@ -166,17 +166,24 @@ end
 
 function reconstruct_sol{T<:GroupElem, S<:Nemo.perm}(preps::Dict{T, S},
    aUs::Vector, aPs::Vector, adims::Vector)
-   s = size(first(mreps).second)
-   recP = zeros(Float64, s)
-   tmp = [zeros(Float64, s) for _ in 1:length(Us)]
-   ks = [(g, inv(g)) for g in keys(mreps)]
 
-   Threads.@threads for π in 1:length(Us)
-      for (g, invg) in ks
-         tmp[π] += dims[π]*mreps[g]*Us[π]*Ps[π]*Us[π]'*mreps[invg]
+   idx = [π for π in 1:length(aUs) if size(aUs[π], 2) != 0]
+   Us = aUs[idx]
+   Ps = aPs[idx]
+   dims = adims[idx];
+
+   l = length(Us)
+   transfP = [dims[π].*Us[π]*Ps[π]*Us[π]' for π in 1:l]
+   tmp = [zeros(Float64, size(first(transfP))) for _ in 1:l]
+   perms = collect(keys(preps))
+
+   @inbounds Threads.@threads for π in 1:l
+      for p in perms
+         BLAS.axpy!(1.0, view(transfP[π], preps[p].d, preps[p].d), tmp[π])
       end
    end
-   recP += 1/length(keys(mreps)) .* sum(tmp)
+
+   recP = 1/length(perms) .* sum(tmp)
    recP[abs.(recP) .< eps(eltype(recP))] = zero(eltype(recP))
    return recP
 end
