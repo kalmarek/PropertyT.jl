@@ -57,8 +57,10 @@ include("OrbitDecomposition.jl")
 dens(M::SparseMatrixCSC) = length(M.nzval)/length(M)
 dens(M::AbstractArray) = length(findn(M)[1])/length(M)
 
-function sparsify!{Tv,Ti}(M::SparseMatrixCSC{Tv,Ti}, eps=eps(Tv))
+function sparsify!{Tv,Ti}(M::SparseMatrixCSC{Tv,Ti}, eps=eps(Tv); verbose=false)
    n = nnz(M)
+
+   densM = dens(M)
    for i in eachindex(M.nzval)
       if abs(M.nzval[i]) < eps
          M.nzval[i] = zero(Tv)
@@ -67,7 +69,9 @@ function sparsify!{Tv,Ti}(M::SparseMatrixCSC{Tv,Ti}, eps=eps(Tv))
    dropzeros!(M)
    m = nnz(M)
 
-   info("Sparsified density:", rpad(dens(U), 15), "→", rpad(dens(W),15))
+   if verbose
+      info(logger, "Sparsified density:", rpad(densM, 20), " → ", rpad(dens(M), 20))
+   end
 
    return M
 end
@@ -81,6 +85,8 @@ function sparsify!{T}(M::AbstractArray{T}, eps=eps(T); check=false, verbose=fals
       warn(logger, "Sparsification decreased the rank!")
    end
 
+   if verbose
+      info(logger, "Sparsified density:", rpad(densM, 20), " → ", rpad(dens(M),20))
    end
 
    return M
