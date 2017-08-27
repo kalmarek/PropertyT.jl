@@ -157,9 +157,11 @@ function rankOne_projections(BN::WreathProduct, T::Type=Rational{Int})
 
    range = collect(1:N)
    for i in 1:N-1
+      first_emb = g->BN(Nemo.emb!(BN.P(), g, range[1:i]))
+      last_emb = g->BN(Nemo.emb!(BN.P(), g, range[i+1:end]))
 
-      Sk_first = [RBN(p, g->BN(Nemo.emb!(BN.P(), g, range[1:i]))) for p in SNprojs_nc[i]]
-      Sk_last = [RBN(p, g->BN(Nemo.emb!(BN.P(), g, range[i+1:end]))) for p in SNprojs_nc[N-i]]
+      Sk_first = [RBN(p, first_emb) for p in SNprojs_nc[i]]
+      Sk_last = [RBN(p, last_emb ) for p in SNprojs_nc[N-i]]
 
       append!(all_projs,
       [Qs[i]*p1*p2 for (p1,p2) in Base.product(Sk_first,Sk_last)])
