@@ -36,16 +36,16 @@ function compute_SOS(sqrt_matrix, elt::GroupRingElem)
    l = length(elt.coeffs)
    pm = parent(elt).pm
 
-   # result = zeros(eltype(sqrt_matrix), l)
-   # for i in 1:n
-   #    result .+= groupring_square(view(sqrt_matrix,:,i), l, pm)
-   # end
-
-   @everywhere groupring_square = PropertyT.groupring_square
-
-   result = @parallel (+) for i in 1:n
-      groupring_square(view(sqrt_matrix,:,i), length(elt.coeffs), parent(elt).pm)
+   result = zeros(eltype(sqrt_matrix), l)
+   for i in 1:n
+      result .+= groupring_square(view(sqrt_matrix,:,i), l, pm)
    end
+
+   # @everywhere groupring_square = PropertyT.groupring_square
+   #
+   # result = @parallel (+) for i in 1:n
+   #    groupring_square(view(sqrt_matrix,:,i), length(elt.coeffs), parent(elt).pm)
+   # end
 
    return GroupRingElem(result, parent(elt))
 end
