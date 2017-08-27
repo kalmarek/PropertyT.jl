@@ -86,6 +86,19 @@ function ΔandSDPconstraints{T<:GroupElem}(S::Vector{T}, Id::T; radius::Int=2)
     return Δ, sdp_constraints
 end
 
+macro logtime(logger, ex)
+    quote
+        local stats = Base.gc_num()
+        local elapsedtime = Base.time_ns()
+        local val = $(esc(ex))
+        elapsedtime = Base.time_ns() - elapsedtime
+        local diff = Base.GC_Diff(Base.gc_num(), stats)
+        local ts = time_string(elapsedtime, diff.allocd, diff.total_time,
+                   Base.gc_alloc_count(diff))
+        esc(warn($(esc(logger)), ts))
+        val
+    end
+end
 
 function timed_msg(t)
     elapsed = t[2]
