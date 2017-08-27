@@ -54,13 +54,12 @@ function orbit_decomposition(G::Nemo.Group, E::Vector, rdict=GroupRings.reverse_
 
     for i in 1:endof(E)
         if tovisit[i]
-            orbit = Vector{Int}()
+            orbit = zeros(Int, length(elts))
             a = E[i]
-            for g in elts
-                idx = rdict[g(a)]
-                tovisit[idx] = false
-                push!(orbit,idx)
+            Threads.@threads for i in 1:length(elts)
+               orbit[i] = rdict[elts[i](a)]
             end
+            tovisit[orbit] = false
             push!(orbits, unique(orbit))
         end
     end
