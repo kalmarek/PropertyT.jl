@@ -215,8 +215,6 @@ function check_property_T(sett::Settings)
 
    init_orbit_data(logger, sett, radius=sett.radius)
 
-   Δ = PropertyT.ΔandSDPconstraints(sett.name, sett.G)[1]
-
    fnames = PropertyT.λSDPfilenames(sett.name)
 
    if all(isfile.(fnames))
@@ -235,6 +233,10 @@ function check_property_T(sett::Settings)
    info(logger, "minimum(P) = $(minimum(P))")
 
    if λ > 0
+      pm_fname = joinpath(sett.name, "pm.jld")
+      RG = GroupRing(sett.G, load(pm_fname, "pm"))
+      Δ_fname = joinpath(sett.name, "delta.jld")
+      Δ = GroupRingElem(load(Δ_fname, "Δ")[:, 1], RG)
 
       isapprox(eigvals(P), abs.(eigvals(P)), atol=sett.tol) ||
           warn("The solution matrix doesn't seem to be positive definite!")
