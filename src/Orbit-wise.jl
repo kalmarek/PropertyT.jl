@@ -72,23 +72,18 @@ function sparsify!{Tv,Ti}(M::SparseMatrixCSC{Tv,Ti}, eps=eps(Tv))
    return M
 end
 
-function sparsify!{T}(U::AbstractArray{T}, eps=eps(T); check=true)
-   if check
-      W = deepcopy(U)
-   else
-      W = U
+function sparsify!{T}(M::AbstractArray{T}, eps=eps(T); check=false, verbose=false)
+   densM = dens(M)
+   rankM = rank(M)
+   M[abs.(M) .< eps] .= zero(T)
+
+   if check && rankM != rank(M)
+      warn(logger, "Sparsification decreased the rank!")
    end
 
-   W[abs.(W) .< eps] .= zero(T)
-
-   if check
-      info("Sparsification would decrease the rank!")
-      W = U
-   else
-      info("Sparsified density:", rpad(dens(U), 15), "→", rpad(dens(W),15))
    end
-   W = sparse(W)
-   return W
+
+   return M
 end
 
 sparsify{T}(U::AbstractArray{T}, tol=eps(T)) = sparsify!(deepcopy(U), tol)
