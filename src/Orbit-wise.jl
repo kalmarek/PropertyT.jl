@@ -108,7 +108,7 @@ end
 
 function transform(U::AbstractArray, V::AbstractArray; sparse=true)
    if sparse
-      return sparsify(U'*V*U)
+      return sparsify!(U'*V*U)
    else
       return U'*V*U
    end
@@ -122,10 +122,9 @@ function constrLHS(m::JuMP.Model, data::OrbitData, t)
     return lhs
 end
 
-function constrLHS(m::JuMP.Model, cnstr, Us, Ust, dims, vars)
-   lhs = @expression(m,
-      sum(vecdot(dims[π].*Ust[π]*cnstr*Us[π], vars[π]) for π in 1:endof(Us)))
-   return lhs
+function constrLHS(m::JuMP.Model, cnstr, Us, Ust, dims, vars, eps=100*eps(1.0))
+   M = [PropertyT.sparsify!(dims[π].*Ust[π]*cnstr*Us[π], eps) for π in 1:endof(Us)]
+   return @expression(m, sum(vecdot(M[π], vars[π]) for π in 1:endof(Us)))
 end
 
 function addconstraints!(m::JuMP.Model, data::OrbitData, l::Int=length(data.laplacian); var::Symbol = :λ)
