@@ -3,7 +3,7 @@ import MathProgBase: AbstractMathProgSolver
 
 function constraints_from_pm(pm, total_length=maximum(pm))
     n = size(pm,1)
-    constraints = constraints = [Array{Int,1}[] for x in 1:total_length]
+    constraints = [Array{Int,1}[] for x in 1:total_length]
     for j in 1:n
         for i in 1:n
             idx = pm[i,j]
