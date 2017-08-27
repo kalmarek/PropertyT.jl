@@ -112,7 +112,7 @@ end
 
 function minimalprojections(G::PermutationGroup, T::Type=Rational{Int})
    if G.n == 1
-      return [(one(GroupRing(G), T), one(GroupRing(G), T))]
+      return [one(GroupRing(G), T)]
    elseif G.n < 8
       RG = GroupRing(G, fastm=true)
    else
@@ -120,16 +120,22 @@ function minimalprojections(G::PermutationGroup, T::Type=Rational{Int})
    end
 
    RGidems = idempotents(RG, T)
-   chars = [PropertyT.PermCharacter(p) for p in Partitions(G.n)]
+   l = length(Partitions(G.n))
 
-   return [
-      (rankOne_projection(chi, RGidems), PropertyT.central_projection(RG, chi))
-         for chi in chars]
+   parts = collect(Partitions(G.n))
+   chars = [PropertyT.PermCharacter(p) for p in parts]
+   min_projs = Vector{eltype(RGidems)}(l)
+
+   Threads.@threads for i in 1:l
+      chi = PropertyT.PermCharacter(parts[i])
+      min_projs[i] = rankOne_projection(chi,RGidems)*central_projection(RG,chi)
+   end
+
+   return min_projs
 end
 
 function rankOne_projections(G::PermutationGroup, T::Type=Rational{Int})
-   mps = minimalprojections(G, T)
-   return [idem*cproj for (idem, cproj) in mps]
+   return minimalprojections(G, T)
 end
 
 function rankOne_projections(BN::WreathProduct, T::Type=Rational{Int})
