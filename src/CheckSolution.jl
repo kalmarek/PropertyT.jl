@@ -50,13 +50,13 @@ function compute_SOS(sqrt_matrix, elt::GroupRingElem)
    return GroupRingElem(result, parent(elt))
 end
 
-function correct_to_augmentation_ideal!{T<:Rational}(sqrt_matrix::Array{T,2})
+function correct_to_augmentation_ideal{T<:Rational}(sqrt_matrix::Array{T,2})
    l = size(sqrt_matrix, 2)
-   sqrt_corrected = sqrt_matrix
+   sqrt_corrected = Array{Interval{Float64}}(l,l)
    Threads.@threads for j in 1:l
       col = sum(view(sqrt_matrix, :,j))//l
       for i in 1:l
-           sqrt_corrected[i,j] -= col
+         sqrt_corrected[i,j] = (Float64(sqrt_matrix[i,j]) - Float64(col)) ± eps(0.0)
       end
    end
    return sqrt_corrected
@@ -120,14 +120,13 @@ function rationalize_and_project{T}(Q::AbstractArray{T}, δ::T, logger)
    info(logger, timed_msg(t))
 
    info(logger, "Projecting columns of the rationalized Q to the augmentation ideal...")
-   t = @timed Q_ℚω = correct_to_augmentation_ideal!(Q_ℚ)
+   t = @timed Q_int = correct_to_augmentation_ideal(Q_ℚ)
    info(logger, timed_msg(t))
 
-   info(logger, "Intervalizing Q")
-   t = @timed Q_ℚω_int = Float64.(Q_ℚω) ± 10*eps(δ)
-   info(logger, timed_msg(t))
+   check = all([0.0 in sum(view(Q_int, :, i)) for i in 1:size(Q_int, 2)])
+   @assert check
 
-   return Q_ℚω_int
+   return Q_int
 end
 
 function check_distance_to_positive_cone(Δ::GroupRingElem, λ, Q, wlen;
