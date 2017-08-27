@@ -170,18 +170,19 @@ function init_model(Uπs)
 end
 
 function create_SDP_problem(name::String; upper_bound=Inf)
-   info(PropertyT.logger, "Loading orbit data....")
+   info(logger, "Loading orbit data....")
    t = @timed SDP_problem, orb_data = OrbitData(name);
-   info(PropertyT.logger, PropertyT.timed_msg(t))
+   info(logger, PropertyT.timed_msg(t))
 
    if upper_bound < Inf
       λ = JuMP.getvariable(SDP_problem, :λ)
       JuMP.@constraint(SDP_problem, λ <= upper_bound)
    end
 
-   info(PropertyT.logger, "Adding constraints... ")
+   t = length(orb_data.laplacian)
+   info(logger, "Adding $t constraints ... ")
    t = @timed addconstraints!(SDP_problem, orb_data)
-   info(PropertyT.logger, PropertyT.timed_msg(t))
+   info(logger, PropertyT.timed_msg(t))
 
    return SDP_problem, orb_data
 end
@@ -194,13 +195,16 @@ function λandP(m::JuMP.Model, data::OrbitData)
 end
 
 function λandP(m::JuMP.Model, data::OrbitData, sett::Settings)
-   info(PropertyT.logger, "Solving SDP problem...")
+   info(logger, "Solving SDP problem...")
    λ, Ps = λandP(m, data)
 
-   info(PropertyT.logger, "Reconstructing P...")
-   @time mreps = matrix_reps(sett.G, sett.S, sett.AutS, sett.radius)
+   info(logger, "Reconstructing P...")
 
-   @time recP = reconstruct_sol(mreps, data.Us, Ps, data.dims)
+   t = @timed preps = perm_reps(sett.G, sett.S, sett.AutS, sett.radius)
+   info(logger, PropertyT.timed_msg(t))
+
+   t = @timed recP = reconstruct_sol(preps, data.Us, Ps, data.dims)
+   info(logger, PropertyT.timed_msg(t))
 
    fname = PropertyT.λSDPfilenames(data.name)[2]
    save(fname, "origP", Ps, "P", recP)
