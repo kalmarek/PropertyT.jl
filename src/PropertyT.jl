@@ -26,6 +26,10 @@ function setup_logging(name::String)
    return logger
 end
 
+function exists(fname::String)
+   return isfile(fname) || islink(fname)
+end
+
 function pmΔfilenames(name::String)
     if !isdir(name)
         mkdir(name)
@@ -111,8 +115,8 @@ end
 
 function λandP(name::String)
     λ_fname, SDP_fname = λSDPfilenames(name)
-    f₁ = isfile(λ_fname)
-    f₂ = isfile(SDP_fname)
+    f₁ = exists(λ_fname)
+    f₂ = exists(SDP_fname)
 
     if f₁ && f₂
         info(logger, "Loading precomputed λ, P...")
@@ -125,7 +129,7 @@ function λandP(name::String)
 end
 
 function λandP(name::String, SDP_problem::JuMP.Model, varλ, varP)
-   if isfile(joinpath(name, "solver.log"))
+   if exists(joinpath(name, "solver.log"))
        rm(joinpath(name, "solver.log"))
    end
 
@@ -171,7 +175,7 @@ function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius)
 
     isdir(name) || mkdir(name)
 
-    if all(isfile.(pmΔfilenames(name)))
+    if all(exists.(pmΔfilenames(name)))
         # cached
         Δ, sdp_constraints = ΔandSDPconstraints(name, parent(S[1]))
     else
@@ -183,7 +187,7 @@ function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius)
     info(logger, "length(Δ) = $(length(Δ))")
     info(logger, "|R[G]|.pm = $(size(parent(Δ).pm))")
 
-   if all(isfile.(λSDPfilenames(name)))
+   if all(exists.(λSDPfilenames(name)))
       # cached
       λ, P = λandP(name)
    else
