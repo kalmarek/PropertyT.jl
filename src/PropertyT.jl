@@ -20,14 +20,14 @@ function pmΔfilenames(name::String)
     return pm_filename, Δ_coeff_filename
 end
 
-function κSDPfilenames(name::String)
+function λSDPfilenames(name::String)
     if !isdir(name)
         mkdir(name)
     end
     prefix = name
-    κ_filename = joinpath(prefix, "kappa.jld")
-    SDP_filename = joinpath(prefix, "SDPmatrixA.jld")
-    return κ_filename, SDP_filename
+    λ_filename = joinpath(prefix, "lambda.jld")
+    SDP_filename = joinpath(prefix, "SDPmatrix.jld")
+    return λ_filename, SDP_filename
 end
 
 function ΔandSDPconstraints(name::String)
@@ -46,27 +46,36 @@ function ΔandSDPconstraints(name::String)
     return Δ, sdp_constraints
 end
 
-function ΔandSDPconstraints(name::String, generating_set::Function)
-    pm_fname, Δ_fname = pmΔfilenames(name)
-    S, ID = generating_set()
-    Δ, sdp_constraints = Main.ΔandSDPconstraints(ID, S)
-    save(pm_fname, "pm", Δ.product_matrix)
-    save(Δ_fname, "Δ", Δ.coefficients)
-    return Δ, sdp_constraints
+function ΔandSDPconstraints(name::String, generating_set::Function, radius::Int)
+    try
+        return ΔandSDPconstraints(name)
+    catch err
+        if isa(err, ArgumentError)
+            pm_fname, Δ_fname = pmΔfilenames(name)
+            S, Id = generating_set()
+            Δ, sdp_constraints = Main.ΔandSDPconstraints(Id, S, radius)
+            save(pm_fname, "pm", Δ.product_matrix)
+            save(Δ_fname, "Δ", Δ.coefficients)
+            return Δ, sdp_constraints
+        else
+            error(logger, err)
+        end
+    end
 end
 
-function κandA(name::String)
-    κ_fname, SDP_fname = κSDPfilenames(name)
-    f₁ = isfile(κ_fname)
+function λandP(name::String)
+    λ_fname, SDP_fname = λSDPfilenames(name)
+    f₁ = isfile(λ_fname)
     f₂ = isfile(SDP_fname)
+
     if f₁ && f₂
-        info(logger, "Loading precomputed κ, A...")
-        κ = load(κ_fname, "κ")
-        A = load(SDP_fname, "A")
+        info(logger, "Loading precomputed λ, P...")
+        λ = load(λ_fname, "λ")
+        P = load(SDP_fname, "P")
     else
-        throw(ArgumentError("You need to precompute κ and SDP matrix A to load it!"))
+        throw(ArgumentError("You need to precompute λ and SDP matrix P to load it!"))
     end
-    return κ, A
+    return λ, P
 end
 
 function timed_msg(t)
@@ -78,41 +87,62 @@ function timed_msg(t)
     return "took: $elapsed s, allocated: $bytes_alloc bytes ($(gc_diff.poolalloc) allocations)."
 end
 
-function κandA(name::String, sdp_constraints, Δ::GroupAlgebraElement, solver::AbstractMathProgSolver; upper_bound=Inf)
-    if isfile("$name/solver.log")
-        rm("$name/solver.log")
+
+function λandP(name::String, opts...)
+    try
+        return λandP(name)
+    catch err
+        if isa(err, ArgumentError)
+            if isfile(joinpath(name, "solver.log"))
+                rm(joinpath(name, "solver.log"))
+            end
+
+            add_handler(solver_logger, DefaultHandler(joinpath(name, "solver.log"), DefaultFormatter("{date}| {msg}")), "solver_log")
+
+            info(logger, "Creating SDP problem...")
+
+            λ, P = compute_λandP(opts...)
+
+            remove_handler(solver_logger, "solver_log")
+
+            λ_fname, P_fname = λSDPfilenames(name)
+
+            if λ > 0
+                save(λ_fname, "λ", λ)
+                save(P_fname, "P", P)
+            else
+                throw(ErrorException("Solver $solver did not produce a valid solution!: λ = $λ"))
+            end
+            return λ, P
+
+        else
+            # throw(err)
+            error(logger, err)
+        end
     end
+end
 
-    add_handler(solver_logger, DefaultHandler("./$name/solver.log", DefaultFormatter("{date}| {msg}")), "solver_log")
+function compute_λandP(sdp_constraints, Δ::GroupAlgebraElement, solver::AbstractMathProgSolver, upper_bound=Inf)
 
-    info(logger, "Creating SDP problem...")
     t = @timed SDP_problem = create_SDP_problem(sdp_constraints, Δ; upper_bound=upper_bound)
     info(logger, timed_msg(t))
 
-    κ = 0.0
-    A = nothing
-    while κ == 0.0
+    λ = 0.0
+    P = nothing
+    while λ == 0.0
         try
-            κ, A = solve_SDP(SDP_problem, solver)
+            λ, P = solve_SDP(SDP_problem, solver)
         catch y
             warn(solver_logger, y)
         end
     end
-
-    remove_handler(solver_logger, "solver_log")
-
-    κ_fname, A_fname = κSDPfilenames(name)
-    if κ > 0
-        save(κ_fname, "κ", κ)
-        save(A_fname, "A", A)
-    else
-        throw(ErrorException("Solver $solver did not produce a valid solution!: κ = $κ"))
-    end
-    return κ, A
+    return λ, P
 end
 
+Kazhdan_from_sgap(λ,N) = sqrt(2*λ/N)
+
 function check_property_T(name::String, generating_set::Function,
-    solver, upper_bound, tol=1e-6)
+    solver, upper_bound, tol, radius)
 
     if !isdir(name)
         mkdir(name)
@@ -124,47 +154,36 @@ function check_property_T(name::String, generating_set::Function,
     info(logger, "Precision:   $tol")
     info(logger, "Upper bound: $upper_bound")
 
-    Δ, sdp_constraints = try
-        ΔandSDPconstraints(name)
-    catch err
-        if isa(err, ArgumentError)
-            ΔandSDPconstraints(name, generating_set)
-        else
-            error(logger, err)
-        end
-    end
+    Δ, sdp_constraints = ΔandSDPconstraints(name, generating_set, radius)
+
     S = countnz(Δ.coefficients) - 1
     info(logger, "|S| = $S")
     info(logger, "length(Δ) = $(length(Δ))")
     info(logger, "size(Δ.product_matrix) = $(size(Δ.product_matrix))")
 
-    κ, A = try
-        κandA(name)
-    catch err
-        if isa(err, ArgumentError)
-            κandA(name, sdp_constraints, Δ, solver; upper_bound=upper_bound)
-        else
-            # throw(err)
-            error(logger, err)
+    λ, P = λandP(name, sdp_constraints, Δ, solver, upper_bound)
+
+    info(logger, "λ = $λ")
+    info(logger, "sum(P) = $(sum(P))")
+    info(logger, "maximum(P) = $(maximum(P))")
+    info(logger, "minimum(P) = $(minimum(P))")
+
+    if λ > 0
+        spectral_gap = check_distance_to_positive_cone(Δ, λ, P, tol=tol, rational=false)
+        if isa(spectral_gap, Interval)
+            spectral_gap = spectral_gap.lo
         end
-    end
-
-    info(logger, "κ = $κ")
-    info(logger, "sum(A) = $(sum(A))")
-    info(logger, "maximum(A) = $(maximum(A))")
-    info(logger, "minimum(A) = $(minimum(A))")
-
-    if κ > 0
-        spectral_gap = check_distance_to_positive_cone(Δ, κ, A, tol=tol, rational=false)
         if spectral_gap > 0
-            Kazhdan_κ = sqrt(2*spectral_gap/S)
-            Kazhdan_κ = Float64(trunc(Kazhdan_κ,12))
+            @show spectral_gap
+            Kazhdan_κ = Kazhdan_from_sgap(spectral_gap, S)
+            Kazhdan_κ = Float64(trunc(Kazhdan_κ, 12))
             info(logger, "κ($name, S) ≥ $Kazhdan_κ: Group HAS property (T)!")
         else
+            spectral_gap = Float64(trunc(spectral_gap, 12))
             info(logger, "λ($name, S) ≥ $spectral_gap: Group may NOT HAVE property (T)!")
         end
     else
-        info(logger, "κ($name, S) ≥ $κ < 0: Tells us nothing about property (T)")
+        info(logger, "κ($name, S) ≥ $λ < 0: Tells us nothing about property (T)")
     end
 end
 

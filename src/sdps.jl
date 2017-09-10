@@ -52,21 +52,21 @@ function create_SDP_problem(matrix_constraints, Δ::GroupAlgebraElement; upper_b
     Δ² = Δ*Δ
     @assert length(Δ) == length(matrix_constraints)
     m = JuMP.Model();
-    JuMP.@variable(m, A[1:N, 1:N], SDP)
-    JuMP.@SDconstraint(m, A >= 0)
-    JuMP.@constraint(m, sum(A[i] for i in eachindex(A)) == 0)
+    JuMP.@variable(m, P[1:N, 1:N], SDP)
+    JuMP.@SDconstraint(m, P >= 0)
+    JuMP.@constraint(m, sum(P[i] for i in eachindex(P)) == 0)
 
     if upper_bound < Inf
-        JuMP.@variable(m, 0.0 <= κ <= upper_bound)
+        JuMP.@variable(m, 0.0 <= λ <= upper_bound)
     else
-        JuMP.@variable(m, κ >= 0)
+        JuMP.@variable(m, λ >= 0)
     end
 
     for (pairs, δ², δ) in zip(matrix_constraints, Δ².coefficients, Δ.coefficients)
-        JuMP.@constraint(m, sum(A[i,j] for (i,j) in pairs) == δ² - κ*δ)
+        JuMP.@constraint(m, sum(P[i,j] for (i,j) in pairs) == δ² - λ*δ)
     end
 
-    JuMP.@objective(m, Max, κ)
+    JuMP.@objective(m, Max, λ)
 
     return m
 end
@@ -95,7 +95,7 @@ function solve_SDP(SDP_problem, solver)
     end
     info(logger, solution_status)
 
-    κ = JuMP.getvalue(JuMP.getvariable(SDP_problem, :κ))
-    A = JuMP.getvalue(JuMP.getvariable(SDP_problem, :A))
-    return κ, A
+    λ = JuMP.getvalue(JuMP.getvariable(SDP_problem, :λ))
+    P = JuMP.getvalue(JuMP.getvariable(SDP_problem, :P))
+    return λ, P
 end
