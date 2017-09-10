@@ -2,6 +2,7 @@ julia 0.5
 JuMP
 SCS
 GroupAlgebras
-ValidatedNumerics
+ValidatedNumerics 0.8.0
 JLD
-Memento
+Memento 0.0.1
+Nemo
