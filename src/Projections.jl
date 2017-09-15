@@ -4,13 +4,13 @@
 #
 ###############################################################################
 
-abstract AbstractCharacter <: Function
+abstract type AbstractCharacter <: Function end
 
-immutable PermCharacter <: AbstractCharacter
+struct PermCharacter <: AbstractCharacter
    p::Partition
 end
 
-immutable DirectProdCharacter <: AbstractCharacter
+struct DirectProdCharacter <: AbstractCharacter
    i::Int
 end
 
@@ -90,19 +90,21 @@ function idempotents(RG::GroupRing{PermGroup}, T::Type=Rational{Int})
     return unique(idems)
 end
 
-function rankOne_projection{S}(chi::PropertyT.PermCharacter, idems::Vector{GroupRingElem{S}})
+function rankOne_projection(chi::PropertyT.PermCharacter, idems::Vector{S}) where {S<:GroupRingElem}
 
    RG = parent(first(idems))
 
-   ids = [[one(RG, S)]; idems]
+   T = eltype(first(idems))
+
+   ids = [[one(RG, T)]; idems]
 
    for (i,j,k) in Base.product(ids, ids, ids)
-      if chi(i) == zero(S) || chi(j) == zero(S) || chi(k) == zero(S)
+      if chi(i) == zero(T) || chi(j) == zero(T) || chi(k) == zero(T)
          continue
       end
       elt = i*j*k
       elt^2 == elt || continue
-      if chi(elt) == one(S)
+      if chi(elt) == one(T)
          return elt
          # return (i,j,k)
       end

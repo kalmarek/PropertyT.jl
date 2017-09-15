@@ -6,15 +6,15 @@ include("Projections.jl")
 #
 ###############################################################################
 
-type FFEltsIter{T<:Nemo.FinField}
+mutable struct FFEltsIter{T<:Generic.FinField}
     all::Int
     field::T
 
-    function FFEltsIter(F::T)
+    function FFEltsIter{T}(F::T) where {T} 
         return new(Int(characteristic(F)^degree(F)), F)
     end
 end
-FFEltsIter{T<:Nemo.FinField}(F::T) = FFEltsIter{T}(F)
+FFEltsIter(F::T) where {T<:Nemo.FinField} = FFEltsIter{T}(F)
 
 import Base: start, next, done, eltype, length
 
