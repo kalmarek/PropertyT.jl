@@ -7,17 +7,17 @@
 abstract type AbstractCharacter <: Function end
 
 struct PermCharacter <: AbstractCharacter
-   p::Partition
+   p::Generic.Partition
 end
 
 struct DirectProdCharacter <: AbstractCharacter
    i::Int
 end
 
-function (chi::PermCharacter)(g::Nemo.perm)
+function (chi::PermCharacter)(g::Generic.perm)
    R = Nemo.partitionseq(chi.p)
-   p = Partition(Nemo.permtype(g))
-   return Int(Nemo.MN1inner(R, p, 1, Nemo._charvalsTable))
+   p = Partition(Nemo.Generic.permtype(g))
+   return Int(Nemo.Generic.MN1inner(R, p, 1, Nemo.Generic._charvalsTable))
 end
 
 ## NOTE: this works only for Z/2!!!!
@@ -61,7 +61,7 @@ function central_projection(RG::GroupRing, chi::AbstractCharacter,
     return result
 end
 
-function idempotents(RG::GroupRing{PermGroup}, T::Type=Rational{Int})
+function idempotents(RG::GroupRing{Generic.PermGroup}, T::Type=Rational{Int})
     if RG.group.n == 1
         return GroupRingElem{T}[one(RG,T)]
     elseif RG.group.n == 2
@@ -70,7 +70,7 @@ function idempotents(RG::GroupRing{PermGroup}, T::Type=Rational{Int})
         return GroupRingElem{T}[1//2*(Id + transp), 1//2*(Id - transp)]
 
     end
-    projs = Vector{Vector{perm}}()
+    projs = Vector{Vector{Generic.perm}}()
     for l in 2:RG.group.n
         u = RG.group([circshift([i for i in 1:l], -1); [i for i in l+1:RG.group.n]])
         i = 0
@@ -112,7 +112,7 @@ function rankOne_projection(chi::PropertyT.PermCharacter, idems::Vector{S}) wher
    throw("Couldn't find rank-one projection for $chi")
 end
 
-function minimalprojections(G::PermutationGroup, T::Type=Rational{Int})
+function minimalprojections(G::Generic.PermGroup, T::Type=Rational{Int})
    if G.n == 1
       return [one(GroupRing(G), T)]
    elseif G.n < 8
@@ -136,7 +136,7 @@ function minimalprojections(G::PermutationGroup, T::Type=Rational{Int})
    return min_projs
 end
 
-function rankOne_projections(G::PermutationGroup, T::Type=Rational{Int})
+function rankOne_projections(G::Generic.PermGroup, T::Type=Rational{Int})
    return minimalprojections(G, T)
 end
 
@@ -159,8 +159,8 @@ function rankOne_projections(BN::WreathProduct, T::Type=Rational{Int})
 
    range = collect(1:N)
    for i in 1:N-1
-      first_emb = g->BN(Nemo.emb!(BN.P(), g, range[1:i]))
-      last_emb = g->BN(Nemo.emb!(BN.P(), g, range[i+1:end]))
+      first_emb = g->BN(Nemo.Generic.emb!(BN.P(), g, range[1:i]))
+      last_emb = g->BN(Nemo.Generic.emb!(BN.P(), g, range[i+1:end]))
 
       Sk_first = [RBN(p, first_emb) for p in SNprojs_nc[i]]
       Sk_last = [RBN(p, last_emb ) for p in SNprojs_nc[N-i]]

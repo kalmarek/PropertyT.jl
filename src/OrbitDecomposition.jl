@@ -141,7 +141,7 @@ function perm_reps{T<:GroupElem}(G::Group, S::Vector{T}, AutS::Group, radius::In
 
    elts = collect(elements(AutS))
    l = length(elts)
-   preps = Vector{Nemo.perm}(l)
+   preps = Vector{Generic.perm}(l)
 
    G = Nemo.PermutationGroup(length(E_R))
 
@@ -164,7 +164,7 @@ function perm_repr(g::GroupElem, E, E_dict)
    return p
 end
 
-function reconstruct_sol{T<:GroupElem, S<:Nemo.perm}(preps::Dict{T, S},
+function reconstruct_sol{T<:GroupElem}(preps::Dict{T, Generic.perm},
    aUs::Vector, aPs::Vector, adims::Vector)
 
    idx = [π for π in 1:length(aUs) if size(aUs[π], 2) != 0]
