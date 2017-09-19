@@ -58,11 +58,8 @@ end
 function solve_SDP(SDP_problem)
     info(logger, Base.repr(SDP_problem))
 
-    # to change buffering mode of stdout to _IOLBF (line bufferin)
-    # see https://github.com/JuliaLang/julia/issues/8765
-    ccall((:printf, "libc"), Int, (Ptr{UInt8},), "\n");
-
     o = redirect_stdout(solver_logger.handlers["solver_log"].io)
+    Base.Libc.flush_cstdio()
 
     t = @timed solution_status = JuMP.solve(SDP_problem)
     info(logger, timed_msg(t))
