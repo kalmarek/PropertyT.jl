@@ -188,14 +188,10 @@ function reconstruct_sol{T<:GroupElem}(preps::Dict{T, Generic.perm},
    return recP
 end
 
-function Cstar_repr{T}(x::GroupRingElem{T}, mreps::Dict)
-   res = spzeros(size(mreps[first(keys(mreps))])...)
-
-   for g in parent(x).basis
-      if x[g] != zero(T)
-         res .+= Float64(x[g]).*mreps[g]
-      end
-   end
+function Cstar_repr(x::GroupRingElem{T}, mreps::Dict) where {T}
+   nzindx = [i for i in eachindex(x.coeffs) if x[i] != zero(T)]
+   RG = parent(x)
+   res = sum(Float64(x[i]).*mreps[RG.basis[i]] for i in nzindx)
 
    return res
 end
