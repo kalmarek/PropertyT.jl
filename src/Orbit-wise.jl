@@ -15,6 +15,11 @@ immutable Settings
    tol::Float64
 end
 
+prefix(s::Settings) = s.name
+suffix(s::Settings) = "$(s.upper_bound)"
+prepath(s::Settings) = prefix(s)
+fullpath(s::Settings) = joinpath(prefix(s), suffix(s))
+
 immutable OrbitData
    name::String
    Us::Vector
