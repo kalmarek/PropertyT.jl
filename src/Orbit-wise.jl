@@ -101,12 +101,12 @@ sparsify{T}(U::AbstractArray{T}, tol=eps(T)) = sparsify!(deepcopy(U), tol)
 
 function init_orbit_data(logger, sett::Settings; radius=2)
 
-   ex(fname) = isfile(joinpath(sett.name, fname))
+   ex(fname) = isfile(joinpath(prepath(sett), fname))
 
    files_exists = ex.(["delta.jld", "pm.jld", "U_pis.jld", "orbits.jld"])
 
    if !all(files_exists)
-      compute_orbit_data(logger, sett.name, sett.G, sett.S, sett.AutS, radius=radius)
+      compute_orbit_data(logger, prepath(sett), sett.G, sett.S, sett.AutS, radius=radius)
    end
 
    return 0
@@ -212,7 +212,7 @@ function λandP(m::JuMP.Model, data::OrbitData, sett::Settings)
    t = @timed recP = reconstruct_sol(preps, data.Us, Ps, data.dims)
    info(logger, PropertyT.timed_msg(t))
 
-   fname = PropertyT.λSDPfilenames(data.name)[2]
+   fname = PropertyT.λSDPfilenames(fullpath(sett))[2]
    save(fname, "origP", Ps, "P", recP)
    return λ, recP
 end
@@ -221,10 +221,10 @@ function check_property_T(sett::Settings)
 
    init_orbit_data(logger, sett, radius=sett.radius)
 
-   fnames = PropertyT.λSDPfilenames(sett.name)
+   fnames = PropertyT.λSDPfilenames(fullpath(sett))
 
    if all(isfile.(fnames))
-      λ, P = PropertyT.λandP(sett.name)
+      λ, P = PropertyT.λandP(fullpath(sett))
    else
       info(logger, "Creating SDP problem...")
       SDP_problem, orb_data = create_SDP_problem(sett)
@@ -239,9 +239,9 @@ function check_property_T(sett::Settings)
    info(logger, "minimum(P) = $(minimum(P))")
 
    if λ > 0
-      pm_fname = joinpath(sett.name, "pm.jld")
+      pm_fname = joinpath(prepath(sett), "pm.jld")
       RG = GroupRing(sett.G, load(pm_fname, "pm"))
-      Δ_fname = joinpath(sett.name, "delta.jld")
+      Δ_fname = joinpath(prepath(sett), "delta.jld")
       Δ = GroupRingElem(load(Δ_fname, "Δ")[:, 1], RG)
 
       isapprox(eigvals(P), abs.(eigvals(P)), atol=sett.tol) ||
