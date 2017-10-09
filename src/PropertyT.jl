@@ -30,29 +30,23 @@ function exists(fname::String)
    return isfile(fname) || islink(fname)
 end
 
-function pmΔfilenames(name::String)
-    if !isdir(name)
-        mkdir(name)
-    end
-    prefix = name
-    pm_filename = joinpath(prefix, "pm.jld")
-    Δ_coeff_filename = joinpath(prefix, "delta.jld")
-    return pm_filename, Δ_coeff_filename
+function pmΔfilenames(prefix::String)
+   isdir(prefix) || mkdir(prefix)
+   pm_filename = joinpath(prefix, "pm.jld")
+   Δ_coeff_filename = joinpath(prefix, "delta.jld")
+   return pm_filename, Δ_coeff_filename
 end
 
-function λSDPfilenames(name::String)
-    if !isdir(name)
-        mkdir(name)
-    end
-    prefix = name
-    λ_filename = joinpath(prefix, "lambda.jld")
-    SDP_filename = joinpath(prefix, "SDPmatrix.jld")
-    return λ_filename, SDP_filename
+function λSDPfilenames(prefix::String)
+   isdir(prefix) || mkdir(prefix)
+   λ_filename = joinpath(prefix, "lambda.jld")
+   SDP_filename = joinpath(prefix, "SDPmatrix.jld")
+   return λ_filename, SDP_filename
 end
 
-function ΔandSDPconstraints(name::String, G::Group)
+function ΔandSDPconstraints(prefix::String, G::Group)
     info(logger, "Loading precomputed pm, Δ, sdp_constraints...")
-    pm_fname, Δ_fname = pmΔfilenames(name)
+    pm_fname, Δ_fname = pmΔfilenames(prefix)
 
     product_matrix = load(pm_fname, "pm")
     sdp_constraints = constraints_from_pm(product_matrix)
