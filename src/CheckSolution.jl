@@ -116,20 +116,20 @@ end
 function rationalize_and_project{T}(Q::AbstractArray{T}, δ::T, logger)
    info(logger, "")
    info(logger, "Rationalizing with accuracy $δ")
-   t = @timed Q_ℚ = ℚ(Q, δ)
+   t = @timed Q = ℚ(Q, δ)
    info(logger, timed_msg(t))
 
    info(logger, "Projecting columns of the rationalized Q to the augmentation ideal...")
-   t = @timed Q_int = correct_to_augmentation_ideal(Q_ℚ)
+   t = @timed Q = correct_to_augmentation_ideal(Q)
    info(logger, timed_msg(t))
 
    info(logger, "Checking that sum of every column contains 0.0... ")
-   check = all([0.0 in sum(view(Q_int, :, i)) for i in 1:size(Q_int, 2)])
+   check = all([0.0 in sum(view(Q, :, i)) for i in 1:size(Q, 2)])
    info(logger, (check? "They do." : "FAILED!"))
 
    @assert check
 
-   return Q_int
+   return Q
 end
 
 function check_distance_to_positive_cone(Δ::GroupRingElem, λ, Q, wlen;
