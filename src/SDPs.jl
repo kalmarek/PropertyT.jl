@@ -13,18 +13,18 @@ function constraints_from_pm(pm, total_length=maximum(pm))
     return constraints
 end
 
-function splaplacian{TT<:Group}(RG::GroupRing{TT}, S, Id=RG.group(), T::Type=Float64)
+function splaplacian(RG::GroupRing, S, T::Type=Float64)
     result = RG(T)
-    result[Id] = T(length(S))
+    result[RG.group()] = T(length(S))
     for s in S
         result[s] -= one(T)
     end
     return result
 end
 
-function splaplacian{TT<:Ring}(RG::GroupRing{TT}, S, Id=one(RG.group), T::Type=Float64)
+function splaplacian{TT<:Ring}(RG::GroupRing{TT}, S, T::Type=Float64)
     result = RG(T)
-    result[Id] = T(length(S))
+    result[one(RG.group)] = T(length(S))
     for s in S
         result[s] -= one(T)
     end
