@@ -208,7 +208,7 @@ function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius)
      #  @assert P == Symmetric(P)
       Q = real(sqrtm(Symmetric(P)))
 
-      sgap = check_distance_to_positive_cone(Δ, λ, Q, 2*radius, tol=tol)
+      sgap = distance_to_positive_cone(Δ, λ, Q, 2*radius)
       if isa(sgap, Interval)
          sgap = sgap.lo
       end

@@ -249,7 +249,7 @@ function check_property_T(sett::Settings)
      #  @assert P == Symmetric(P)
       Q = real(sqrtm(Symmetric(P)))
 
-      sgap = PropertyT.check_distance_to_positive_cone(Δ, λ, Q, 2*sett.radius, tol=sett.tol, rational=false)
+      sgap = distance_to_positive_cone(Δ, λ, Q, 2*sett.radius)
       if isa(sgap, Interval)
            sgap = sgap.lo
       end
