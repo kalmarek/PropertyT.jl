@@ -182,15 +182,10 @@ function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius)
     info(logger, "|R[G]|.pm = $(size(parent(Δ).pm))")
 
    if all(exists.(λSDPfilenames(name)))
-      # cached
       λ, P = λandP(name)
    else
-      # compute
       info(logger, "Creating SDP problem...")
-
-      t = @timed SDP_problem, λ, P = create_SDP_problem(Δ, sdp_constraints, upper_bound=upper_bound)
-      info(logger, timed_msg(t))
-
+      SDP_problem, λ, P = create_SDP_problem(Δ, sdp_constraints, upper_bound=upper_bound)
       JuMP.setsolver(SDP_problem, solver)
 
       λ, P = λandP(name, SDP_problem, λ, P)
@@ -202,6 +197,9 @@ function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius)
    info(logger, "minimum(P) = $(minimum(P))")
 
    if λ > 0
+      pm_fname, Δ_fname = pmΔfilenames(name)
+      RG = GroupRing(parent(first(S)), load(pm_fname, "pm"))
+      Δ = GroupRingElem(load(Δ_fname, "Δ")[:, 1], RG)
 
       isapprox(eigvals(P), abs(eigvals(P)), atol=tol) ||
          warn("The solution matrix doesn't seem to be positive definite!")

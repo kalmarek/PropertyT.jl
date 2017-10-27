@@ -221,9 +221,7 @@ function check_property_T(sett::Settings)
 
    init_orbit_data(logger, sett, radius=sett.radius)
 
-   fnames = PropertyT.λSDPfilenames(fullpath(sett))
-
-   if all(isfile.(fnames))
+   if all(isfile.(λSDPfilenames(fullpath(sett))))
       λ, P = PropertyT.λandP(fullpath(sett))
    else
       info(logger, "Creating SDP problem...")
@@ -239,9 +237,8 @@ function check_property_T(sett::Settings)
    info(logger, "minimum(P) = $(minimum(P))")
 
    if λ > 0
-      pm_fname = joinpath(prepath(sett), "pm.jld")
+      pm_fname, Δ_fname = pmΔfilenames(prepath(sett))
       RG = GroupRing(sett.G, load(pm_fname, "pm"))
-      Δ_fname = joinpath(prepath(sett), "delta.jld")
       Δ = GroupRingElem(load(Δ_fname, "Δ")[:, 1], RG)
 
       isapprox(eigvals(P), abs.(eigvals(P)), atol=sett.tol) ||
