@@ -10,7 +10,7 @@ immutable Settings
    S::Vector
    AutS::Group
    radius::Int
-   solver::AbstractMathProgSolver
+   solver::SCSSolver
    upper_bound::Float64
    tol::Float64
 end
@@ -166,10 +166,8 @@ function init_model(Uπs)
 
     for k in 1:l
         s = size(Uπs[k],2)
-        if s > 0
-           P[k] = JuMP.@variable(m, [i=1:s, j=1:s])
-           JuMP.@SDconstraint(m, P[k] >= 0.0)
-        end
+        P[k] = JuMP.@variable(m, [i=1:s, j=1:s])
+        JuMP.@SDconstraint(m, P[k] >= 0.0)
     end
 
     JuMP.@variable(m, λ >= 0.0)
