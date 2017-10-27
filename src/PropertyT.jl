@@ -142,7 +142,7 @@ function λandP(name::String, SDP_problem::JuMP.Model, varλ, varP)
        save(λ_fname, "λ", λ)
        save(P_fname, "P", P)
    else
-       throw(ErrorException("Solver $solver did not produce a valid solution!: λ = $λ"))
+       throw(ErrorException("Solver did not produce a valid solution!: λ = $λ"))
    end
    return λ, P
 
