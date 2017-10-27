@@ -48,6 +48,9 @@ function compute_SOS(Q::AbstractArray, pm::Array{Int,2}, l::Int)
    return result
 end
 
+function compute_SOS(Q::AbstractArray, RG::GroupRing, l::Int)
+   result = compute_SOS(Q, RG.pm, l)
+   return GroupRingElem(result, RG)
 end
 
 function distance_to_cone{S<:Interval}(elt::GroupRingElem, Q::AbstractArray{S,2}, wlen::Int)
