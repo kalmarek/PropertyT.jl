@@ -3,8 +3,7 @@ import Base: rationalize
 using IntervalArithmetic
 
 IntervalArithmetic.setrounding(Interval, :tight)
-IntervalArithmetic.setformat(sigfigs=10)
-IntervalArithmetic.setprecision(Interval, 53) # slightly faster than 256
+IntervalArithmetic.setformat(sigfigs=12)
 
 import IntervalArithmetic.±
 
