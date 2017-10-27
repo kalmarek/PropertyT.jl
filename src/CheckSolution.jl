@@ -48,16 +48,6 @@ function compute_SOS(Q::AbstractArray, pm::Array{Int,2}, l::Int)
    return result
 end
 
-function correct_to_augmentation_ideal{T<:Rational}(sqrt_matrix::Array{T,2})
-   l = size(sqrt_matrix, 2)
-   sqrt_corrected = Array{Interval{Float64}}(l,l)
-   Threads.@threads for j in 1:l
-      col = sum(view(sqrt_matrix, :,j))//l
-      for i in 1:l
-         sqrt_corrected[i,j] = (Float64(sqrt_matrix[i,j]) - Float64(col)) ± eps(0.0)
-      end
-   end
-   return sqrt_corrected
 end
 
 function distance_to_cone{S<:Interval}(elt::GroupRingElem, Q::AbstractArray{S,2}, wlen::Int)
@@ -88,17 +78,21 @@ function distance_to_cone{T}(elt::GroupRingElem, Q::AbstractArray{T,2}, wlen::In
    return dist
 end
 
+function augIdproj{T, I<:AbstractInterval}(S::Type{I}, Q::AbstractArray{T,2})
+   l = size(Q, 2)
+   R = zeros(Interval, (l,l))
+   Threads.@threads for j in 1:l
+      col = sum(view(Q, :,j))/l
+      for i in 1:l
+         R[i,j] = Q[i,j] - col ± eps(0.0)
+      end
+   end
+   return R
 end
 
-function rationalize_and_project{T}(Q::AbstractArray{T}, δ::T, logger)
-   info(logger, "")
-   info(logger, "Rationalizing with accuracy $δ")
-   t = @timed Q = ℚ(Q, δ)
-   info(logger, timed_msg(t))
-
-   info(logger, "Projecting columns of the rationalized Q to the augmentation ideal...")
-   t = @timed Q = correct_to_augmentation_ideal(Q)
-   info(logger, timed_msg(t))
+function augIdproj{T}(Q::AbstractArray{T,2}, logger)
+   info(logger, "Projecting columns of Q to the augmentation ideal...")
+   @logtime logger Q = augIdproj(Interval, Q)
 
    info(logger, "Checking that sum of every column contains 0.0... ")
    check = all([0.0 in sum(view(Q, :, i)) for i in 1:size(Q, 2)])
