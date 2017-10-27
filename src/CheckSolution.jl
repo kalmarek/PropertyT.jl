@@ -30,23 +30,22 @@ function groupring_square(vect::AbstractVector, l, pm)
     return GroupRings.mul!(similar(zzz), zzz, zzz, pm)
 end
 
-function compute_SOS(sqrt_matrix, elt::GroupRingElem)
-   n = size(sqrt_matrix,2)
-   l = length(elt.coeffs)
-   pm = parent(elt).pm
+function compute_SOS(Q::AbstractArray, pm::Array{Int,2}, l::Int)
+   n = size(Q,2)
 
-   # result = zeros(eltype(sqrt_matrix), l)
+   # result = zeros(eltype(Q), l)
    # for i in 1:n
-   #    result .+= groupring_square(view(sqrt_matrix,:,i), l, pm)
+   #    result .+= groupring_square(view(Q,:,i), l, pm)
    # end
 
    @everywhere groupring_square = PropertyT.groupring_square
 
    result = @parallel (+) for i in 1:n
-       groupring_square(view(sqrt_matrix,:,i), length(elt.coeffs), parent(elt).pm)
+      print(" $i")
+      groupring_square(view(Q,:,i), l, pm)
    end
 
-   return GroupRingElem(result, parent(elt))
+   return result
 end
 
 function correct_to_augmentation_ideal{T<:Rational}(sqrt_matrix::Array{T,2})
