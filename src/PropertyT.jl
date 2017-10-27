@@ -80,7 +80,7 @@ function ΔandSDPconstraints{T<:GroupElem}(S::Vector{T}, Id::T; radius::Int=2)
 
     RG = GroupRing(parent(Id), B, pm)
 
-    Δ = splaplacian(RG, S, Id)
+    Δ = splaplacian(RG, S)
     return Δ, sdp_constraints
 end
 
