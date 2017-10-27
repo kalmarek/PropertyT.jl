@@ -106,13 +106,12 @@ function augIdproj{T}(Q::AbstractArray{T,2}, logger)
    return Q
 end
 
-function check_distance_to_positive_cone(Δ::GroupRingElem, λ, Q, wlen;
-    tol=1e-14, rational=false)
-
+function distance_to_positive_cone(Δ::GroupRingElem, λ, Q, wlen::Int)
     info(logger, "------------------------------------------------------------")
-    info(logger, "")
+    info(logger, "λ = $λ")
     info(logger, "Checking in floating-point arithmetic...")
-    t = @timed fp_distance = distance_to_cone(λ, Q, Δ, wlen)
+    Δ²_λΔ = EOI(Δ, λ)
+    t = @timed fp_distance = λ - distance_to_cone(Δ²_λΔ, Q, wlen)
     info(logger, timed_msg(t))
     info(logger, "Floating point distance (to positive cone) ≈ $(@sprintf("%.10f", fp_distance))")
     info(logger, "------------------------------------------------------------")
@@ -122,26 +121,17 @@ function check_distance_to_positive_cone(Δ::GroupRingElem, λ, Q, wlen;
     end
 
     info(logger, "")
-    Q_ℚω_int = rationalize_and_project(Q, tol, logger)
-    λ_ℚ = ℚ(λ, tol)
-    Δ_ℚ = ℚ(Δ, tol)
+    Q = augIdproj(Q, logger)
 
     info(logger, "Checking in interval arithmetic")
+    λ = @interval(λ)
+    Δ = GroupRingElem([@interval(c) for c in Δ.coeffs], parent(Δ))
+    Δ²_λΔ = EOI(Δ, λ)
 
-    t = @timed Interval_dist_to_ΣSq = distance_to_cone(λ_ℚ, Q_ℚω_int, Δ_ℚ, wlen)
+    t = @timed Interval_dist_to_ΣSq = λ - distance_to_cone(Δ²_λΔ, Q, wlen)
     info(logger, timed_msg(t))
     info(logger, "The Augmentation-projected actual distance (to positive cone) ∈ $(Interval_dist_to_ΣSq)")
     info(logger, "------------------------------------------------------------")
 
-    if Interval_dist_to_ΣSq.lo ≤ 0 || !rational
-        return Interval_dist_to_ΣSq
-    else
-        info(logger, "Checking Projected SOS decomposition in exact rational arithmetic...")
-        t = @timed ℚ_dist_to_ΣSq = distance_to_cone(λ_ℚ, Q_ℚω, Δ_ℚ, wlen)
-        info(logger, timed_msg(t))
-        @assert isa(ℚ_dist_to_ΣSq, Rational)
-        info(logger, "Augmentation-projected rational distance (to positive cone) ≥ $(Float64(trunc(ℚ_dist_to_ΣSq,8)))")
-        info(logger, "------------------------------------------------------------")
-        return ℚ_dist_to_ΣSq
-    end
+    return Interval_dist_to_ΣSq
 end
