@@ -60,55 +60,34 @@ function correct_to_augmentation_ideal{T<:Rational}(sqrt_matrix::Array{T,2})
    return sqrt_corrected
 end
 
-function distance_to_cone{T<:Rational}(λ::T, sqrt_matrix::Array{T,2}, Δ::GroupRingElem{T}, wlen)
-    SOS = compute_SOS(sqrt_matrix, Δ)
+function distance_to_cone{S<:Interval}(elt::GroupRingElem, Q::AbstractArray{S,2}, wlen::Int)
+   SOS = compute_SOS(Q, parent(elt), length(elt.coeffs))
+   SOS_diff = elt - SOS
 
-    SOS_diff = EOI(Δ, λ) - SOS
-    eoi_SOS_L1_dist = norm(SOS_diff,1)
+   ɛ_dist = GroupRings.augmentation(SOS_diff)
+   info(logger, "ɛ(∑ξᵢ*ξᵢ) ∈ $(ɛ_dist)")
 
-    info(logger, "λ = $λ (≈$(@sprintf("%.10f", float(λ)))")
-    ɛ_dist = GroupRings.augmentation(SOS_diff)
-    if ɛ_dist ≠ 0//1
-        warn(logger, "The SOS is not in the augmentation ideal, numbers below are meaningless!")
-    end
-    info(logger, "ɛ(Δ² - λΔ - ∑ξᵢ*ξᵢ) = $ɛ_dist")
-    info(logger, "‖Δ² - λΔ - ∑ξᵢ*ξᵢ‖₁ = $(@sprintf("%.10f", float(eoi_SOS_L1_dist)))")
+   eoi_SOS_L1_dist = norm(SOS_diff,1)
+   info(logger, "‖Δ² - λΔ - ∑ξᵢ*ξᵢ‖₁ ∈ $(eoi_SOS_L1_dist)")
 
-    distance_to_cone = λ - 2^(wlen-1)*eoi_SOS_L1_dist
-    return distance_to_cone
+   dist = 2^(wlen-1)*eoi_SOS_L1_dist
+   return dist
 end
 
-function distance_to_cone{T<:Rational, S<:Interval}(λ::T, sqrt_matrix::AbstractArray{S,2}, Δ::GroupRingElem{T}, wlen)
-    SOS = compute_SOS(sqrt_matrix, Δ)
-    info(logger, "ɛ(∑ξᵢ*ξᵢ) ∈ $(GroupRings.augmentation(SOS))")
-    λ_int = @interval(λ)
-    Δ_int = GroupRingElem([@interval(c) for c in Δ.coeffs], parent(Δ))
-    SOS_diff = EOI(Δ_int, λ_int) - SOS
-    eoi_SOS_L1_dist = norm(SOS_diff,1)
+function distance_to_cone{T}(elt::GroupRingElem, Q::AbstractArray{T,2}, wlen::Int)
+   SOS = compute_SOS(Q, parent(elt), length(elt.coeffs))
+   SOS_diff = elt - SOS
 
-    info(logger, "λ = $λ (≈≥$(@sprintf("%.10f",float(λ))))")
-    ɛ_dist = GroupRings.augmentation(SOS_diff)
+   ɛ_dist = GroupRings.augmentation(SOS_diff)
+   info(logger, "ɛ(Δ² - λΔ - ∑ξᵢ*ξᵢ) ≈ $(@sprintf("%.10f", ɛ_dist))")
 
-    info(logger, "ɛ(Δ² - λΔ - ∑ξᵢ*ξᵢ) ∈ $(ɛ_dist)")
-    info(logger, "‖Δ² - λΔ - ∑ξᵢ*ξᵢ‖₁ ∈ $(eoi_SOS_L1_dist)")
+   eoi_SOS_L1_dist = norm(SOS_diff,1)
+   info(logger, "‖Δ² - λΔ - ∑ξᵢ*ξᵢ‖₁ ≈ $(@sprintf("%.10f", eoi_SOS_L1_dist))")
 
-    distance_to_cone = λ - 2^(wlen-1)*eoi_SOS_L1_dist
-    return distance_to_cone
+   dist = 2^(wlen-1)*eoi_SOS_L1_dist
+   return dist
 end
 
-function distance_to_cone(λ, sqrt_matrix::AbstractArray, Δ::GroupRingElem, wlen)
-    SOS = compute_SOS(sqrt_matrix, Δ)
-
-    SOS_diff = EOI(Δ, λ) - SOS
-    eoi_SOS_L1_dist = norm(SOS_diff,1)
-
-    info(logger, "λ = $λ")
-    ɛ_dist = GroupRings.augmentation(SOS_diff)
-    info(logger, "ɛ(Δ² - λΔ - ∑ξᵢ*ξᵢ) ≈ $(@sprintf("%.10f", ɛ_dist))")
-    info(logger, "‖Δ² - λΔ - ∑ξᵢ*ξᵢ‖₁ ≈ $(@sprintf("%.10f", eoi_SOS_L1_dist))")
-
-    distance_to_cone = λ - 2^(wlen-1)*eoi_SOS_L1_dist
-    return distance_to_cone
 end
 
 function rationalize_and_project{T}(Q::AbstractArray{T}, δ::T, logger)
