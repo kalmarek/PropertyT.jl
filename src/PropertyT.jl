@@ -150,7 +150,7 @@ end
 
 function compute_λandP(m, varλ, varP)
     λ = 0.0
-    P = Vector{Nullable{Array{Float64,2}}}
+    P = nothing
     while λ == 0.0
         try
             solve_SDP(m)
