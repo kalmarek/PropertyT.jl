@@ -53,7 +53,7 @@ function compute_SOS(Q::AbstractArray, RG::GroupRing, l::Int)
    return GroupRingElem(result, RG)
 end
 
-function distance_to_cone{S<:Interval}(elt::GroupRingElem, Q::AbstractArray{S,2}, wlen::Int)
+function distance_to_cone{T<:Interval}(elt::GroupRingElem, Q::AbstractArray{T,2}, wlen::Int)
    SOS = compute_SOS(Q, parent(elt), length(elt.coeffs))
    SOS_diff = elt - SOS
 
