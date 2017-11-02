@@ -121,16 +121,6 @@ function ΔandSDPconstraints{T<:GroupElem}(S::Vector{T}, Id::T; radius::Int=2)
     return Δ, sdp_constraints
 end
 
-
-function timed_msg(t)
-    elapsed = t[2]
-    bytes_alloc = t[3]
-    gc_time = t[4]
-    gc_diff = t[5]
-
-    return "took: $elapsed s, allocated: $bytes_alloc bytes ($(gc_diff.poolalloc) allocations)."
-end
-
 function λandP(name::String)
     λ_fname, SDP_fname = λSDPfilenames(name)
     f₁ = exists(λ_fname)
