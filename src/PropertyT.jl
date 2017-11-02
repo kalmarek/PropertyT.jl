@@ -26,6 +26,45 @@ function setup_logging(name::String)
    return logger
 end
 
+macro logtime(logger, ex)
+    quote
+        local stats = Base.gc_num()
+        local elapsedtime = Base.time_ns()
+        local val = $(esc(ex))
+        elapsedtime = Base.time_ns() - elapsedtime
+        local diff = Base.GC_Diff(Base.gc_num(), stats)
+        local ts = time_string(elapsedtime, diff.allocd, diff.total_time,
+                   Base.gc_alloc_count(diff))
+        esc(info(logger, ts))
+        val
+    end
+end
+
+function time_string(elapsedtime, bytes, gctime, allocs)
+    str = @sprintf("%10.6f seconds", elapsedtime/1e9)
+    if bytes != 0 || allocs != 0
+        bytes, mb = Base.prettyprint_getunits(bytes, length(Base._mem_units), Int64(1024))
+        allocs, ma = Base.prettyprint_getunits(allocs, length(Base._cnt_units), Int64(1000))
+        if ma == 1
+            str*= @sprintf(" (%d%s allocation%s: ", allocs, Base._cnt_units[ma], allocs==1 ? "" : "s")
+        else
+            str*= @sprintf(" (%.2f%s allocations: ", allocs, Base._cnt_units[ma])
+        end
+        if mb == 1
+            str*= @sprintf("%d %s%s", bytes, Base._mem_units[mb], bytes==1 ? "" : "s")
+        else
+            str*= @sprintf("%.3f %s", bytes, Base._mem_units[mb])
+        end
+        if gctime > 0
+            str*= @sprintf(", %.2f%% gc time", 100*gctime/elapsedtime)
+        end
+        str*=")"
+    elseif gctime > 0
+        str*= @sprintf(", %.2f%% gc time", 100*gctime/elapsedtime)
+    end
+    return str
+end
+
 function exists(fname::String)
    return isfile(fname) || islink(fname)
 end
@@ -84,19 +123,6 @@ function ΔandSDPconstraints{T<:GroupElem}(S::Vector{T}, Id::T; radius::Int=2)
     return Δ, sdp_constraints
 end
 
-macro logtime(logger, ex)
-    quote
-        local stats = Base.gc_num()
-        local elapsedtime = Base.time_ns()
-        local val = $(esc(ex))
-        elapsedtime = Base.time_ns() - elapsedtime
-        local diff = Base.GC_Diff(Base.gc_num(), stats)
-        local ts = time_string(elapsedtime, diff.allocd, diff.total_time,
-                   Base.gc_alloc_count(diff))
-        esc(warn($(esc(logger)), ts))
-        val
-    end
-end
 
 function timed_msg(t)
     elapsed = t[2]
