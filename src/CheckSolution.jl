@@ -14,14 +14,6 @@ end
 
 (±)(X::GroupRingElem, tol::Real) = GroupRingElem(X.coeffs ± tol, parent(X))
 
-function Base.rationalize{T<:Integer, S<:Real}(::Type{T},
-    X::AbstractArray{S}; tol::Real=eps(eltype(X)))
-    r(x) = rationalize(T, x, tol=tol)
-    return r.(X)
-end
-
-ℚ(x, tol::Real) = rationalize(BigInt, x, tol=tol)
-
 EOI{T<:Number}(Δ::GroupRingElem{T}, λ::T) = Δ*Δ - λ*Δ
 
 function groupring_square(vect::AbstractVector, l, pm)
