@@ -75,7 +75,7 @@ end
 
 function augIdproj{T, I<:AbstractInterval}(S::Type{I}, Q::AbstractArray{T,2})
    l = size(Q, 2)
-   R = zeros(Interval, (l,l))
+   R = zeros(S, (l,l))
    Threads.@threads for j in 1:l
       col = sum(view(Q, :,j))/l
       for i in 1:l
@@ -87,7 +87,7 @@ end
 
 function augIdproj{T}(Q::AbstractArray{T,2}, logger)
    info(logger, "Projecting columns of Q to the augmentation ideal...")
-   @logtime logger Q = augIdproj(Interval, Q)
+   @logtime logger Q = augIdproj(Interval{T}, Q)
 
    info(logger, "Checking that sum of every column contains 0.0... ")
    check = all([0.0 in sum(view(Q, :, i)) for i in 1:size(Q, 2)])
