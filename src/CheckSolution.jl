@@ -33,8 +33,7 @@ function compute_SOS(Q::AbstractArray, pm::Array{Int,2}, l::Int)
    @everywhere groupring_square = PropertyT.groupring_square
 
    result = @parallel (+) for i in 1:size(Q,2)
-      print(" $i")
-      groupring_square(view(Q,:,i), l, pm)
+      groupring_square(Q[:,i], l, pm)
    end
 
    println("")
