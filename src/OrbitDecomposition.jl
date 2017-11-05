@@ -216,13 +216,13 @@ function compute_orbit_data{T<:GroupElem}(logger, name::String, G::Nemo.Group, S
    # TODO: Fix that by multiple dispatch?
    Id = (isa(G, Nemo.Ring) ? one(G) : G())
 
-   @time E4, sizes = Groups.generate_balls(S, Id, radius=2*radius);
+   @logtime logger E4, sizes = Groups.generate_balls(S, Id, radius=2*radius);
    info(logger, "Balls of sizes $sizes.")
    info(logger, "Reverse dict")
-   @time E_dict = GroupRings.reverse_dict(E4)
+   @logtime logger E_dict = GroupRings.reverse_dict(E4)
 
    info(logger, "Product matrix")
-   @time pm = GroupRings.create_pm(E4, E_dict, sizes[radius], twisted=true)
+   @logtime logger pm = GroupRings.create_pm(E4, E_dict, sizes[radius], twisted=true)
    RG = GroupRing(G, E4, E_dict, pm)
    Δ = PropertyT.splaplacian(RG, S)
    @assert GroupRings.augmentation(Δ) == 0
@@ -230,20 +230,20 @@ function compute_orbit_data{T<:GroupElem}(logger, name::String, G::Nemo.Group, S
    save(joinpath(name, "pm.jld"), "pm", pm)
 
    info(logger, "Decomposing E into orbits of $(AutS)")
-   @time orbs = orbit_decomposition(AutS, E4, E_dict)
+   @logtime logger orbs = orbit_decomposition(AutS, E4, E_dict)
    @assert sum(length(o) for o in orbs) == length(E4)
    save(joinpath(name, "orbits.jld"), "orbits", orbs)
 
    info(logger, "Action matrices")
-   @time AutS_mreps = matrix_reps(AutS, E4[1:sizes[radius]], E_dict)
+   @logtime logger AutS_mreps = matrix_reps(AutS, E4[1:sizes[radius]], E_dict)
 
    info(logger, "Projections")
-   @time AutS_mps = rankOne_projections(AutS);
+   @logtime logger AutS_mps = rankOne_projections(AutS);
 
-   @time π_E_projections = [Cstar_repr(p, AutS_mreps) for p in AutS_mps]
+   @logtime logger π_E_projections = [Cstar_repr(p, AutS_mreps) for p in AutS_mps]
 
    info(logger, "Uπs...")
-   @time Uπs = orthSVD.(π_E_projections)
+   @logtime logger Uπs = orthSVD.(π_E_projections)
 
    multiplicities = size.(Uπs,2)
    info(logger, "multiplicities = $multiplicities")

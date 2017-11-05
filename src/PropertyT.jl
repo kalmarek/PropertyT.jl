@@ -106,8 +106,8 @@ function ΔandSDPconstraints{T<:GroupElem}(name::String, S::Vector{T}, Id::T; ra
 end
 
 function ΔandSDPconstraints{T<:GroupElem}(S::Vector{T}, Id::T; radius::Int=2)
-    B, sizes = Groups.generate_balls(S, Id, radius=2*radius)
-    info(logger, "Generated balls of sizes $sizes")
+    info(logger, "Generating balls of sizes $sizes")
+    @logtime logger B, sizes = Groups.generate_balls(S, Id, radius=2*radius)
 
     info(logger, "Creating product matrix...")
     @logtime logger pm = GroupRings.create_pm(B, GroupRings.reverse_dict(B), sizes[radius]; twisted=true)
