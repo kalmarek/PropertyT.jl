@@ -240,7 +240,7 @@ function check_property_T(sett::Settings)
       isapprox(eigvals(P), abs.(eigvals(P)), atol=sett.tol) ||
           warn("The solution matrix doesn't seem to be positive definite!")
      #  @assert P == Symmetric(P)
-      Q = real(sqrtm(Symmetric(P)))
+      @logtime logger Q = real(sqrtm(Symmetric(P)))
 
       sgap = distance_to_positive_cone(Δ, λ, Q, 2*sett.radius)
       if isa(sgap, Interval)
