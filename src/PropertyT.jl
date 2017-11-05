@@ -218,7 +218,7 @@ function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius)
       isapprox(eigvals(P), abs(eigvals(P)), atol=tol) ||
          warn("The solution matrix doesn't seem to be positive definite!")
      #  @assert P == Symmetric(P)
-      Q = real(sqrtm(Symmetric(P)))
+      @logtime logger Q = real(sqrtm(Symmetric(P)))
 
       sgap = distance_to_positive_cone(Δ, λ, Q, 2*radius)
       if isa(sgap, Interval)
