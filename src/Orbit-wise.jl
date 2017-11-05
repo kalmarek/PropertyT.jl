@@ -123,9 +123,9 @@ end
 A(data::OrbitData, π, t) = data.dims[π].*transform(data.Us[π], data.cnstr[t])
 
 function constrLHS(m::JuMP.Model, data::OrbitData, t)
-    l = endof(data.Us)
-    lhs = @expression(m, sum(vecdot(A(data, π, t), data.Ps[π]) for π in 1:l))
-    return lhs
+   l = endof(data.Us)
+   lhs = @expression(m, sum(vecdot(A(data, π, t), data.Ps[π]) for π in 1:l))
+   return lhs
 end
 
 function constrLHS(m::JuMP.Model, cnstr, Us, Ust, dims, vars, eps=100*eps(1.0))
@@ -160,19 +160,19 @@ function addconstraints!(m::JuMP.Model, data::OrbitData, l::Int=length(data.lapl
 end
 
 function init_model(Uπs)
-    m = JuMP.Model();
-    l = size(Uπs,1)
-    P = Vector{Array{JuMP.Variable,2}}(l)
+   m = JuMP.Model();
+   l = size(Uπs,1)
+   P = Vector{Array{JuMP.Variable,2}}(l)
 
-    for k in 1:l
-        s = size(Uπs[k],2)
-        P[k] = JuMP.@variable(m, [i=1:s, j=1:s])
-        JuMP.@SDconstraint(m, P[k] >= 0.0)
-    end
+   for k in 1:l
+      s = size(Uπs[k],2)
+      P[k] = JuMP.@variable(m, [i=1:s, j=1:s])
+      JuMP.@SDconstraint(m, P[k] >= 0.0)
+   end
 
-    JuMP.@variable(m, λ >= 0.0)
-    JuMP.@objective(m, Max, λ)
-    return m, P
+   JuMP.@variable(m, λ >= 0.0)
+   JuMP.@objective(m, Max, λ)
+   return m, P
 end
 
 function create_SDP_problem(sett::Settings)
@@ -238,7 +238,7 @@ function check_property_T(sett::Settings)
       Δ = GroupRingElem(load(Δ_fname, "Δ")[:, 1], RG)
 
       isapprox(eigvals(P), abs.(eigvals(P)), atol=sett.tol) ||
-          warn("The solution matrix doesn't seem to be positive definite!")
+         warn("The solution matrix doesn't seem to be positive definite!")
      #  @assert P == Symmetric(P)
       @logtime logger Q = real(sqrtm(Symmetric(P)))
 
