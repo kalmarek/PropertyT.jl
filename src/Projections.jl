@@ -20,6 +20,8 @@ function (chi::PermCharacter)(g::Nemo.perm)
    return Int(Nemo.MN1inner(R, p, 1, Nemo._charvalsTable))
 end
 
+Nemo.isone(p::GroupElem) = p == parent(p)()
+
 ## NOTE: this works only for Z/2!!!!
 function (chi::DirectProdCharacter)(g::DirectProductGroupElem)
    return reduce(*, 1, ((-1)^isone(g.elts[j]) for j in 1:chi.i))
