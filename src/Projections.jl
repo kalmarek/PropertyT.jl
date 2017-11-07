@@ -128,7 +128,7 @@ function minimalprojections(G::PermutationGroup, T::Type=Rational{Int})
    chars = [PropertyT.PermCharacter(p) for p in parts]
    min_projs = Vector{eltype(RGidems)}(l)
 
-   Threads.@threads for i in 1:l
+   for i in 1:l
       chi = PropertyT.PermCharacter(parts[i])
       min_projs[i] = rankOne_projection(chi,RGidems)*central_projection(RG,chi)
    end
