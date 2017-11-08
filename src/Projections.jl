@@ -4,7 +4,7 @@
 #
 ###############################################################################
 
-abstract AbstractCharacter <: Function
+abstract AbstractCharacter
 
 immutable PermCharacter <: AbstractCharacter
    p::Partition
