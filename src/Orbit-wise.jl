@@ -33,7 +33,7 @@ end
 function OrbitData(sett::Settings)
    splap = load(joinpath(prepath(sett), "delta.jld"), "Δ");
    pm = load(joinpath(prepath(sett), "pm.jld"), "pm");
-   cnstr = PropertyT.constraints_from_pm(pm);
+   cnstr = PropertyT.constraints(pm);
    splap² = similar(splap)
    splap² = GroupRings.mul!(splap², splap, splap, pm);
 
