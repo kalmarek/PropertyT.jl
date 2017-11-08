@@ -49,47 +49,45 @@ end
 #
 ###############################################################################
 
-function central_projection(RG::GroupRing, chi::AbstractCharacter,
-    T::Type=Rational{Int})
-    result = RG(T)
-    result.coeffs = full(result.coeffs)
-    dim = chi(RG.group())
-    ord = Int(order(RG.group))
+function central_projection(RG::GroupRing, chi::AbstractCharacter, T::Type=Rational{Int})
+   result = RG(T)
+   result.coeffs = full(result.coeffs)
+   dim = chi(RG.group())
+   ord = Int(order(RG.group))
 
-    for g in RG.basis
-        result[g] = convert(T, (dim//ord)*chi(g))
-    end
+   for g in RG.basis
+      result[g] = convert(T, (dim//ord)*chi(g))
+   end
 
-    return result
+   return result
 end
 
 function idempotents(RG::GroupRing{PermGroup}, T::Type=Rational{Int})
-    if RG.group.n == 1
-        return GroupRingElem{T}[one(RG,T)]
-    elseif RG.group.n == 2
-        Id = one(RG,T)
-        transp = convert(T, RG(RG.group([2,1])))
-        return GroupRingElem{T}[1//2*(Id + transp), 1//2*(Id - transp)]
+   if RG.group.n == 1
+      return GroupRingElem{T}[one(RG,T)]
+   elseif RG.group.n == 2
+      Id = one(RG,T)
+      transp = convert(T, RG(RG.group([2,1])))
+      return GroupRingElem{T}[1//2*(Id + transp), 1//2*(Id - transp)]
+   end
+   projs = Vector{Vector{perm}}()
+   for l in 2:RG.group.n
+      u = RG.group([circshift([i for i in 1:l], -1); [i for i in l+1:RG.group.n]])
+      i = 0
+      while (l-1)*i <= RG.group.n
+         v = RG.group(circshift(collect(1:RG.group.n), i))
+         k = inv(v)*u*v
+         push!(projs, generateGroup([k], RG.group.n))
+         i += 1
+      end
+   end
 
-    end
-    projs = Vector{Vector{perm}}()
-    for l in 2:RG.group.n
-        u = RG.group([circshift([i for i in 1:l], -1); [i for i in l+1:RG.group.n]])
-        i = 0
-        while (l-1)*i <= RG.group.n
-            v = RG.group(circshift(collect(1:RG.group.n), i))
-            k = inv(v)*u*v
-            push!(projs, generateGroup([k], RG.group.n))
-            i += 1
-        end
-    end
+   idems = Vector{GroupRingElem{T}}()
+   for p in projs
+      append!(idems, [RG(p, T), RG(p, T, alt=true)])
+   end
 
-    idems = Vector{GroupRingElem{T}}()
-    for p in projs
-        append!(idems, [RG(p, T), RG(p, T, alt=true)])
-    end
-
-    return unique(idems)
+   return unique(idems)
 end
 
 function rankOne_projection{S}(chi::PropertyT.PermCharacter, idems::Vector{GroupRingElem{S}})
@@ -163,7 +161,7 @@ function rankOne_projections(BN::WreathProduct, T::Type=Rational{Int})
       last_emb = g->BN(Nemo.emb!(BN.P(), g, range[i+1:end]))
 
       Sk_first = [RBN(p, first_emb) for p in SNprojs_nc[i]]
-      Sk_last = [RBN(p, last_emb ) for p in SNprojs_nc[N-i]]
+      Sk_last = [RBN(p, last_emb) for p in SNprojs_nc[N-i]]
 
       append!(all_projs,
       [Qs[i]*p1*p2 for (p1,p2) in Base.product(Sk_first,Sk_last)])
@@ -187,18 +185,18 @@ doc"""
 > forming 'products' by adding `op` (which is `*` by default).
 """
 function products{T<:GroupElem}(X::AbstractVector{T}, Y::AbstractVector{T}, op=*)
-    result = Vector{T}()
-    seen = Set{T}()
-    for x in X
-        for y in Y
-            z = op(x,y)
-            if !in(z, seen)
-                push!(seen, z)
-                push!(result, z)
-            end
-        end
-    end
-    return result
+   result = Vector{T}()
+   seen = Set{T}()
+   for x in X
+      for y in Y
+         z = op(x,y)
+         if !in(z, seen)
+            push!(seen, z)
+            push!(result, z)
+         end
+      end
+   end
+   return result
 end
 
 doc"""
