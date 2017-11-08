@@ -100,32 +100,6 @@ function matrix_repr(p::perm)
     return sparse(1:N, p.d, [1.0 for _ in 1:N])
 end
 
-function matrix_repr(g::GroupElem, E, E_rdict)
-   repmat = spzeros(Int, length(E), length(E))
-   for (i,elt) in enumerate(E)
-      j = E_rdict[g(elt)]
-      repmat[i,j] = 1
-   end
-   return repmat
-end
-
-function matrix_reps(G::Nemo.Group, E, E_rdict=GroupRings.reverse_dict(E))
-   elts = collect(elements(G))
-   l = length(elts)
-   mreps = Vector{SparseMatrixCSC{Int, Int}}(l)
-
-   Threads.@threads for i in 1:l
-      mreps[i] = matrix_repr(elts[i], E, E_rdict)
-   end
-
-   return Dict(elts[i]=>mreps[i] for i in 1:l)
-end
-
-function matrix_reps{T<:GroupElem}(autS::Nemo.Group, S::Vector{T}, radius::Int)
-   E, _ = Groups.generate_balls(S, radius=radius)
-   return matrix_reps(autS, E)
-end
-
 function matrix_reps{T<:GroupElem}(preps::Dict{T,perm})
     kk = collect(keys(preps))
     mreps = Vector{SparseMatrixCSC{Float64, Int}}(length(kk))
