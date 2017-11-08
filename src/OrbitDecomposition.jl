@@ -164,12 +164,11 @@ function Cstar_repr{T}(x::GroupRingElem{T}, mreps::Dict)
    return sum(x[g].*mreps[g] for g in parent(x).basis if x[g] != zero(T))
 end
 
-function orthSVD(M::AbstractMatrix)
-    M = full(M)
-    fact = svdfact(M)
-    singv = fact[:S]
-    M_rank = sum(singv .> maximum(size(M))*eps(eltype(singv)))
-    return fact[:U][:,1:M_rank]
+function orthSVD{T}(M::AbstractMatrix{T})
+   M = full(M)
+   fact = svdfact(M)
+   M_rank = sum(fact[:S] .> maximum(size(M))*eps(T))
+   return fact[:U][:,1:M_rank]
 end
 
 function compute_orbit_data{T<:GroupElem}(logger, name::String, G::Nemo.Group, S::Vector{T}, AutS; radius=2)
