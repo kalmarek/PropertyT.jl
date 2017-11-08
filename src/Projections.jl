@@ -142,7 +142,7 @@ function rankOne_projections(BN::WreathProduct, T::Type=Rational{Int})
 
    N = BN.P.n
    # projections as elements of the group rings RSₙ
-   SNprojs_nc = [rankOne_projections(PermutationGroup(i), T) for i in 1:N]
+   SNprojs_nc = [rankOne_projections(PermutationGroup(i)) for i in 1:N]
 
    # embedding into group ring of BN
    RBN = GroupRing(BN)
