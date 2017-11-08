@@ -180,22 +180,22 @@ function compute_orbit_data{T<:GroupElem}(logger, name::String, G::Nemo.Group, S
    # TODO: Fix that by multiple dispatch?
    Id = (isa(G, Nemo.Ring) ? one(G) : G())
 
-   @logtime logger E4, sizes = Groups.generate_balls(S, Id, radius=2*radius);
+   @logtime logger E_2R, sizes = Groups.generate_balls(S, Id, radius=2*radius);
    info(logger, "Balls of sizes $sizes.")
    info(logger, "Reverse dict")
-   @logtime logger E_dict = GroupRings.reverse_dict(E4)
+   @logtime logger E_rdict = GroupRings.reverse_dict(E_2R)
 
    info(logger, "Product matrix")
-   @logtime logger pm = GroupRings.create_pm(E4, E_dict, sizes[radius], twisted=true)
-   RG = GroupRing(G, E4, E_dict, pm)
+   @logtime logger pm = GroupRings.create_pm(E_2R, E_rdict, sizes[radius], twisted=true)
+   RG = GroupRing(G, E_2R, E_rdict, pm)
    Δ = PropertyT.splaplacian(RG, S)
    @assert GroupRings.augmentation(Δ) == 0
    save(joinpath(name, "delta.jld"), "Δ", Δ.coeffs)
    save(joinpath(name, "pm.jld"), "pm", pm)
 
    info(logger, "Decomposing E into orbits of $(AutS)")
-   @logtime logger orbs = orbit_decomposition(AutS, E4, E_dict)
-   @assert sum(length(o) for o in orbs) == length(E4)
+   @logtime logger orbs = orbit_decomposition(AutS, E_2R, E_rdict)
+   @assert sum(length(o) for o in orbs) == length(E_2R)
    save(joinpath(name, "orbits.jld"), "orbits", orbs)
 
    info(logger, "Action matrices")
