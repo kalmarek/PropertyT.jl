@@ -110,7 +110,7 @@ function rankOne_projection{S}(chi::PropertyT.PermCharacter, idems::Vector{Group
    throw("Couldn't find rank-one projection for $chi")
 end
 
-function minimalprojections(G::PermutationGroup, T::Type=Rational{Int})
+function rankOne_projections(G::PermutationGroup, T::Type=Rational{Int})
    if G.n == 1
       return [one(GroupRing(G), T)]
    elseif G.n < 8
@@ -134,9 +134,6 @@ function minimalprojections(G::PermutationGroup, T::Type=Rational{Int})
    return min_projs
 end
 
-function rankOne_projections(G::PermutationGroup, T::Type=Rational{Int})
-   return minimalprojections(G, T)
-end
 
 function rankOne_projections(BN::WreathProduct, T::Type=Rational{Int})
 
