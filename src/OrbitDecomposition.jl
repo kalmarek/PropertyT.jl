@@ -131,9 +131,9 @@ function perm_reps(G::Group, E::Vector, E_rdict=GroupRings.reverse_dict(E))
    return Dict(elts[i]=>preps[i] for i in 1:l)
 end
 
-function perm_reps(S::Vector, AutS::Group, radius::Int)
+function perm_reps(S::Vector, autS::Group, radius::Int)
    E, _ = Groups.generate_balls(S, radius=radius)
-   return perm_reps(AutS, E)
+   return perm_reps(autS, E)
 end
 
 function reconstruct_sol{T<:GroupElem, S<:Nemo.perm}(preps::Dict{T, S},
@@ -171,7 +171,7 @@ function orthSVD{T}(M::AbstractMatrix{T})
    return fact[:U][:,1:M_rank]
 end
 
-function compute_orbit_data{T<:GroupElem}(logger, name::String, G::Nemo.Group, S::Vector{T}, AutS; radius=2)
+function compute_orbit_data{T<:GroupElem}(logger, name::String, G::Nemo.Group, S::Vector{T}, autS::Nemo.Group; radius=2)
    isdir(name) || mkdir(name)
 
    info(logger, "Generating ball of radius $(2*radius)")
@@ -192,27 +192,27 @@ function compute_orbit_data{T<:GroupElem}(logger, name::String, G::Nemo.Group, S
    save(joinpath(name, "delta.jld"), "Δ", Δ.coeffs)
    save(joinpath(name, "pm.jld"), "pm", pm)
 
-   info(logger, "Decomposing E into orbits of $(AutS)")
-   @logtime logger orbs = orbit_decomposition(AutS, E_2R, E_rdict)
+   info(logger, "Decomposing E into orbits of $(autS)")
+   @logtime logger orbs = orbit_decomposition(autS, E_2R, E_rdict)
    @assert sum(length(o) for o in orbs) == length(E_2R)
    save(joinpath(name, "orbits.jld"), "orbits", orbs)
 
    info(logger, "Action matrices")
-   @logtime logger reps = perm_reps(AutS, E_2R[1:sizes[radius]], E_rdict)
+   @logtime logger reps = perm_reps(autS, E_2R[1:sizes[radius]], E_rdict)
    save_preps(joinpath(name, "preps.jld"), reps)
    reps = matrix_reps(reps)
 
    info(logger, "Projections")
-   @logtime logger AutS_mps = rankOne_projections(AutS);
+   @logtime logger autS_mps = rankOne_projections(autS);
 
-   @logtime logger π_E_projections = [Cstar_repr(p, reps) for p in AutS_mps]
+   @logtime logger π_E_projections = [Cstar_repr(p, reps) for p in autS_mps]
 
    info(logger, "Uπs...")
    @logtime logger Uπs = orthSVD.(π_E_projections)
 
    multiplicities = size.(Uπs,2)
    info(logger, "multiplicities = $multiplicities")
-   dimensions = [Int(p[AutS()]*Int(order(AutS))) for p in AutS_mps];
+   dimensions = [Int(p[autS()]*Int(order(autS))) for p in autS_mps];
    info(logger, "dimensions = $dimensions")
    @assert dot(multiplicities, dimensions) == sizes[radius]
 

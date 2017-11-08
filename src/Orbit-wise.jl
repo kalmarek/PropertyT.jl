@@ -8,7 +8,7 @@ immutable Settings
    N::Int
    G::Group
    S::Vector
-   AutS::Group
+   autS::Group
    radius::Int
    solver::SCSSolver
    upper_bound::Float64
@@ -106,7 +106,7 @@ function init_orbit_data(logger, sett::Settings; radius=2)
    files_exists = ex.(["delta.jld", "pm.jld", "U_pis.jld", "orbits.jld", "preps.jld"])
 
    if !all(files_exists)
-      compute_orbit_data(logger, prepath(sett), sett.G, sett.S, sett.AutS, radius=radius)
+      compute_orbit_data(logger, prepath(sett), sett.G, sett.S, sett.autS, radius=radius)
    end
 
    return 0
@@ -204,7 +204,7 @@ function λandP(m::JuMP.Model, data::OrbitData, sett::Settings)
 
    info(logger, "Reconstructing P...")
 
-   preps = load_preps(joinpath(prepath(sett), "preps.jld"), sett.AutS)
+   preps = load_preps(joinpath(prepath(sett), "preps.jld"), sett.autS)
 
    @logtime logger recP = reconstruct_sol(preps, data.Us, Ps, data.dims)
 
