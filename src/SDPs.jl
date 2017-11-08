@@ -1,13 +1,13 @@
 using JuMP
 import MathProgBase: AbstractMathProgSolver
 
-function constraints_from_pm(pm, total_length=maximum(pm))
+function constraints(pm, total_length=maximum(pm))
     n = size(pm,1)
-    constraints = [Array{Int,1}[] for x in 1:total_length]
+    constraints = [Vector{Tuple{Int,Int}}() for _ in 1:total_length]
     for j in 1:n
         for i in 1:n
             idx = pm[i,j]
-            push!(constraints[idx], [i,j])
+            push!(constraints[idx], (i,j))
         end
     end
     return constraints

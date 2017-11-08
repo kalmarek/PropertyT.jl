@@ -88,7 +88,7 @@ function ΔandSDPconstraints(prefix::String, G::Group)
     pm_fname, Δ_fname = pmΔfilenames(prefix)
 
     product_matrix = load(pm_fname, "pm")
-    sdp_constraints = constraints_from_pm(product_matrix)
+    sdp_constraints = constraints(product_matrix)
 
     RG = GroupRing(G, product_matrix)
     Δ = GroupRingElem(load(Δ_fname, "Δ")[:, 1], RG)
@@ -107,15 +107,15 @@ end
 
 function ΔandSDPconstraints{T<:GroupElem}(S::Vector{T}, Id::T; radius::Int=2)
     info(logger, "Generating balls of sizes $sizes")
-    @logtime logger B, sizes = Groups.generate_balls(S, Id, radius=2*radius)
+    @logtime logger E_R, sizes = Groups.generate_balls(S, Id, radius=2*radius)
 
     info(logger, "Creating product matrix...")
-    @logtime logger pm = GroupRings.create_pm(B, GroupRings.reverse_dict(B), sizes[radius]; twisted=true)
+    @logtime logger pm = GroupRings.create_pm(E_R, GroupRings.reverse_dict(E_R), sizes[radius]; twisted=true)
 
     info(logger, "Creating sdp_constratints...")
-    @logtime logger sdp_constraints = PropertyT.constraints_from_pm(pm)
+    @logtime logger sdp_constraints = PropertyT.constraints(pm)
 
-    RG = GroupRing(parent(Id), B, pm)
+    RG = GroupRing(parent(Id), E_R, pm)
 
     Δ = splaplacian(RG, S)
     return Δ, sdp_constraints

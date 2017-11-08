@@ -79,14 +79,14 @@ function orbit_spvector(vect::AbstractVector, orbits)
     return orb_vector
 end
 
-function orbit_constraint(constraints::Vector{Vector{Vector{Int64}}}, n)
+function orbit_constraint(constraints::Vector{Vector{Tuple{Int,Int}}}, n)
     result = spzeros(n,n)
     for cnstr in constraints
         for p in cnstr
-            result[p[2], p[1]] += 1.0
+            result[p[2], p[1]] += 1.0/length(constraints)
         end
     end
-    return 1/length(constraints)*result
+    return result
 end
 
 ###############################################################################
