@@ -225,7 +225,9 @@ function compute_orbit_data{T<:GroupElem}(logger, name::String, G::Nemo.Group, S
    save(joinpath(name, "orbits.jld"), "orbits", orbs)
 
    info(logger, "Action matrices")
-   @logtime logger AutS_mreps = matrix_reps(AutS, E4[1:sizes[radius]], E_dict)
+   @logtime logger reps = perm_reps(AutS, E_2R[1:sizes[radius]], E_rdict)
+   save_preps(joinpath(name, "preps.jld"), reps)
+   reps = matrix_reps(reps)
 
    info(logger, "Projections")
    @logtime logger AutS_mps = rankOne_projections(AutS);

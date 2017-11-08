@@ -103,7 +103,7 @@ function init_orbit_data(logger, sett::Settings; radius=2)
 
    ex(fname) = isfile(joinpath(prepath(sett), fname))
 
-   files_exists = ex.(["delta.jld", "pm.jld", "U_pis.jld", "orbits.jld"])
+   files_exists = ex.(["delta.jld", "pm.jld", "U_pis.jld", "orbits.jld", "preps.jld"])
 
    if !all(files_exists)
       compute_orbit_data(logger, prepath(sett), sett.G, sett.S, sett.AutS, radius=radius)
@@ -204,13 +204,25 @@ function λandP(m::JuMP.Model, data::OrbitData, sett::Settings)
 
    info(logger, "Reconstructing P...")
 
-   @logtime logger preps = perm_reps(sett.G, sett.S, sett.AutS, sett.radius)
+   preps = load_preps(joinpath(prepath(sett), "preps.jld"), sett.AutS)
 
    @logtime logger recP = reconstruct_sol(preps, data.Us, Ps, data.dims)
 
    fname = PropertyT.λSDPfilenames(fullpath(sett))[2]
    save(fname, "origP", Ps, "P", recP)
    return λ, recP
+end
+
+function load_preps(fname::String, G::Nemo.Group)
+    lded_preps = load(fname, "perms_d")
+    permG = PermutationGroup(length(first(lded_preps)))
+    @assert length(lded_preps) == order(G)
+    return Dict(k=>permG(v) for (k,v) in zip(elements(G), lded_preps))
+end
+
+function save_preps(fname::String, preps)
+    autS = parent(first(keys(preps)))
+    JLD.save(fname, "perms_d", [preps[elt].d for elt in elements(autS)])
 end
 
 function check_property_T(sett::Settings)
