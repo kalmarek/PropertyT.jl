@@ -20,13 +20,13 @@ suffix(s::Settings) = "$(s.upper_bound)"
 prepath(s::Settings) = prefix(s)
 fullpath(s::Settings) = joinpath(prefix(s), suffix(s))
 
-immutable OrbitData
+immutable OrbitData{T<:AbstractArray{Float64, 2}, LapType <:AbstractVector{Float64}}
    name::String
-   Us::Vector
+   Us::Vector{T}
    Ps::Vector{Array{JuMP.Variable,2}}
-   cnstr::Vector
-   laplacian::Vector
-   laplacianSq::Vector
+   cnstr::Vector{SparseMatrixCSC{Float64, Int}}
+   laplacian::LapType
+   laplacianSq::LapType
    dims::Vector{Int}
 end
 
