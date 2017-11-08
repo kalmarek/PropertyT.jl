@@ -38,7 +38,8 @@ function OrbitData(sett::Settings)
    splap² = GroupRings.mul!(splap², splap, splap, pm);
 
    # Uπs = load(joinpath(name, "U_pis.jld"), "Uπs");
-   Uπs = load(joinpath(prepath(sett), "U_pis.jld"), "spUπs");
+   Uπs = load(joinpath(prepath(sett), "U_pis.jld"), "Uπs")
+   Uπs = sparsify!.(Uπs, sett.tol, check=true, verbose=true)
    #dimensions of the corresponding πs:
    dims = load(joinpath(prepath(sett), "U_pis.jld"), "dims")
 
