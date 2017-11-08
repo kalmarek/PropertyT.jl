@@ -206,7 +206,7 @@ function compute_orbit_data{T<:GroupElem}(logger, name::String, G::Nemo.Group, S
    info(logger, "Projections")
    @logtime logger AutS_mps = rankOne_projections(AutS);
 
-   @logtime logger π_E_projections = [Cstar_repr(p, AutS_mreps) for p in AutS_mps]
+   @logtime logger π_E_projections = [Cstar_repr(p, reps) for p in AutS_mps]
 
    info(logger, "Uπs...")
    @logtime logger Uπs = orthSVD.(π_E_projections)
