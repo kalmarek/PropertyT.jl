@@ -94,10 +94,10 @@ function sparsify!{T}(M::AbstractArray{T}, eps=eps(T); check=false, verbose=fals
       info(logger, "Sparsified density:", rpad(densM, 20), " → ", rpad(dens(M),20))
    end
 
-   return M
+   return sparse(M)
 end
 
-sparsify{T}(U::AbstractArray{T}, tol=eps(T)) = sparsify!(deepcopy(U), tol)
+sparsify{T}(U::AbstractArray{T}, tol=eps(T); check=true, verbose=false) = sparsify!(deepcopy(U), tol, check=check, verbose=verbose)
 
 function init_orbit_data(logger, sett::Settings; radius=2)
 
