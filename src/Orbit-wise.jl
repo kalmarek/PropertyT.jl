@@ -43,7 +43,7 @@ function OrbitData(sett::Settings)
    #dimensions of the corresponding πs:
    dims = load(joinpath(prepath(sett), "U_pis.jld"), "dims")
 
-   m, P = init_model(Uπs);
+   m, P = init_model(size(Uπs,1), [size(U,2) for U in Uπs]);
 
    orbits = load(joinpath(prepath(sett), "orbits.jld"), "orbits");
    n = size(Uπs[1],1)
@@ -160,13 +160,11 @@ function addconstraints!(m::JuMP.Model, data::OrbitData, l::Int=length(data.lapl
    println("")
 end
 
-function init_model(Uπs)
+function init_model(n, sizes)
    m = JuMP.Model();
-   l = size(Uπs,1)
-   P = Vector{Array{JuMP.Variable,2}}(l)
+   P = Vector{Array{JuMP.Variable,2}}(n)
 
-   for k in 1:l
-      s = size(Uπs[k],2)
+   for (k,s) in enumerate(sizes)
       P[k] = JuMP.@variable(m, [i=1:s, j=1:s])
       JuMP.@SDconstraint(m, P[k] >= 0.0)
    end
