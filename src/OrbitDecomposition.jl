@@ -187,15 +187,7 @@ function reconstruct_sol{T<:GroupElem, S<:Nemo.perm}(preps::Dict{T, S},
 end
 
 function Cstar_repr{T}(x::GroupRingElem{T}, mreps::Dict)
-   res = spzeros(size(mreps[first(keys(mreps))])...)
-
-   for g in parent(x).basis
-      if x[g] != zero(T)
-         res .+= Float64(x[g]).*mreps[g]
-      end
-   end
-
-   return res
+   return sum(x[g].*mreps[g] for g in parent(x).basis if x[g] != zero(T))
 end
 
 function orthSVD(M::AbstractMatrix)
