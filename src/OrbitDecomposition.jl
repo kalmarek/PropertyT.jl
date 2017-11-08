@@ -195,6 +195,7 @@ function compute_orbit_data{T<:GroupElem}(logger, name::String, G::Nemo.Group, S
    info(logger, "Decomposing E into orbits of $(autS)")
    @logtime logger orbs = orbit_decomposition(autS, E_2R, E_rdict)
    @assert sum(length(o) for o in orbs) == length(E_2R)
+   info(logger, "E consists of $(length(orbs)) orbits!")
    save(joinpath(name, "orbits.jld"), "orbits", orbs)
 
    info(logger, "Action matrices")
