@@ -3,14 +3,14 @@ using SCS
 
 export Settings, OrbitData
 
-immutable Settings
+immutable Settings{T<:AbstractMathProgSolver}
    name::String
    N::Int
    G::Group
    S::Vector
    autS::Group
    radius::Int
-   solver::SCSSolver
+   solver::T
    upper_bound::Float64
    tol::Float64
 end
