@@ -26,36 +26,69 @@ function setup_logging(name::String)
    return logger
 end
 
+macro logtime(logger, ex)
+    quote
+        local stats = Base.gc_num()
+        local elapsedtime = Base.time_ns()
+        local val = $(esc(ex))
+        elapsedtime = Base.time_ns() - elapsedtime
+        local diff = Base.GC_Diff(Base.gc_num(), stats)
+        local ts = time_string(elapsedtime, diff.allocd, diff.total_time,
+                   Base.gc_alloc_count(diff))
+        esc(info(logger, ts))
+        val
+    end
+end
+
+function time_string(elapsedtime, bytes, gctime, allocs)
+    str = @sprintf("%10.6f seconds", elapsedtime/1e9)
+    if bytes != 0 || allocs != 0
+        bytes, mb = Base.prettyprint_getunits(bytes, length(Base._mem_units), Int64(1024))
+        allocs, ma = Base.prettyprint_getunits(allocs, length(Base._cnt_units), Int64(1000))
+        if ma == 1
+            str*= @sprintf(" (%d%s allocation%s: ", allocs, Base._cnt_units[ma], allocs==1 ? "" : "s")
+        else
+            str*= @sprintf(" (%.2f%s allocations: ", allocs, Base._cnt_units[ma])
+        end
+        if mb == 1
+            str*= @sprintf("%d %s%s", bytes, Base._mem_units[mb], bytes==1 ? "" : "s")
+        else
+            str*= @sprintf("%.3f %s", bytes, Base._mem_units[mb])
+        end
+        if gctime > 0
+            str*= @sprintf(", %.2f%% gc time", 100*gctime/elapsedtime)
+        end
+        str*=")"
+    elseif gctime > 0
+        str*= @sprintf(", %.2f%% gc time", 100*gctime/elapsedtime)
+    end
+    return str
+end
+
 function exists(fname::String)
    return isfile(fname) || islink(fname)
 end
 
-function pmΔfilenames(name::String)
-    if !isdir(name)
-        mkdir(name)
-    end
-    prefix = name
-    pm_filename = joinpath(prefix, "pm.jld")
-    Δ_coeff_filename = joinpath(prefix, "delta.jld")
-    return pm_filename, Δ_coeff_filename
+function pmΔfilenames(prefix::String)
+   isdir(prefix) || mkdir(prefix)
+   pm_filename = joinpath(prefix, "pm.jld")
+   Δ_coeff_filename = joinpath(prefix, "delta.jld")
+   return pm_filename, Δ_coeff_filename
 end
 
-function λSDPfilenames(name::String)
-    if !isdir(name)
-        mkdir(name)
-    end
-    prefix = name
-    λ_filename = joinpath(prefix, "lambda.jld")
-    SDP_filename = joinpath(prefix, "SDPmatrix.jld")
-    return λ_filename, SDP_filename
+function λSDPfilenames(prefix::String)
+   isdir(prefix) || mkdir(prefix)
+   λ_filename = joinpath(prefix, "lambda.jld")
+   SDP_filename = joinpath(prefix, "SDPmatrix.jld")
+   return λ_filename, SDP_filename
 end
 
-function ΔandSDPconstraints(name::String, G::Group)
+function ΔandSDPconstraints(prefix::String, G::Group)
     info(logger, "Loading precomputed pm, Δ, sdp_constraints...")
-    pm_fname, Δ_fname = pmΔfilenames(name)
+    pm_fname, Δ_fname = pmΔfilenames(prefix)
 
     product_matrix = load(pm_fname, "pm")
-    sdp_constraints = constraints_from_pm(product_matrix)
+    sdp_constraints = constraints(product_matrix)
 
     RG = GroupRing(G, product_matrix)
     Δ = GroupRingElem(load(Δ_fname, "Δ")[:, 1], RG)
@@ -73,44 +106,19 @@ function ΔandSDPconstraints{T<:GroupElem}(name::String, S::Vector{T}, Id::T; ra
 end
 
 function ΔandSDPconstraints{T<:GroupElem}(S::Vector{T}, Id::T; radius::Int=2)
-    B, sizes = Groups.generate_balls(S, Id, radius=2*radius)
-    info(logger, "Generated balls of sizes $sizes")
+    info(logger, "Generating balls of sizes $sizes")
+    @logtime logger E_R, sizes = Groups.generate_balls(S, Id, radius=2*radius)
 
     info(logger, "Creating product matrix...")
-    t = @timed pm = GroupRings.create_pm(B, GroupRings.reverse_dict(B), sizes[radius]; twisted=true)
-    info(logger, timed_msg(t))
+    @logtime logger pm = GroupRings.create_pm(E_R, GroupRings.reverse_dict(E_R), sizes[radius]; twisted=true)
 
     info(logger, "Creating sdp_constratints...")
-    t = @timed sdp_constraints = PropertyT.constraints_from_pm(pm)
-    info(logger, timed_msg(t))
+    @logtime logger sdp_constraints = PropertyT.constraints(pm)
 
-    RG = GroupRing(parent(Id), B, pm)
+    RG = GroupRing(parent(Id), E_R, pm)
 
-    Δ = splaplacian(RG, S, Id)
+    Δ = splaplacian(RG, S)
     return Δ, sdp_constraints
-end
-
-macro logtime(logger, ex)
-    quote
-        local stats = Base.gc_num()
-        local elapsedtime = Base.time_ns()
-        local val = $(esc(ex))
-        elapsedtime = Base.time_ns() - elapsedtime
-        local diff = Base.GC_Diff(Base.gc_num(), stats)
-        local ts = time_string(elapsedtime, diff.allocd, diff.total_time,
-                   Base.gc_alloc_count(diff))
-        esc(warn($(esc(logger)), ts))
-        val
-    end
-end
-
-function timed_msg(t)
-    elapsed = t[2]
-    bytes_alloc = t[3]
-    gc_time = t[4]
-    gc_diff = t[5]
-
-    return "took: $elapsed s, allocated: $bytes_alloc bytes ($(gc_diff.poolalloc) allocations)."
 end
 
 function λandP(name::String)
@@ -148,7 +156,7 @@ function λandP(name::String, SDP_problem::JuMP.Model, varλ, varP)
        save(λ_fname, "λ", λ)
        save(P_fname, "P", P)
    else
-       throw(ErrorException("Solver $solver did not produce a valid solution!: λ = $λ"))
+       throw(ErrorException("Solver did not produce a valid solution!: λ = $λ"))
    end
    return λ, P
 
@@ -188,15 +196,10 @@ function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius)
     info(logger, "|R[G]|.pm = $(size(parent(Δ).pm))")
 
    if all(exists.(λSDPfilenames(name)))
-      # cached
       λ, P = λandP(name)
    else
-      # compute
       info(logger, "Creating SDP problem...")
-
-      t = @timed SDP_problem, λ, P = create_SDP_problem(Δ, sdp_constraints, upper_bound=upper_bound)
-      info(logger, timed_msg(t))
-
+      SDP_problem, λ, P = create_SDP_problem(Δ, sdp_constraints, upper_bound=upper_bound)
       JuMP.setsolver(SDP_problem, solver)
 
       λ, P = λandP(name, SDP_problem, λ, P)
@@ -208,13 +211,16 @@ function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius)
    info(logger, "minimum(P) = $(minimum(P))")
 
    if λ > 0
+      pm_fname, Δ_fname = pmΔfilenames(name)
+      RG = GroupRing(parent(first(S)), load(pm_fname, "pm"))
+      Δ = GroupRingElem(load(Δ_fname, "Δ")[:, 1], RG)
 
       isapprox(eigvals(P), abs(eigvals(P)), atol=tol) ||
          warn("The solution matrix doesn't seem to be positive definite!")
      #  @assert P == Symmetric(P)
-      Q = real(sqrtm(Symmetric(P)))
+      @logtime logger Q = real(sqrtm(Symmetric(P)))
 
-      sgap = check_distance_to_positive_cone(Δ, λ, Q, 2*radius, tol=tol)
+      sgap = distance_to_positive_cone(Δ, λ, Q, 2*radius)
       if isa(sgap, Interval)
          sgap = sgap.lo
       end

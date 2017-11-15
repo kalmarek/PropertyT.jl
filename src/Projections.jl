@@ -4,7 +4,7 @@
 #
 ###############################################################################
 
-abstract type AbstractCharacter <: Function end
+abstract type AbstractCharacter end
 
 struct PermCharacter <: AbstractCharacter
    p::Generic.Partition
@@ -19,6 +19,8 @@ function (chi::PermCharacter)(g::Generic.perm)
    p = Partition(Nemo.Generic.permtype(g))
    return Int(Nemo.Generic.MN1inner(R, p, 1, Nemo.Generic._charvalsTable))
 end
+
+Nemo.isone(p::GroupElem) = p == parent(p)()
 
 ## NOTE: this works only for Z/2!!!!
 function (chi::DirectProdCharacter)(g::DirectProductGroupElem)
@@ -47,18 +49,17 @@ end
 #
 ###############################################################################
 
-function central_projection(RG::GroupRing, chi::AbstractCharacter,
-    T::Type=Rational{Int})
-    result = RG(T)
-    result.coeffs = full(result.coeffs)
-    dim = chi(RG.group())
-    ord = Int(order(RG.group))
+function central_projection(RG::GroupRing, chi::AbstractCharacter, T::Type=Rational{Int})
+   result = RG(T)
+   result.coeffs = full(result.coeffs)
+   dim = chi(RG.group())
+   ord = Int(order(RG.group))
 
-    for g in RG.basis
-        result[g] = convert(T, (dim//ord)*chi(g))
-    end
+   for g in RG.basis
+      result[g] = convert(T, (dim//ord)*chi(g))
+   end
 
-    return result
+   return result
 end
 
 function idempotents(RG::GroupRing{Generic.PermGroup}, T::Type=Rational{Int})
@@ -90,11 +91,9 @@ function idempotents(RG::GroupRing{Generic.PermGroup}, T::Type=Rational{Int})
     return unique(idems)
 end
 
-function rankOne_projection(chi::PropertyT.PermCharacter, idems::Vector{S}) where {S<:GroupRingElem}
+function rankOne_projection(chi::PropertyT.PermCharacter, idems::Vector{T}) where {T<:GroupRingElem}
 
    RG = parent(first(idems))
-
-   T = eltype(first(idems))
 
    ids = [[one(RG, T)]; idems]
 
@@ -112,7 +111,7 @@ function rankOne_projection(chi::PropertyT.PermCharacter, idems::Vector{S}) wher
    throw("Couldn't find rank-one projection for $chi")
 end
 
-function minimalprojections(G::Generic.PermGroup, T::Type=Rational{Int})
+function rankOne_projections(G::Generic.PermGroup, T::Type=Rational{Int})
    if G.n == 1
       return [one(GroupRing(G), T)]
    elseif G.n < 8
@@ -128,7 +127,7 @@ function minimalprojections(G::Generic.PermGroup, T::Type=Rational{Int})
    chars = [PropertyT.PermCharacter(p) for p in parts]
    min_projs = Vector{eltype(RGidems)}(l)
 
-   Threads.@threads for i in 1:l
+   for i in 1:l
       chi = PropertyT.PermCharacter(parts[i])
       min_projs[i] = rankOne_projection(chi,RGidems)*central_projection(RG,chi)
    end
@@ -136,15 +135,11 @@ function minimalprojections(G::Generic.PermGroup, T::Type=Rational{Int})
    return min_projs
 end
 
-function rankOne_projections(G::Generic.PermGroup, T::Type=Rational{Int})
-   return minimalprojections(G, T)
-end
-
 function rankOne_projections(BN::WreathProduct, T::Type=Rational{Int})
 
    N = BN.P.n
    # projections as elements of the group rings RSₙ
-   SNprojs_nc = [rankOne_projections(PermutationGroup(i), T) for i in 1:N]
+   SNprojs_nc = [rankOne_projections(PermutationGroup(i)) for i in 1:N]
 
    # embedding into group ring of BN
    RBN = GroupRing(BN)
@@ -163,7 +158,7 @@ function rankOne_projections(BN::WreathProduct, T::Type=Rational{Int})
       last_emb = g->BN(Nemo.Generic.emb!(BN.P(), g, range[i+1:end]))
 
       Sk_first = [RBN(p, first_emb) for p in SNprojs_nc[i]]
-      Sk_last = [RBN(p, last_emb ) for p in SNprojs_nc[N-i]]
+      Sk_last = [RBN(p, last_emb) for p in SNprojs_nc[N-i]]
 
       append!(all_projs,
       [Qs[i]*p1*p2 for (p1,p2) in Base.product(Sk_first,Sk_last)])
@@ -187,18 +182,18 @@ doc"""
 > forming 'products' by adding `op` (which is `*` by default).
 """
 function products{T<:GroupElem}(X::AbstractVector{T}, Y::AbstractVector{T}, op=*)
-    result = Vector{T}()
-    seen = Set{T}()
-    for x in X
-        for y in Y
-            z = op(x,y)
-            if !in(z, seen)
-                push!(seen, z)
-                push!(result, z)
-            end
-        end
-    end
-    return result
+   result = Vector{T}()
+   seen = Set{T}()
+   for x in X
+      for y in Y
+         z = op(x,y)
+         if !in(z, seen)
+            push!(seen, z)
+            push!(result, z)
+         end
+      end
+   end
+   return result
 end
 
 doc"""

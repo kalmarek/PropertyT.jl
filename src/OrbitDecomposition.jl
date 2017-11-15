@@ -10,7 +10,7 @@ mutable struct FFEltsIter{T<:Generic.FinField}
     all::Int
     field::T
 
-    function FFEltsIter{T}(F::T) where {T} 
+    function FFEltsIter{T}(F::T) where {T}
         return new(Int(characteristic(F)^degree(F)), F)
     end
 end
@@ -79,89 +79,61 @@ function orbit_spvector(vect::AbstractVector, orbits)
     return orb_vector
 end
 
-function orbit_constraint(constraints::Vector{Vector{Vector{Int64}}}, n)
+function orbit_constraint(constraints::Vector{Vector{Tuple{Int,Int}}}, n)
     result = spzeros(n,n)
     for cnstr in constraints
         for p in cnstr
-            result[p[2], p[1]] += 1.0
+            result[p[2], p[1]] += 1.0/length(constraints)
         end
     end
-    return 1/length(constraints)*result
+    return result
 end
 
 ###############################################################################
 #
-#  Matrix- and C*-representations
+#  Matrix-, Permutation- and C*-representations
 #
 ###############################################################################
 
-function matrix_repr(g::GroupElem, E, E_dict)
-   rep_matrix = spzeros(Int, length(E), length(E))
+function matrix_repr(p::perm)
+    N = parent(p).n
+    return sparse(1:N, p.d, [1.0 for _ in 1:N])
+end
+
+function matrix_reps{T<:GroupElem}(preps::Dict{T,perm})
+    kk = collect(keys(preps))
+    mreps = Vector{SparseMatrixCSC{Float64, Int}}(length(kk))
+    Threads.@threads for i in 1:length(kk)
+        mreps[i] = matrix_repr(preps[kk[i]])
+    end
+    return Dict(kk[i] => mreps[i] for i in 1:length(kk))
+end
+
+function perm_repr(g::GroupElem, E::Vector, E_dict)
+   p = Vector{Int}(length(E))
    for (i,elt) in enumerate(E)
-      j = E_dict[g(elt)]
-      rep_matrix[i,j] = 1
+      p[i] = E_dict[g(elt)]
    end
-   return rep_matrix
+   return p
 end
 
-function matrix_reps{T<:GroupElem}(G::Group, S::Vector{T}, AutS::Group, radius::Int)
-   Id = (isa(G, Nemo.Ring) ? one(G) : G())
-   E2, _ = Groups.generate_balls(S, Id, radius=radius)
-   Edict = GroupRings.reverse_dict(E2)
-
-   elts = collect(elements(AutS))
-   l = length(elts)
-   mreps = Vector{SparseMatrixCSC{Int, Int}}(l)
-
-   Threads.@threads for i in 1:l
-      mreps[i] = PropertyT.matrix_repr(elts[i], E2, Edict)
-   end
-
-   mreps_dict = Dict(elts[i]=>mreps[i] for i in 1:l)
-
-   return mreps_dict
-end
-
-function matrix_reps(G::Group, E2, E_dict)
+function perm_reps(G::Group, E::Vector, E_rdict=GroupRings.reverse_dict(E))
    elts = collect(elements(G))
-   l = length(elts)
-   mreps = Vector{SparseMatrixCSC{Int, Int}}(l)
-
-   Threads.@threads for i in 1:l
-      mreps[i] = matrix_repr(elts[i], E2, E_dict)
-   end
-
-   return Dict(elts[i]=>mreps[i] for i in 1:l)
-end
-
-function perm_reps{T<:GroupElem}(G::Group, S::Vector{T}, AutS::Group, radius::Int)
-   Id = (isa(G, Nemo.Ring) ? one(G) : G())
-   E_R, _ = Groups.generate_balls(S, Id, radius=radius)
-   Edict = GroupRings.reverse_dict(E_R)
-
-   elts = collect(elements(AutS))
    l = length(elts)
    preps = Vector{Generic.perm}(l)
 
-   G = Nemo.PermutationGroup(length(E_R))
+   permG = Nemo.PermutationGroup(length(E))
 
    Threads.@threads for i in 1:l
-      preps[i] = G(perm_repr(elts[i], E_R, Edict))
+      preps[i] = permG(PropertyT.perm_repr(elts[i], E, E_rdict))
    end
 
-   preps_dict = Dict(elts[i]=>preps[i] for i in 1:l)
-
-   return preps_dict
+   return Dict(elts[i]=>preps[i] for i in 1:l)
 end
 
-function perm_repr(g::GroupElem, E, E_dict)
-   l = length(E)
-   p = Vector{Int}(l)
-   for (i,elt) in enumerate(E)
-      j = E_dict[g(elt)]
-      p[i] = j
-   end
-   return p
+function perm_reps(S::Vector, autS::Group, radius::Int)
+   E, _ = Groups.generate_balls(S, radius=radius)
+   return perm_reps(autS, E)
 end
 
 function reconstruct_sol{T<:GroupElem}(preps::Dict{T, Generic.perm},
@@ -189,22 +161,17 @@ function reconstruct_sol{T<:GroupElem}(preps::Dict{T, Generic.perm},
 end
 
 function Cstar_repr(x::GroupRingElem{T}, mreps::Dict) where {T}
-   nzindx = [i for i in eachindex(x.coeffs) if x[i] != zero(T)]
-   RG = parent(x)
-   res = sum(Float64(x[i]).*mreps[RG.basis[i]] for i in nzindx)
-
-   return res
+   return sum(x[i].*mreps[parent(x).basis[i]] for i in findn(x.coeffs))
 end
 
-function orthSVD(M::AbstractMatrix)
-    M = full(M)
-    fact = svdfact(M)
-    singv = fact[:S]
-    M_rank = sum(singv .> maximum(size(M))*eps(eltype(singv)))
-    return fact[:U][:,1:M_rank]
+function orthSVD{T}(M::AbstractMatrix{T})
+   M = full(M)
+   fact = svdfact(M)
+   M_rank = sum(fact[:S] .> maximum(size(M))*eps(T))
+   return fact[:U][:,1:M_rank]
 end
 
-function compute_orbit_data{T<:GroupElem}(logger, name::String, G::Nemo.Group, S::Vector{T}, AutS; radius=2)
+function compute_orbit_data{T<:GroupElem}(logger, name::String, G::Nemo.Group, S::Vector{T}, autS::Nemo.Group; radius=2)
    isdir(name) || mkdir(name)
 
    info(logger, "Generating ball of radius $(2*radius)")
@@ -212,44 +179,46 @@ function compute_orbit_data{T<:GroupElem}(logger, name::String, G::Nemo.Group, S
    # TODO: Fix that by multiple dispatch?
    Id = (isa(G, Nemo.Ring) ? one(G) : G())
 
-   @time E4, sizes = Groups.generate_balls(S, Id, radius=2*radius);
+   @logtime logger E_2R, sizes = Groups.generate_balls(S, Id, radius=2*radius);
    info(logger, "Balls of sizes $sizes.")
    info(logger, "Reverse dict")
-   @time E_dict = GroupRings.reverse_dict(E4)
+   @logtime logger E_rdict = GroupRings.reverse_dict(E_2R)
 
    info(logger, "Product matrix")
-   @time pm = GroupRings.create_pm(E4, E_dict, sizes[radius], twisted=true)
-   RG = GroupRing(G, E4, E_dict, pm)
+   @logtime logger pm = GroupRings.create_pm(E_2R, E_rdict, sizes[radius], twisted=true)
+   RG = GroupRing(G, E_2R, E_rdict, pm)
    Δ = PropertyT.splaplacian(RG, S)
    @assert GroupRings.augmentation(Δ) == 0
    save(joinpath(name, "delta.jld"), "Δ", Δ.coeffs)
    save(joinpath(name, "pm.jld"), "pm", pm)
 
-   info(logger, "Decomposing E into orbits of $(AutS)")
-   @time orbs = orbit_decomposition(AutS, E4, E_dict)
-   @assert sum(length(o) for o in orbs) == length(E4)
+   info(logger, "Decomposing E into orbits of $(autS)")
+   @logtime logger orbs = orbit_decomposition(autS, E_2R, E_rdict)
+   @assert sum(length(o) for o in orbs) == length(E_2R)
+   info(logger, "E consists of $(length(orbs)) orbits!")
    save(joinpath(name, "orbits.jld"), "orbits", orbs)
 
    info(logger, "Action matrices")
-   @time AutS_mreps = matrix_reps(AutS, E4[1:sizes[radius]], E_dict)
+   @logtime logger reps = perm_reps(autS, E_2R[1:sizes[radius]], E_rdict)
+   save_preps(joinpath(name, "preps.jld"), reps)
+   reps = matrix_reps(reps)
 
    info(logger, "Projections")
-   @time AutS_mps = rankOne_projections(AutS);
+   @logtime logger autS_mps = rankOne_projections(autS);
 
-   @time π_E_projections = [Cstar_repr(p, AutS_mreps) for p in AutS_mps]
+   @logtime logger π_E_projections = [Cstar_repr(p, reps) for p in autS_mps]
 
    info(logger, "Uπs...")
-   @time Uπs = orthSVD.(π_E_projections)
+   @logtime logger Uπs = orthSVD.(π_E_projections)
 
    multiplicities = size.(Uπs,2)
    info(logger, "multiplicities = $multiplicities")
-   dimensions = [Int(p[AutS()]*Int(order(AutS))) for p in AutS_mps];
+   dimensions = [Int(p[autS()]*Int(order(autS))) for p in autS_mps];
    info(logger, "dimensions = $dimensions")
    @assert dot(multiplicities, dimensions) == sizes[radius]
 
    save(joinpath(name, "U_pis.jld"),
          "Uπs", Uπs,
-         "spUπs", sparsify!.(deepcopy(Uπs), check=true, verbose=true),
          "dims", dimensions)
    return 0
 end

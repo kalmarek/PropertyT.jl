@@ -8,44 +8,50 @@ immutable Settings
    N::Int
    G::Group
    S::Vector
-   AutS::Group
+   autS::Group
    radius::Int
    solver::SCSSolver
    upper_bound::Float64
    tol::Float64
 end
 
-immutable OrbitData
+prefix(s::Settings) = s.name
+suffix(s::Settings) = "$(s.upper_bound)"
+prepath(s::Settings) = prefix(s)
+fullpath(s::Settings) = joinpath(prefix(s), suffix(s))
+
+immutable OrbitData{T<:AbstractArray{Float64, 2}, LapType <:AbstractVector{Float64}}
    name::String
-   Us::Vector
+   Us::Vector{T}
    Ps::Vector{Array{JuMP.Variable,2}}
-   cnstr::Vector
-   laplacian::Vector
-   laplacianSq::Vector
+   cnstr::Vector{SparseMatrixCSC{Float64, Int}}
+   laplacian::LapType
+   laplacianSq::LapType
    dims::Vector{Int}
 end
 
-function OrbitData(name::String)
-   splap = load(joinpath(name, "delta.jld"), "Δ");
-   pm = load(joinpath(name, "pm.jld"), "pm");
-   cnstr = PropertyT.constraints_from_pm(pm);
+function OrbitData(sett::Settings)
+   splap = load(joinpath(prepath(sett), "delta.jld"), "Δ");
+   pm = load(joinpath(prepath(sett), "pm.jld"), "pm");
+   cnstr = PropertyT.constraints(pm);
    splap² = similar(splap)
    splap² = GroupRings.mul!(splap², splap, splap, pm);
 
    # Uπs = load(joinpath(name, "U_pis.jld"), "Uπs");
-   Uπs = load(joinpath(name, "U_pis.jld"), "spUπs");
+   Uπs = load(joinpath(prepath(sett), "U_pis.jld"), "Uπs")
+   Uπs = sparsify!.(Uπs, sett.tol, check=true, verbose=true)
    #dimensions of the corresponding πs:
-   dims = load(joinpath(name, "U_pis.jld"), "dims")
+   dims = load(joinpath(prepath(sett), "U_pis.jld"), "dims")
 
-   m, P = init_model(Uπs);
+   m, P = init_model(size(Uπs,1), [size(U,2) for U in Uπs]);
 
-   orbits = load(joinpath(name, "orbits.jld"), "orbits");
+   orbits = load(joinpath(prepath(sett), "orbits.jld"), "orbits");
    n = size(Uπs[1],1)
    orb_spcnstrm = [orbit_constraint(cnstr[collect(orb)], n) for orb in orbits]
    orb_splap = orbit_spvector(splap, orbits)
    orb_splap² = orbit_spvector(splap², orbits)
 
-   orbData = OrbitData(name, Uπs, P, orb_spcnstrm, orb_splap, orb_splap², dims);
+   orbData = OrbitData(fullpath(sett), Uπs, P, orb_spcnstrm, orb_splap, orb_splap², dims);
 
    # orbData = OrbitData(name, Uπs, P, orb_spcnstrm, splap, splap², dims);
 
@@ -89,19 +95,19 @@ function sparsify!{T}(M::AbstractArray{T}, eps=eps(T); check=false, verbose=fals
       info(logger, "Sparsified density:", rpad(densM, 20), " → ", rpad(dens(M),20))
    end
 
-   return M
+   return sparse(M)
 end
 
-sparsify{T}(U::AbstractArray{T}, tol=eps(T)) = sparsify!(deepcopy(U), tol)
+sparsify{T}(U::AbstractArray{T}, tol=eps(T); check=true, verbose=false) = sparsify!(deepcopy(U), tol, check=check, verbose=verbose)
 
 function init_orbit_data(logger, sett::Settings; radius=2)
 
-   ex(fname) = isfile(joinpath(sett.name, fname))
+   ex(fname) = isfile(joinpath(prepath(sett), fname))
 
-   files_exists = ex.(["delta.jld", "pm.jld", "U_pis.jld", "orbits.jld"])
+   files_exists = ex.(["delta.jld", "pm.jld", "U_pis.jld", "orbits.jld", "preps.jld"])
 
    if !all(files_exists)
-      compute_orbit_data(logger, sett.name, sett.G, sett.S, sett.AutS, radius=radius)
+      compute_orbit_data(logger, prepath(sett), sett.G, sett.S, sett.autS, radius=radius)
    end
 
    return 0
@@ -118,9 +124,9 @@ end
 A(data::OrbitData, π, t) = data.dims[π].*transform(data.Us[π], data.cnstr[t])
 
 function constrLHS(m::JuMP.Model, data::OrbitData, t)
-    l = endof(data.Us)
-    lhs = @expression(m, sum(vecdot(A(data, π, t), data.Ps[π]) for π in 1:l))
-    return lhs
+   l = endof(data.Us)
+   lhs = @expression(m, sum(vecdot(A(data, π, t), data.Ps[π]) for π in 1:l))
+   return lhs
 end
 
 function constrLHS(m::JuMP.Model, cnstr, Us, Ust, dims, vars, eps=100*eps(1.0))
@@ -154,36 +160,32 @@ function addconstraints!(m::JuMP.Model, data::OrbitData, l::Int=length(data.lapl
    println("")
 end
 
-function init_model(Uπs)
-    m = JuMP.Model();
-    l = size(Uπs,1)
-    P = Vector{Array{JuMP.Variable,2}}(l)
+function init_model(n, sizes)
+   m = JuMP.Model();
+   P = Vector{Array{JuMP.Variable,2}}(n)
 
-    for k in 1:l
-        s = size(Uπs[k],2)
-        P[k] = JuMP.@variable(m, [i=1:s, j=1:s])
-        JuMP.@SDconstraint(m, P[k] >= 0.0)
-    end
+   for (k,s) in enumerate(sizes)
+      P[k] = JuMP.@variable(m, [i=1:s, j=1:s])
+      JuMP.@SDconstraint(m, P[k] >= 0.0)
+   end
 
-    JuMP.@variable(m, λ >= 0.0)
-    JuMP.@objective(m, Max, λ)
-    return m, P
+   JuMP.@variable(m, λ >= 0.0)
+   JuMP.@objective(m, Max, λ)
+   return m, P
 end
 
-function create_SDP_problem(name::String; upper_bound=Inf)
+function create_SDP_problem(sett::Settings)
    info(logger, "Loading orbit data....")
-   t = @timed SDP_problem, orb_data = OrbitData(name);
-   info(logger, PropertyT.timed_msg(t))
+   @logtime logger SDP_problem, orb_data = OrbitData(sett);
 
-   if upper_bound < Inf
+   if sett.upper_bound < Inf
       λ = JuMP.getvariable(SDP_problem, :λ)
-      JuMP.@constraint(SDP_problem, λ <= upper_bound)
+      JuMP.@constraint(SDP_problem, λ <= sett.upper_bound)
    end
 
    t = length(orb_data.laplacian)
    info(logger, "Adding $t constraints ... ")
-   t = @timed addconstraints!(SDP_problem, orb_data)
-   info(logger, PropertyT.timed_msg(t))
+   @logtime logger addconstraints!(SDP_problem, orb_data)
 
    return SDP_problem, orb_data
 end
@@ -201,28 +203,36 @@ function λandP(m::JuMP.Model, data::OrbitData, sett::Settings)
 
    info(logger, "Reconstructing P...")
 
-   t = @timed preps = perm_reps(sett.G, sett.S, sett.AutS, sett.radius)
-   info(logger, PropertyT.timed_msg(t))
+   preps = load_preps(joinpath(prepath(sett), "preps.jld"), sett.autS)
 
-   t = @timed recP = reconstruct_sol(preps, data.Us, Ps, data.dims)
-   info(logger, PropertyT.timed_msg(t))
+   @logtime logger recP = reconstruct_sol(preps, data.Us, Ps, data.dims)
 
-   fname = PropertyT.λSDPfilenames(data.name)[2]
+   fname = PropertyT.λSDPfilenames(fullpath(sett))[2]
    save(fname, "origP", Ps, "P", recP)
    return λ, recP
+end
+
+function load_preps(fname::String, G::Nemo.Group)
+    lded_preps = load(fname, "perms_d")
+    permG = PermutationGroup(length(first(lded_preps)))
+    @assert length(lded_preps) == order(G)
+    return Dict(k=>permG(v) for (k,v) in zip(elements(G), lded_preps))
+end
+
+function save_preps(fname::String, preps)
+    autS = parent(first(keys(preps)))
+    JLD.save(fname, "perms_d", [preps[elt].d for elt in elements(autS)])
 end
 
 function check_property_T(sett::Settings)
 
    init_orbit_data(logger, sett, radius=sett.radius)
 
-   fnames = PropertyT.λSDPfilenames(sett.name)
-
-   if all(isfile.(fnames))
-      λ, P = PropertyT.λandP(sett.name)
+   if all(isfile.(λSDPfilenames(fullpath(sett))))
+      λ, P = PropertyT.λandP(fullpath(sett))
    else
       info(logger, "Creating SDP problem...")
-      SDP_problem, orb_data = create_SDP_problem(sett.name, upper_bound=sett.upper_bound)
+      SDP_problem, orb_data = create_SDP_problem(sett)
       JuMP.setsolver(SDP_problem, sett.solver)
 
       λ, P = λandP(SDP_problem, orb_data, sett)
@@ -234,17 +244,16 @@ function check_property_T(sett::Settings)
    info(logger, "minimum(P) = $(minimum(P))")
 
    if λ > 0
-      pm_fname = joinpath(sett.name, "pm.jld")
+      pm_fname, Δ_fname = pmΔfilenames(prepath(sett))
       RG = GroupRing(sett.G, load(pm_fname, "pm"))
-      Δ_fname = joinpath(sett.name, "delta.jld")
       Δ = GroupRingElem(load(Δ_fname, "Δ")[:, 1], RG)
 
       isapprox(eigvals(P), abs.(eigvals(P)), atol=sett.tol) ||
-          warn("The solution matrix doesn't seem to be positive definite!")
+         warn("The solution matrix doesn't seem to be positive definite!")
      #  @assert P == Symmetric(P)
-      Q = real(sqrtm(Symmetric(P)))
+      @logtime logger Q = real(sqrtm(Symmetric(P)))
 
-      sgap = PropertyT.check_distance_to_positive_cone(Δ, λ, Q, 2*sett.radius, tol=sett.tol, rational=false)
+      sgap = distance_to_positive_cone(Δ, λ, Q, 2*sett.radius)
       if isa(sgap, Interval)
            sgap = sgap.lo
       end

@@ -1,30 +1,30 @@
 using JuMP
 import MathProgBase: AbstractMathProgSolver
 
-function constraints_from_pm(pm, total_length=maximum(pm))
+function constraints(pm, total_length=maximum(pm))
     n = size(pm,1)
-    constraints = [Array{Int,1}[] for x in 1:total_length]
+    constraints = [Vector{Tuple{Int,Int}}() for _ in 1:total_length]
     for j in 1:n
         for i in 1:n
             idx = pm[i,j]
-            push!(constraints[idx], [i,j])
+            push!(constraints[idx], (i,j))
         end
     end
     return constraints
 end
 
-function splaplacian{TT<:Group}(RG::GroupRing{TT}, S, Id=RG.group(), T::Type=Float64)
+function splaplacian(RG::GroupRing, S, T::Type=Float64)
     result = RG(T)
-    result[Id] = T(length(S))
+    result[RG.group()] = T(length(S))
     for s in S
         result[s] -= one(T)
     end
     return result
 end
 
-function splaplacian{TT<:Ring}(RG::GroupRing{TT}, S, Id=one(RG.group), T::Type=Float64)
+function splaplacian{TT<:Ring}(RG::GroupRing{TT}, S, T::Type=Float64)
     result = RG(T)
-    result[Id] = T(length(S))
+    result[one(RG.group)] = T(length(S))
     for s in S
         result[s] -= one(T)
     end
@@ -61,8 +61,7 @@ function solve_SDP(SDP_problem)
     o = redirect_stdout(solver_logger.handlers["solver_log"].io)
     Base.Libc.flush_cstdio()
 
-    t = @timed solution_status = JuMP.solve(SDP_problem)
-    info(logger, timed_msg(t))
+    @logtime logger solution_status = JuMP.solve(SDP_problem)
     Base.Libc.flush_cstdio()
 
     redirect_stdout(o)
