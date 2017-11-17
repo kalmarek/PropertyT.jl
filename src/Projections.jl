@@ -91,19 +91,22 @@ function idempotents(RG::GroupRing{Generic.PermGroup}, T::Type=Rational{Int})
     return unique(idems)
 end
 
-function rankOne_projection(chi::PropertyT.PermCharacter, idems::Vector{T}) where {T<:GroupRingElem}
+function rankOne_projection(chi::PropertyT.PermCharacter,
+   idems::Vector{T}) where {T<:GroupRingElem}
 
    RG = parent(first(idems))
+   S = eltype(first(idems))
 
-   ids = [[one(RG, T)]; idems]
+   ids = [one(RG, S); idems]
+   zzz = zero(S)
 
    for (i,j,k) in Base.product(ids, ids, ids)
-      if chi(i) == zero(T) || chi(j) == zero(T) || chi(k) == zero(T)
+      if chi(i) == zzz || chi(j) == zzz || chi(k) == zzz
          continue
       end
       elt = i*j*k
       elt^2 == elt || continue
-      if chi(elt) == one(T)
+      if chi(elt) == one(S)
          return elt
          # return (i,j,k)
       end
