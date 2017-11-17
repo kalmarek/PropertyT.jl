@@ -4,7 +4,7 @@ using Nemo
 using Groups
 using GroupRings
 
-import Nemo: Group, GroupElem, Ring
+import Nemo: Group, GroupElem, Ring, Generic.perm
 
 using JLD
 using JuMP
