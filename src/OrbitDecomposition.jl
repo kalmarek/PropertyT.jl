@@ -136,7 +136,7 @@ function perm_reps(S::Vector, autS::Group, radius::Int)
    return perm_reps(autS, E)
 end
 
-function reconstruct_sol{T<:GroupElem, S<:Nemo.perm}(preps::Dict{T, S},
+function reconstruct_sol{T<:GroupElem, S<:perm}(preps::Dict{T, S},
    Us::Vector, Ps::Vector, dims::Vector)
 
    l = length(Us)
