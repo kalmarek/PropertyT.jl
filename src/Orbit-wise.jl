@@ -13,6 +13,7 @@ immutable Settings{T<:AbstractMathProgSolver}
    solver::T
    upper_bound::Float64
    tol::Float64
+   warmstart::Bool
 end
 
 prefix(s::Settings) = s.name
@@ -192,16 +193,16 @@ function create_SDP_problem(sett::Settings)
    return SDP_problem, orb_data
 end
 
-function λandP(m::JuMP.Model, data::OrbitData)
+function λandP(m::JuMP.Model, data::OrbitData, warmstart=true)
    varλ = m[:λ]
    varP = data.Ps
-   λ, Ps = PropertyT.λandP(data.name, m, varλ, varP)
+   λ, Ps = PropertyT.λandP(data.name, m, varλ, varP, warmstart)
    return λ, Ps
 end
 
 function λandP(m::JuMP.Model, data::OrbitData, sett::Settings)
    info(logger, "Solving SDP problem...")
-   λ, Ps = λandP(m, data)
+   λ, Ps = λandP(m, data, sett.warmstart)
 
    info(logger, "Reconstructing P...")
 
