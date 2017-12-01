@@ -165,14 +165,12 @@ function compute_λandP(m, varλ, varP; warmstart=nothing)
     P = nothing
     while λ == 0.0
         try
+            if warmstart != nothing
+                p_sol, d_sol, s = warmstart
+                MathProgBase.SolverInterface.setwarmstart!(m.internalModel, p_sol; dual_sol = d_sol, slack=s);
+            end
             solve_SDP(m)
-            λ = JuMP.getvalue(varλ)
-            P = JuMP.getvalue(varP)
-
-            p_sol = m.internalModel.primal_sol
-            d_sol = m.internalModel.dual_sol
-            s = m.internalModel.slack
-
+            λ = MathProgBase.getobjval(m.internalModel)
         catch y
             warn(solver_logger, y)
         end
