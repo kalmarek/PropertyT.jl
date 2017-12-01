@@ -3,14 +3,14 @@ using SCS
 
 export Settings, OrbitData
 
-immutable Settings
+immutable Settings{T<:AbstractMathProgSolver}
    name::String
    N::Int
    G::Group
    S::Vector
    autS::Group
    radius::Int
-   solver::SCSSolver
+   solver::T
    upper_bound::Float64
    tol::Float64
 end
@@ -37,11 +37,13 @@ function OrbitData(sett::Settings)
    splap² = similar(splap)
    splap² = GroupRings.mul!(splap², splap, splap, pm);
 
-   # Uπs = load(joinpath(name, "U_pis.jld"), "Uπs");
    Uπs = load(joinpath(prepath(sett), "U_pis.jld"), "Uπs")
+   nzros = [i for i in 1:length(Uπs) if size(Uπs[i],2) !=0]
+   Uπs = Uπs[nzros]
    Uπs = sparsify!.(Uπs, sett.tol, check=true, verbose=true)
+
    #dimensions of the corresponding πs:
-   dims = load(joinpath(prepath(sett), "U_pis.jld"), "dims")
+   dims = load(joinpath(prepath(sett), "U_pis.jld"), "dims")[nzros]
 
    m, P = init_model(size(Uπs,1), [size(U,2) for U in Uπs]);
 

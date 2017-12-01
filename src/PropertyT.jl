@@ -137,16 +137,12 @@ function λandP(name::String)
 end
 
 function λandP(name::String, SDP_problem::JuMP.Model, varλ, varP)
-   if exists(joinpath(name, "solver.log"))
-       rm(joinpath(name, "solver.log"))
-   end
-
    add_handler(solver_logger,
       DefaultHandler(joinpath(name, "solver_$(string(now())).log"),
       DefaultFormatter("{date}| {msg}")),
       "solver_log")
 
-   λ, P = compute_λandP(SDP_problem, varλ, varP)
+   λ, P, warmstart = compute_λandP(SDP_problem, varλ, varP)
 
    remove_handler(solver_logger, "solver_log")
 
@@ -155,6 +151,8 @@ function λandP(name::String, SDP_problem::JuMP.Model, varλ, varP)
    if λ > 0
        save(λ_fname, "λ", λ)
        save(P_fname, "P", P)
+       @show warmstart[1]
+       save(joinpath(name, "warmstart.jld"), "warmstart", warmstart)
    else
        throw(ErrorException("Solver did not produce a valid solution!: λ = $λ"))
    end
@@ -162,7 +160,7 @@ function λandP(name::String, SDP_problem::JuMP.Model, varλ, varP)
 
 end
 
-function compute_λandP(m, varλ, varP)
+function compute_λandP(m, varλ, varP; warmstart=nothing)
     λ = 0.0
     P = nothing
     while λ == 0.0
@@ -170,11 +168,16 @@ function compute_λandP(m, varλ, varP)
             solve_SDP(m)
             λ = JuMP.getvalue(varλ)
             P = JuMP.getvalue(varP)
+
+            p_sol = m.internalModel.primal_sol
+            d_sol = m.internalModel.dual_sol
+            s = m.internalModel.slack
+
         catch y
             warn(solver_logger, y)
         end
     end
-    return λ, P
+    return λ, P, (p_sol, d_sol, s)
 end
 
 Kazhdan_from_sgap(λ,N) = sqrt(2*λ/N)
