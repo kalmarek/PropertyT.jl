@@ -231,7 +231,7 @@ function check_property_T(sett::Settings)
 
    init_orbit_data(logger, sett, radius=sett.radius)
 
-   if all(isfile.(λSDPfilenames(fullpath(sett))))
+   if !sett.warmstart && all(isfile.(λSDPfilenames(fullpath(sett))))
       λ, P = PropertyT.λandP(fullpath(sett))
    else
       info(logger, "Creating SDP problem...")
