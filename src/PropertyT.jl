@@ -8,6 +8,7 @@ import Nemo: Group, GroupElem, Ring, Generic.perm
 
 using JLD
 using JuMP
+using MathProgBase
 
 using Memento
 
