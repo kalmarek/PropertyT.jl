@@ -137,10 +137,6 @@ function λandP(name::String)
 end
 
 function λandP(name::String, SDP_problem::JuMP.Model, varλ, varP)
-   if exists(joinpath(name, "solver.log"))
-       rm(joinpath(name, "solver.log"))
-   end
-
    add_handler(solver_logger,
       DefaultHandler(joinpath(name, "solver_$(string(now())).log"),
       DefaultFormatter("{date}| {msg}")),
