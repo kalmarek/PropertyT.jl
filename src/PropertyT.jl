@@ -164,8 +164,12 @@ end
 function compute_λandP(m, varλ, varP; warmstart=nothing)
     λ = 0.0
     P = nothing
+
+    traits = JuMP.ProblemTraits(m, relaxation=false)
+
     while λ == 0.0
         try
+            JuMP.build(m, traits=traits)
             if warmstart != nothing
                 p_sol, d_sol, s = warmstart
                 MathProgBase.SolverInterface.setwarmstart!(m.internalModel, p_sol; dual_sol = d_sol, slack=s);
