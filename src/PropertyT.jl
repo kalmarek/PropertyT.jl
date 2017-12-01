@@ -137,13 +137,18 @@ function λandP(name::String)
     return λ, P
 end
 
-function λandP(name::String, SDP_problem::JuMP.Model, varλ, varP)
+function λandP(name::String, SDP_problem::JuMP.Model, varλ, varP, warmstart=false)
    add_handler(solver_logger,
       DefaultHandler(joinpath(name, "solver_$(string(now())).log"),
       DefaultFormatter("{date}| {msg}")),
       "solver_log")
+   if warmstart && isfile(joinpath(name, "warmstart.jld"))
+      ws = load(joinpath(name, "warmstart.jld"), "warmstart")
+   else
+      ws = nothing
+   end
 
-   λ, P, warmstart = compute_λandP(SDP_problem, varλ, varP)
+   λ, P, warmstart = compute_λandP(SDP_problem, varλ, varP, warmstart=ws)
 
    remove_handler(solver_logger, "solver_log")
 
@@ -152,7 +157,6 @@ function λandP(name::String, SDP_problem::JuMP.Model, varλ, varP)
    if λ > 0
        save(λ_fname, "λ", λ)
        save(P_fname, "P", P)
-       @show warmstart[1]
        save(joinpath(name, "warmstart.jld"), "warmstart", warmstart)
    else
        throw(ErrorException("Solver did not produce a valid solution!: λ = $λ"))
