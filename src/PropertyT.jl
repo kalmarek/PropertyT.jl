@@ -180,7 +180,13 @@ function compute_λandP(m, varλ, varP; warmstart=nothing)
             warn(solver_logger, y)
         end
     end
-    return λ, P, (p_sol, d_sol, s)
+
+    warmstart = (m.internalModel.primal_sol, m.internalModel.dual_sol,
+          m.internalModel.slack)
+    P = JuMP.getvalue(varP)
+    λ = JuMP.getvalue(varλ)
+
+    return λ, P, warmstart
 end
 
 Kazhdan_from_sgap(λ,N) = sqrt(2*λ/N)
