@@ -305,16 +305,13 @@ function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius)
         Δ, sdp_constraints = ΔandSDPconstraints(name, S, Id, radius=radius)
     end
 
-    info(logger, "|S| = $(length(S))")
-    info(logger, "length(Δ) = $(length(Δ))")
-    info(logger, "|R[G]|.pm = $(size(parent(Δ).pm))")
-
    if all(exists.(λSDPfilenames(name)))
       λ, P = λandP(name)
    else
       info(logger, "Creating SDP problem...")
       SDP_problem, λ, P = create_SDP_problem(Δ, sdp_constraints, upper_bound=upper_bound)
       JuMP.setsolver(SDP_problem, solver)
+
 
       λ, P = λandP(name, SDP_problem, λ, P)
    end
