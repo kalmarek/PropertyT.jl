@@ -79,14 +79,42 @@ function augIdproj{T}(Q::AbstractArray{T,2}, logger)
     return Q
 end
 
-function distance_to_positive_cone(Δ::GroupRingElem, λ, Q, wlen::Int, logger)
+function distance_to_cone(elt::GroupRingElem, λ::T, Q::AbstractArray{T,2}, wlen::Int, logger) where {T<:AbstractFloat}
+
     info(logger, "------------------------------------------------------------")
     info(logger, "λ = $λ")
     info(logger, "Checking in floating-point arithmetic...")
-    Δ²_λΔ = EOI(Δ, λ)
-    @logtime logger fp_distance = λ - distance_to_cone(Δ²_λΔ, Q, wlen)
-    info(logger, "Floating point distance (to positive cone) ≈ $(@sprintf("%.10f", fp_distance))")
+    @logtime logger SOS_diff = elt - compute_SOS(Q, parent(elt), length(elt.coeffs))
+    dist, ɛ_dist, eoi_SOS_L1_dist = distances_to_cone(SOS_diff, wlen)
+    info(logger, "ɛ(Δ² - λΔ - ∑ξᵢ*ξᵢ) ≈ $(@sprintf("%.10f", ɛ_dist))")
+    info(logger, "‖Δ² - λΔ - ∑ξᵢ*ξᵢ‖₁ ≈ $(@sprintf("%.10f", eoi_SOS_L1_dist))")
+
+    fp_distance = λ - dist
+
+    info(logger, "Floating point distance (to positive cone) ≈")
+    info(logger, "$(@sprintf("%.10f", fp_distance))")
+    info(logger, "")
+
+    return fp_distance
+end
+
+function distance_to_cone(elt::GroupRingElem, λ::T, Q::AbstractArray{T,2}, wlen::Int, logger) where {T<:AbstractInterval}
     info(logger, "------------------------------------------------------------")
+    info(logger, "λ = $λ")
+    info(logger, "Checking in interval arithmetic...")
+    @logtime logger SOS_diff = elt - compute_SOS(Q, parent(elt), length(elt.coeffs))
+    dist, ɛ_dist, eoi_SOS_L1_dist = distances_to_cone(SOS_diff, wlen)
+    info(logger, "ɛ(∑ξᵢ*ξᵢ) ∈ $(ɛ_dist)")
+    info(logger, "‖Δ² - λΔ - ∑ξᵢ*ξᵢ‖₁ ∈ $(eoi_SOS_L1_dist)")
+
+    int_distance = λ - dist
+
+    info(logger, "The Augmentation-projected actual distance (to positive cone) ∈")
+    info(logger, "$(int_distance)")
+    info(logger, "")
+
+    return int_distance
+end
 
     if fp_distance ≤ 0
         return fp_distance
