@@ -68,22 +68,20 @@ function time_string(elapsedtime, bytes, gctime, allocs)
     return str
 end
 
-function exists(fname::String)
-   return isfile(fname) || islink(fname)
-end
+exists(fname::String) = isfile(fname) || islink(fname)
 
 function pmΔfilenames(prefix::String)
-   isdir(prefix) || mkdir(prefix)
-   pm_filename = joinpath(prefix, "pm.jld")
-   Δ_coeff_filename = joinpath(prefix, "delta.jld")
-   return pm_filename, Δ_coeff_filename
+    isdir(prefix) || mkdir(prefix)
+    pm_filename = joinpath(prefix, "pm.jld")
+    Δ_coeff_filename = joinpath(prefix, "delta.jld")
+    return pm_filename, Δ_coeff_filename
 end
 
 function λSDPfilenames(prefix::String)
-   isdir(prefix) || mkdir(prefix)
-   λ_filename = joinpath(prefix, "lambda.jld")
-   SDP_filename = joinpath(prefix, "SDPmatrix.jld")
-   return λ_filename, SDP_filename
+    isdir(prefix) || mkdir(prefix)
+    λ_filename = joinpath(prefix, "lambda.jld")
+    SDP_filename = joinpath(prefix, "SDPmatrix.jld")
+    return λ_filename, SDP_filename
 end
 
 function ΔandSDPconstraints(prefix::String, G::Group)
@@ -100,12 +98,12 @@ function ΔandSDPconstraints(prefix::String, G::Group)
 end
 
 function ΔandSDPconstraints{T<:GroupElem}(name::String, S::Vector{T}, Id::T; radius::Int=2)
-   info(LOGGER, "Computing pm, Δ, sdp_constraints...")
-   Δ, sdp_constraints = ΔandSDPconstraints(S, Id, radius=radius)
-   pm_fname, Δ_fname = pmΔfilenames(name)
-   save(pm_fname, "pm", parent(Δ).pm)
-   save(Δ_fname, "Δ", Δ.coeffs)
-   return Δ, sdp_constraints
+    info(LOGGER, "Computing pm, Δ, sdp_constraints...")
+    Δ, sdp_constraints = ΔandSDPconstraints(S, Id, radius=radius)
+    pm_fname, Δ_fname = pmΔfilenames(name)
+    save(pm_fname, "pm", parent(Δ).pm)
+    save(Δ_fname, "Δ", Δ.coeffs)
+    return Δ, sdp_constraints
 end
 
 function ΔandSDPconstraints{T<:GroupElem}(S::Vector{T}, Id::T; radius::Int=2)
@@ -148,27 +146,26 @@ function λandP(name::String, SDP_problem::JuMP.Model, varλ, varP, warmstart=fa
     handler.levels.x = LOGGER_SOLVER.levels
     LOGGER_SOLVER.handlers["solver_log"] = handler
 
-   if warmstart && isfile(joinpath(name, "warmstart.jld"))
-      ws = load(joinpath(name, "warmstart.jld"), "warmstart")
-   else
-      ws = nothing
-   end
+    if warmstart && isfile(joinpath(name, "warmstart.jld"))
+        ws = load(joinpath(name, "warmstart.jld"), "warmstart")
+    else
+        ws = nothing
+    end
 
-   λ, P, warmstart = compute_λandP(SDP_problem, varλ, varP, warmstart=ws)
+    λ, P, warmstart = compute_λandP(SDP_problem, varλ, varP, warmstart=ws)
 
-   delete!(LOGGER_SOLVER.handlers, "solver_log")
+    delete!(LOGGER_SOLVER.handlers, "solver_log")
 
-   λ_fname, P_fname = λSDPfilenames(name)
+    λ_fname, P_fname = λSDPfilenames(name)
 
-   if λ > 0
-       save(λ_fname, "λ", λ)
-       save(P_fname, "P", P)
-       save(joinpath(name, "warmstart.jld"), "warmstart", warmstart)
-   else
-       throw(ErrorException("Solver did not produce a valid solution!: λ = $λ"))
-   end
-   return λ, P
-
+    if λ > 0
+        save(λ_fname, "λ", λ)
+        save(P_fname, "P", P)
+        save(joinpath(name, "warmstart.jld"), "warmstart", warmstart)
+    else
+        throw(ErrorException("Solver did not produce a valid solution!: λ = $λ"))
+    end
+    return λ, P
 end
 
 function fillfrominternal!(m::JuMP.Model, traits)
@@ -311,50 +308,48 @@ function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius)
         Δ, sdp_constraints = ΔandSDPconstraints(name, S, Id, radius=radius)
     end
 
-   if all(exists.(λSDPfilenames(name)))
-      λ, P = λandP(name)
-   else
-      info(LOGGER, "Creating SDP problem...")
-      SDP_problem, λ, P = create_SDP_problem(Δ, sdp_constraints, upper_bound=upper_bound)
-      JuMP.setsolver(SDP_problem, solver)
+    if all(exists.(λSDPfilenames(name)))
+        λ, P = λandP(name)
+    else
+        info(LOGGER, "Creating SDP problem...")
+        SDP_problem, λ, P = create_SDP_problem(Δ, sdp_constraints, upper_bound=upper_bound)
+        JuMP.setsolver(SDP_problem, solver)
 
+        λ, P = λandP(name, SDP_problem, λ, P)
+    end
 
-      λ, P = λandP(name, SDP_problem, λ, P)
-   end
+    info(LOGGER, "λ = $λ")
+    info(LOGGER, "sum(P) = $(sum(P))")
+    info(LOGGER, "maximum(P) = $(maximum(P))")
+    info(LOGGER, "minimum(P) = $(minimum(P))")
 
-   info(LOGGER, "λ = $λ")
-   info(LOGGER, "sum(P) = $(sum(P))")
-   info(LOGGER, "maximum(P) = $(maximum(P))")
-   info(LOGGER, "minimum(P) = $(minimum(P))")
+    if λ > 0
+        pm_fname, Δ_fname = pmΔfilenames(name)
+        RG = GroupRing(parent(first(S)), load(pm_fname, "pm"))
+        Δ = GroupRingElem(load(Δ_fname, "Δ")[:, 1], RG)
 
-   if λ > 0
-      pm_fname, Δ_fname = pmΔfilenames(name)
-      RG = GroupRing(parent(first(S)), load(pm_fname, "pm"))
-      Δ = GroupRingElem(load(Δ_fname, "Δ")[:, 1], RG)
+        isapprox(eigvals(P), abs(eigvals(P)), atol=tol) ||
+            warn("The solution matrix doesn't seem to be positive definite!")
+        @logtime LOGGER Q = real(sqrtm(Symmetric(P)))
 
-      isapprox(eigvals(P), abs(eigvals(P)), atol=tol) ||
-         warn("The solution matrix doesn't seem to be positive definite!")
-     #  @assert P == Symmetric(P)
-      @logtime LOGGER Q = real(sqrtm(Symmetric(P)))
-
-      sgap = distance_to_positive_cone(Δ, λ, Q, 2*radius, LOGGER)
-      if isa(sgap, Interval)
-         sgap = sgap.lo
-      end
-      if sgap > 0
-         info(LOGGER, "λ ≥ $(Float64(trunc(sgap,12)))")
-         Kazhdan_κ = Kazhdan_from_sgap(sgap, length(S))
-         Kazhdan_κ = Float64(trunc(Kazhdan_κ, 12))
-         info(LOGGER, "κ($name, S) ≥ $Kazhdan_κ: Group HAS property (T)!")
-         return true
-      else
-         sgap = Float64(trunc(sgap, 12))
-         info(LOGGER, "λ($name, S) ≥ $sgap: Group may NOT HAVE property (T)!")
-         return false
-      end
-   end
-   info(LOGGER, "κ($name, S) ≥ $λ < 0: Tells us nothing about property (T)")
-   return false
+        sgap = distance_to_positive_cone(Δ, λ, Q, 2*radius, LOGGER)
+        if isa(sgap, Interval)
+            sgap = sgap.lo
+        end
+        if sgap > 0
+            info(LOGGER, "λ ≥ $(Float64(trunc(sgap,12)))")
+            Kazhdan_κ = Kazhdan_from_sgap(sgap, length(S))
+            Kazhdan_κ = Float64(trunc(Kazhdan_κ, 12))
+            info(LOGGER, "κ($name, S) ≥ $Kazhdan_κ: Group HAS property (T)!")
+            return true
+        else
+            sgap = Float64(trunc(sgap, 12))
+            info(LOGGER, "λ($name, S) ≥ $sgap: Group may NOT HAVE property (T)!")
+            return false
+        end
+    end
+    info(LOGGER, "κ($name, S) ≥ $λ < 0: Tells us nothing about property (T)")
+    return false
 end
 
 include("SDPs.jl")
