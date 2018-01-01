@@ -80,42 +80,37 @@ filename(prefix::String, ::Type{Val{:Δ}})  = joinpath(prefix, "delta.jld")
 filename(prefix::String, ::Type{Val{:λ}})  = joinpath(prefix, "lambda.jld")
 filename(prefix::String, ::Type{Val{:P}})  = joinpath(prefix, "SDPmatrix.jld")
 
-function ΔandSDPconstraints(prefix::String, G::Group)
-    info(LOGGER, "Loading precomputed pm, Δ, sdp_constraints...")
-    pm_fname, Δ_fname = pmΔfilenames(prefix)
-
-    product_matrix = load(pm_fname, "pm")
-    sdp_constraints = constraints(product_matrix)
-
-    RG = GroupRing(G, product_matrix)
-    Δ = GroupRingElem(load(Δ_fname, "Δ")[:, 1], RG)
-
-    return Δ, sdp_constraints
+function Delta(name::String, G::Group)
+    info(LOGGER, "Loading precomputed Δ...")
+    if exists(filename(name, :Δ)) && exists(filename(name, :pm))
+        RG = GroupRing(G, load(filename(name, :pm), "pm"))
+        Δ = GroupRingElem(load(filename(name, :Δ), "Δ")[:, 1], RG)
+    else
+        throw("You need to precompute $(filename(name, :pm)) and $(filename(name, :Δ)) to load it!")
+    end
+    return Δ
 end
 
-function ΔandSDPconstraints{T<:GroupElem}(name::String, S::Vector{T}, Id::T; radius::Int=2)
-    info(LOGGER, "Computing pm, Δ, sdp_constraints...")
-    Δ, sdp_constraints = ΔandSDPconstraints(S, Id, radius=radius)
-    pm_fname, Δ_fname = pmΔfilenames(name)
-    save(pm_fname, "pm", parent(Δ).pm)
-    save(Δ_fname, "Δ", Δ.coeffs)
-    return Δ, sdp_constraints
+function Delta{T<:GroupElem}(name::String, S::Vector{T}, Id::T; radius::Int=2)
+    info(LOGGER, "Computing multiplication table, Δ...")
+    Δ = Delta(S, Id, radius=radius)
+    save(filename(name, :pm), "pm", parent(Δ).pm)
+    save(filename(name, :Δ), "Δ", Δ.coeffs)
+    return Δ
 end
 
-function ΔandSDPconstraints{T<:GroupElem}(S::Vector{T}, Id::T; radius::Int=2)
-    info(LOGGER, "Generating balls of sizes $sizes")
+function Delta{T<:GroupElem}(S::Vector{T}, Id::T; radius::Int=2)
+    info(LOGGER, "Generating metric ball of radius $radius...")
     @logtime LOGGER E_R, sizes = Groups.generate_balls(S, Id, radius=2*radius)
+    info(LOGGER, "Generated balls of sizes $sizes.")
 
     info(LOGGER, "Creating product matrix...")
     @logtime LOGGER pm = GroupRings.create_pm(E_R, GroupRings.reverse_dict(E_R), sizes[radius]; twisted=true)
 
-    info(LOGGER, "Creating sdp_constratints...")
-    @logtime LOGGER sdp_constraints = PropertyT.constraints(pm)
-
     RG = GroupRing(parent(Id), E_R, pm)
 
     Δ = splaplacian(RG, S)
-    return Δ, sdp_constraints
+    return Δ
 end
 
 function λandP(name::String)
@@ -193,10 +188,10 @@ function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius)
 
     if exists(filename(name, :pm)) && exists(filename(name, :Δ))
         # cached
-        Δ, sdp_constraints = ΔandSDPconstraints(name, parent(S[1]))
+        Δ = Delta(name, parent(S[1]))
     else
         # compute
-        Δ, sdp_constraints = ΔandSDPconstraints(name, S, Id, radius=radius)
+        Δ = Delta(name, S, Id, radius=radius)
     end
 
     if exists(filename(name, :λ)) && exists(filename(name, :P))
@@ -204,10 +199,10 @@ function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius)
         λ, P = λandP(name)
     else
         info(LOGGER, "Creating SDP problem...")
-        SDP_problem, λ, P = create_SDP_problem(Δ, sdp_constraints, upper_bound=upper_bound)
+        SDP_problem, λ_var, P_var = create_SDP_problem(Δ, PropertyT.constraints(parent(Δ).pm), upper_bound=upper_bound)
         JuMP.setsolver(SDP_problem, solver)
 
-        λ, P = λandP(name, SDP_problem, λ, P)
+        λ, P = λandP(name, SDP_problem, λ_var, P_var)
     end
 
     info(LOGGER, "λ = $λ")
