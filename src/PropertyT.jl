@@ -219,10 +219,8 @@ function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius)
             warn("The solution matrix doesn't seem to be positive definite!")
         @logtime LOGGER Q = real(sqrtm(Symmetric(P)))
 
-        sgap = distance_to_positive_cone(Δ, λ, Q, 2*radius, LOGGER)
-        if isa(sgap, Interval)
-            sgap = sgap.lo
-        end
+        sgap = check_distance_to_cone(Δ, λ, Q, 2*radius, LOGGER)
+
         if sgap > 0
             info(LOGGER, "λ ≥ $(Float64(trunc(sgap,12)))")
             Kazhdan_κ = Kazhdan_from_sgap(sgap, length(S))
