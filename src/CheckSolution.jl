@@ -116,21 +116,19 @@ function distance_to_cone(elt::GroupRingElem, λ::T, Q::AbstractArray{T,2}, wlen
     return int_distance
 end
 
+function check_distance_to_cone(Δ::GroupRingElem, λ, Q, wlen::Int, logger)
+
+    fp_distance = distance_to_cone(EOI(Δ, λ), λ, Q, wlen, logger)
+
     if fp_distance ≤ 0
         return fp_distance
     end
 
-    info(logger, "")
-    Q = augIdproj(Q, logger)
-
-    info(logger, "Checking in interval arithmetic")
     λ = @interval(λ)
     Δ = GroupRingElem([@interval(c) for c in Δ.coeffs], parent(Δ))
-    Δ²_λΔ = EOI(Δ, λ)
+    Q = augIdproj(Q, logger)
 
-    @logtime logger Interval_dist_to_ΣSq = λ - distance_to_cone(Δ²_λΔ, Q, wlen)
-    info(logger, "The Augmentation-projected actual distance (to positive cone) ∈ $(Interval_dist_to_ΣSq)")
-    info(logger, "------------------------------------------------------------")
+    int_distance = distance_to_cone(EOI(Δ, λ), λ, Q, wlen, logger)
 
-    return Interval_dist_to_ΣSq
+    return int_distance.lo
 end
