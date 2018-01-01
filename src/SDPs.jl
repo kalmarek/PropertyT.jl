@@ -56,20 +56,20 @@ function create_SDP_problem(Δ::GroupRingElem, matrix_constraints; upper_bound=I
 end
 
 function solve_SDP(SDP_problem)
-    info(logger, Base.repr(SDP_problem))
+    info(LOGGER, Base.repr(SDP_problem))
 
-    o = redirect_stdout(solver_logger.handlers["solver_log"].io)
+    o = redirect_stdout(LOGGER_SOLVER.handlers["solver_log"].io)
     Base.Libc.flush_cstdio()
 
-    @logtime logger solution_status = MathProgBase.optimize!(SDP_problem.internalModel)
+    @logtime LOGGER solution_status = MathProgBase.optimize!(SDP_problem.internalModel)
     Base.Libc.flush_cstdio()
 
     redirect_stdout(o)
 
     if solution_status != :Optimal
-        warn(logger, "The solver did not solve the problem successfully!")
+        warn(LOGGER, "The solver did not solve the problem successfully!")
     end
-    info(logger, solution_status)
+    info(LOGGER, solution_status)
 
     return 0
 end

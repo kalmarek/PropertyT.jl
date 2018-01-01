@@ -12,19 +12,21 @@ using MathProgBase
 
 using Memento
 
-const logger = Memento.config("info", fmt="{msg}")
-const solver_logger = Memento.config("info", fmt="{msg}")
+const LOGGER = Memento.config("info", fmt="{msg}")
+const LOGGER_SOLVER = Memento.config("info", fmt="{msg}")
 
 function setup_logging(name::String)
-   isdir(name) || mkdir(name)
+    isdir(name) || mkdir(name)
 
-   Memento.add_handler(logger,
-      Memento.DefaultHandler(joinpath(name,"full_$(string((now()))).log"),
-      Memento.DefaultFormatter("{date}| {msg}")), "full_log")
+    handler = Memento.DefaultHandler(
+        joinpath(name,"full_$(string((now()))).log"),    Memento.DefaultFormatter("{date}| {msg}")
+    )
+    handler.levels.x = LOGGER.levels
+    LOGGER.handlers["full_log"] = handler
 
-   e = redirect_stderr(logger.handlers["full_log"].io)
+    e = redirect_stderr(logger.handlers["full_log"].io)
 
-   return logger
+    return logger
 end
 
 macro logtime(logger, ex)
@@ -35,7 +37,7 @@ macro logtime(logger, ex)
         elapsedtime = Base.time_ns() - elapsedtime
         local diff = Base.GC_Diff(Base.gc_num(), stats)
         local ts = time_string(elapsedtime, diff.allocd, diff.total_time,
-                   Base.gc_alloc_count(diff))
+                               Base.gc_alloc_count(diff))
         esc(info(logger, ts))
         val
     end
@@ -85,7 +87,7 @@ function λSDPfilenames(prefix::String)
 end
 
 function ΔandSDPconstraints(prefix::String, G::Group)
-    info(logger, "Loading precomputed pm, Δ, sdp_constraints...")
+    info(LOGGER, "Loading precomputed pm, Δ, sdp_constraints...")
     pm_fname, Δ_fname = pmΔfilenames(prefix)
 
     product_matrix = load(pm_fname, "pm")
@@ -98,7 +100,7 @@ function ΔandSDPconstraints(prefix::String, G::Group)
 end
 
 function ΔandSDPconstraints{T<:GroupElem}(name::String, S::Vector{T}, Id::T; radius::Int=2)
-   info(logger, "Computing pm, Δ, sdp_constraints...")
+   info(LOGGER, "Computing pm, Δ, sdp_constraints...")
    Δ, sdp_constraints = ΔandSDPconstraints(S, Id, radius=radius)
    pm_fname, Δ_fname = pmΔfilenames(name)
    save(pm_fname, "pm", parent(Δ).pm)
@@ -107,14 +109,14 @@ function ΔandSDPconstraints{T<:GroupElem}(name::String, S::Vector{T}, Id::T; ra
 end
 
 function ΔandSDPconstraints{T<:GroupElem}(S::Vector{T}, Id::T; radius::Int=2)
-    info(logger, "Generating balls of sizes $sizes")
-    @logtime logger E_R, sizes = Groups.generate_balls(S, Id, radius=2*radius)
+    info(LOGGER, "Generating balls of sizes $sizes")
+    @logtime LOGGER E_R, sizes = Groups.generate_balls(S, Id, radius=2*radius)
 
-    info(logger, "Creating product matrix...")
-    @logtime logger pm = GroupRings.create_pm(E_R, GroupRings.reverse_dict(E_R), sizes[radius]; twisted=true)
+    info(LOGGER, "Creating product matrix...")
+    @logtime LOGGER pm = GroupRings.create_pm(E_R, GroupRings.reverse_dict(E_R), sizes[radius]; twisted=true)
 
-    info(logger, "Creating sdp_constratints...")
-    @logtime logger sdp_constraints = PropertyT.constraints(pm)
+    info(LOGGER, "Creating sdp_constratints...")
+    @logtime LOGGER sdp_constraints = PropertyT.constraints(pm)
 
     RG = GroupRing(parent(Id), E_R, pm)
 
@@ -128,7 +130,7 @@ function λandP(name::String)
     f₂ = exists(SDP_fname)
 
     if f₁ && f₂
-        info(logger, "Loading precomputed λ, P...")
+        info(LOGGER, "Loading precomputed λ, P...")
         λ = load(λ_fname, "λ")
         P = load(SDP_fname, "P")
     else
@@ -138,10 +140,14 @@ function λandP(name::String)
 end
 
 function λandP(name::String, SDP_problem::JuMP.Model, varλ, varP, warmstart=false)
-   add_handler(solver_logger,
-      DefaultHandler(joinpath(name, "solver_$(string(now())).log"),
-      DefaultFormatter("{date}| {msg}")),
-      "solver_log")
+
+    handler = DefaultHandler(
+       joinpath(name, "solver_$(string(now())).log"),
+       DefaultFormatter("{date}| {msg}")
+       )
+    handler.levels.x = LOGGER_SOLVER.levels
+    LOGGER_SOLVER.handlers["solver_log"] = handler
+
    if warmstart && isfile(joinpath(name, "warmstart.jld"))
       ws = load(joinpath(name, "warmstart.jld"), "warmstart")
    else
@@ -150,7 +156,7 @@ function λandP(name::String, SDP_problem::JuMP.Model, varλ, varP, warmstart=fa
 
    λ, P, warmstart = compute_λandP(SDP_problem, varλ, varP, warmstart=ws)
 
-   remove_handler(solver_logger, "solver_log")
+   delete!(LOGGER_SOLVER.handlers, "solver_log")
 
    λ_fname, P_fname = λSDPfilenames(name)
 
@@ -276,7 +282,7 @@ function compute_λandP(m, varλ, varP; warmstart=nothing)
             solve_SDP(m)
             λ = MathProgBase.getobjval(m.internalModel)
         catch y
-            warn(solver_logger, y)
+            warn(LOGGER_SOLVER, y)
         end
     end
 
@@ -308,7 +314,7 @@ function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius)
    if all(exists.(λSDPfilenames(name)))
       λ, P = λandP(name)
    else
-      info(logger, "Creating SDP problem...")
+      info(LOGGER, "Creating SDP problem...")
       SDP_problem, λ, P = create_SDP_problem(Δ, sdp_constraints, upper_bound=upper_bound)
       JuMP.setsolver(SDP_problem, solver)
 
@@ -316,10 +322,10 @@ function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius)
       λ, P = λandP(name, SDP_problem, λ, P)
    end
 
-   info(logger, "λ = $λ")
-   info(logger, "sum(P) = $(sum(P))")
-   info(logger, "maximum(P) = $(maximum(P))")
-   info(logger, "minimum(P) = $(minimum(P))")
+   info(LOGGER, "λ = $λ")
+   info(LOGGER, "sum(P) = $(sum(P))")
+   info(LOGGER, "maximum(P) = $(maximum(P))")
+   info(LOGGER, "minimum(P) = $(minimum(P))")
 
    if λ > 0
       pm_fname, Δ_fname = pmΔfilenames(name)
@@ -329,25 +335,25 @@ function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius)
       isapprox(eigvals(P), abs(eigvals(P)), atol=tol) ||
          warn("The solution matrix doesn't seem to be positive definite!")
      #  @assert P == Symmetric(P)
-      @logtime logger Q = real(sqrtm(Symmetric(P)))
+      @logtime LOGGER Q = real(sqrtm(Symmetric(P)))
 
-      sgap = distance_to_positive_cone(Δ, λ, Q, 2*radius)
+      sgap = distance_to_positive_cone(Δ, λ, Q, 2*radius, LOGGER)
       if isa(sgap, Interval)
          sgap = sgap.lo
       end
       if sgap > 0
-         info(logger, "λ ≥ $(Float64(trunc(sgap,12)))")
+         info(LOGGER, "λ ≥ $(Float64(trunc(sgap,12)))")
          Kazhdan_κ = Kazhdan_from_sgap(sgap, length(S))
          Kazhdan_κ = Float64(trunc(Kazhdan_κ, 12))
-         info(logger, "κ($name, S) ≥ $Kazhdan_κ: Group HAS property (T)!")
+         info(LOGGER, "κ($name, S) ≥ $Kazhdan_κ: Group HAS property (T)!")
          return true
       else
          sgap = Float64(trunc(sgap, 12))
-         info(logger, "λ($name, S) ≥ $sgap: Group may NOT HAVE property (T)!")
+         info(LOGGER, "λ($name, S) ≥ $sgap: Group may NOT HAVE property (T)!")
          return false
       end
    end
-   info(logger, "κ($name, S) ≥ $λ < 0: Tells us nothing about property (T)")
+   info(LOGGER, "κ($name, S) ≥ $λ < 0: Tells us nothing about property (T)")
    return false
 end
 

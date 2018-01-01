@@ -79,7 +79,7 @@ function sparsify!{Tv,Ti}(M::SparseMatrixCSC{Tv,Ti}, eps=eps(Tv); verbose=false)
    m = nnz(M)
 
    if verbose
-      info(logger, "Sparsified density:", rpad(densM, 20), " → ", rpad(dens(M), 20))
+      info(LOGGER, "Sparsified density:", rpad(densM, 20), " → ", rpad(dens(M), 20))
    end
 
    return M
@@ -91,11 +91,11 @@ function sparsify!{T}(M::AbstractArray{T}, eps=eps(T); check=false, verbose=fals
    M[abs.(M) .< eps] .= zero(T)
 
    if check && rankM != rank(M)
-      warn(logger, "Sparsification decreased the rank!")
+      warn(LOGGER, "Sparsification decreased the rank!")
    end
 
    if verbose
-      info(logger, "Sparsified density:", rpad(densM, 20), " → ", rpad(dens(M),20))
+      info(LOGGER, "Sparsified density:", rpad(densM, 20), " → ", rpad(dens(M),20))
    end
 
    return sparse(M)
@@ -178,8 +178,8 @@ function init_model(n, sizes)
 end
 
 function create_SDP_problem(sett::Settings)
-   info(logger, "Loading orbit data....")
-   @logtime logger SDP_problem, orb_data = OrbitData(sett);
+   info(LOGGER, "Loading orbit data....")
+   @logtime LOGGER SDP_problem, orb_data = OrbitData(sett);
 
    if sett.upper_bound < Inf
       λ = JuMP.getvariable(SDP_problem, :λ)
@@ -187,8 +187,8 @@ function create_SDP_problem(sett::Settings)
    end
 
    t = length(orb_data.laplacian)
-   info(logger, "Adding $t constraints ... ")
-   @logtime logger addconstraints!(SDP_problem, orb_data)
+   info(LOGGER, "Adding $t constraints ... ")
+   @logtime LOGGER addconstraints!(SDP_problem, orb_data)
 
    return SDP_problem, orb_data
 end
@@ -201,14 +201,14 @@ function λandP(m::JuMP.Model, data::OrbitData, warmstart=true)
 end
 
 function λandP(m::JuMP.Model, data::OrbitData, sett::Settings)
-   info(logger, "Solving SDP problem...")
+   info(LOGGER, "Solving SDP problem...")
    λ, Ps = λandP(m, data, sett.warmstart)
 
-   info(logger, "Reconstructing P...")
+   info(LOGGER, "Reconstructing P...")
 
    preps = load_preps(joinpath(prepath(sett), "preps.jld"), sett.autS)
 
-   @logtime logger recP = reconstruct_sol(preps, data.Us, Ps, data.dims)
+   @logtime LOGGER recP = reconstruct_sol(preps, data.Us, Ps, data.dims)
 
    fname = PropertyT.λSDPfilenames(fullpath(sett))[2]
    save(fname, "origP", Ps, "P", recP)
@@ -229,22 +229,22 @@ end
 
 function check_property_T(sett::Settings)
 
-   init_orbit_data(logger, sett, radius=sett.radius)
+   init_orbit_data(LOGGER, sett, radius=sett.radius)
 
    if !sett.warmstart && all(isfile.(λSDPfilenames(fullpath(sett))))
       λ, P = PropertyT.λandP(fullpath(sett))
    else
-      info(logger, "Creating SDP problem...")
+      info(LOGGER, "Creating SDP problem...")
       SDP_problem, orb_data = create_SDP_problem(sett)
       JuMP.setsolver(SDP_problem, sett.solver)
 
       λ, P = λandP(SDP_problem, orb_data, sett)
    end
 
-   info(logger, "λ = $λ")
-   info(logger, "sum(P) = $(sum(P))")
-   info(logger, "maximum(P) = $(maximum(P))")
-   info(logger, "minimum(P) = $(minimum(P))")
+   info(LOGGER, "λ = $λ")
+   info(LOGGER, "sum(P) = $(sum(P))")
+   info(LOGGER, "maximum(P) = $(maximum(P))")
+   info(LOGGER, "minimum(P) = $(minimum(P))")
 
    if λ > 0
       pm_fname, Δ_fname = pmΔfilenames(prepath(sett))
@@ -254,24 +254,24 @@ function check_property_T(sett::Settings)
       isapprox(eigvals(P), abs.(eigvals(P)), atol=sett.tol) ||
          warn("The solution matrix doesn't seem to be positive definite!")
      #  @assert P == Symmetric(P)
-      @logtime logger Q = real(sqrtm(Symmetric(P)))
+      @logtime LOGGER Q = real(sqrtm(Symmetric(P)))
 
-      sgap = distance_to_positive_cone(Δ, λ, Q, 2*sett.radius)
+      sgap = distance_to_positive_cone(Δ, λ, Q, 2*sett.radius, LOGGER)
       if isa(sgap, Interval)
            sgap = sgap.lo
       end
       if sgap > 0
-           info(logger, "λ ≥ $(Float64(trunc(sgap,12)))")
+           info(LOGGER, "λ ≥ $(Float64(trunc(sgap,12)))")
             Kazhdan_κ = PropertyT.Kazhdan_from_sgap(sgap, length(sett.S))
             Kazhdan_κ = Float64(trunc(Kazhdan_κ, 12))
-            info(logger, "κ($(sett.name), S) ≥ $Kazhdan_κ: Group HAS property (T)!")
+            info(LOGGER, "κ($(sett.name), S) ≥ $Kazhdan_κ: Group HAS property (T)!")
             return true
       else
            sgap = Float64(trunc(sgap, 12))
-           info(logger, "λ($(sett.name), S) ≥ $sgap: Group may NOT HAVE property (T)!")
+           info(LOGGER, "λ($(sett.name), S) ≥ $sgap: Group may NOT HAVE property (T)!")
            return false
       end
    end
-   info(logger, "κ($(sett.name), S) ≥ $λ < 0: Tells us nothing about property (T)")
+   info(LOGGER, "κ($(sett.name), S) ≥ $λ < 0: Tells us nothing about property (T)")
    return false
 end
