@@ -210,7 +210,7 @@ function λandP(m::JuMP.Model, data::OrbitData, sett::Settings)
 
     @logtime LOGGER recP = reconstruct_sol(preps, data.Us, Ps, data.dims)
 
-    fname = PropertyT.λSDPfilenames(fullpath(sett))[2]
+    fname = filename(fullpath(sett), :P)
     save(fname, "origP", Ps, "P", recP)
     return λ, recP
 end
@@ -231,7 +231,10 @@ function check_property_T(sett::Settings)
 
     init_orbit_data(LOGGER, sett, radius=sett.radius)
 
-    if !sett.warmstart && all(isfile.(λSDPfilenames(fullpath(sett))))
+    cond1 = exists(filename(fullpath(sett), :λ))
+    cond2 = exists(filename(fullpath(sett), :P))
+
+    if !sett.warmstart && cond1 && cond2
         λ, P = PropertyT.λandP(fullpath(sett))
     else
         info(LOGGER, "Creating SDP problem...")
@@ -247,7 +250,8 @@ function check_property_T(sett::Settings)
     info(LOGGER, "minimum(P) = $(minimum(P))")
 
     if λ > 0
-        pm_fname, Δ_fname = pmΔfilenames(prepath(sett))
+        pm_fname = filename(prepath(sett), :pm)
+        Δ_fname = filename(prepath(sett), :Δ)
         RG = GroupRing(sett.G, load(pm_fname, "pm"))
         Δ = GroupRingElem(load(Δ_fname, "Δ")[:, 1], RG)
 

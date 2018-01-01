@@ -70,19 +70,15 @@ end
 
 exists(fname::String) = isfile(fname) || islink(fname)
 
-function pmΔfilenames(prefix::String)
+function filename(prefix, s::Symbol)
     isdir(prefix) || mkdir(prefix)
-    pm_filename = joinpath(prefix, "pm.jld")
-    Δ_coeff_filename = joinpath(prefix, "delta.jld")
-    return pm_filename, Δ_coeff_filename
+    return filename(prefix, Val{s})
 end
 
-function λSDPfilenames(prefix::String)
-    isdir(prefix) || mkdir(prefix)
-    λ_filename = joinpath(prefix, "lambda.jld")
-    SDP_filename = joinpath(prefix, "SDPmatrix.jld")
-    return λ_filename, SDP_filename
-end
+filename(prefix::String, ::Type{Val{:pm}}) = joinpath(prefix, "pm.jld")
+filename(prefix::String, ::Type{Val{:Δ}})  = joinpath(prefix, "delta.jld")
+filename(prefix::String, ::Type{Val{:λ}})  = joinpath(prefix, "lambda.jld")
+filename(prefix::String, ::Type{Val{:P}})  = joinpath(prefix, "SDPmatrix.jld")
 
 function ΔandSDPconstraints(prefix::String, G::Group)
     info(LOGGER, "Loading precomputed pm, Δ, sdp_constraints...")
@@ -123,16 +119,14 @@ function ΔandSDPconstraints{T<:GroupElem}(S::Vector{T}, Id::T; radius::Int=2)
 end
 
 function λandP(name::String)
-    λ_fname, SDP_fname = λSDPfilenames(name)
-    f₁ = exists(λ_fname)
-    f₂ = exists(SDP_fname)
+    λ_fname = filename(name, :λ)
+    P_fname = filename(name, :P)
 
-    if f₁ && f₂
-        info(LOGGER, "Loading precomputed λ, P...")
+    if exists(λ_fname) && exists(P_fname)
         λ = load(λ_fname, "λ")
-        P = load(SDP_fname, "P")
+        P = load(P_fname, "P")
     else
-        throw(ArgumentError("You need to precompute λ and SDP matrix P to load it!"))
+        throw("You need to precompute $λ_fname and $P_fname to load it!")
     end
     return λ, P
 end
@@ -156,14 +150,12 @@ function λandP(name::String, SDP_problem::JuMP.Model, varλ, varP, warmstart=fa
 
     delete!(LOGGER_SOLVER.handlers, "solver_log")
 
-    λ_fname, P_fname = λSDPfilenames(name)
-
     if λ > 0
-        save(λ_fname, "λ", λ)
-        save(P_fname, "P", P)
+        save(filename(name, :λ), "λ", λ)
+        save(filename(name, :P), "P", P)
         save(joinpath(name, "warmstart.jld"), "warmstart", warmstart)
     else
-        throw(ErrorException("Solver did not produce a valid solution!: λ = $λ"))
+        throw(ErrorException("Solver did not produce a valid solution: λ = $λ"))
     end
     return λ, P
 end
@@ -300,7 +292,7 @@ function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius)
 
     isdir(name) || mkdir(name)
 
-    if all(exists.(pmΔfilenames(name)))
+    if exists(filename(name, :pm)) && exists(filename(name, :Δ))
         # cached
         Δ, sdp_constraints = ΔandSDPconstraints(name, parent(S[1]))
     else
@@ -308,7 +300,8 @@ function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius)
         Δ, sdp_constraints = ΔandSDPconstraints(name, S, Id, radius=radius)
     end
 
-    if all(exists.(λSDPfilenames(name)))
+    if exists(filename(name, :λ)) && exists(filename(name, :P))
+        info(LOGGER, "Loading precomputed λ, P...")
         λ, P = λandP(name)
     else
         info(LOGGER, "Creating SDP problem...")
@@ -324,9 +317,9 @@ function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius)
     info(LOGGER, "minimum(P) = $(minimum(P))")
 
     if λ > 0
-        pm_fname, Δ_fname = pmΔfilenames(name)
-        RG = GroupRing(parent(first(S)), load(pm_fname, "pm"))
-        Δ = GroupRingElem(load(Δ_fname, "Δ")[:, 1], RG)
+
+        RG = GroupRing(parent(first(S)), load(filename(name, :pm), "pm"))
+        Δ = GroupRingElem(load(filename(name, :Δ), "Δ")[:, 1], RG)
 
         isapprox(eigvals(P), abs(eigvals(P)), atol=tol) ||
             warn("The solution matrix doesn't seem to be positive definite!")
