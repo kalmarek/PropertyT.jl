@@ -73,3 +73,98 @@ function solve_SDP(SDP_problem)
 
     return 0
 end
+
+function fillfrominternal!(m::JuMP.Model, traits)
+    # Copied from JuMP/src/solvers.jl:178
+
+    stat::Symbol = MathProgBase.status(m.internalModel)
+
+    numRows, numCols = length(m.linconstr), m.numCols
+    m.objBound = NaN
+    m.objVal = NaN
+    m.colVal = fill(NaN, numCols)
+    m.linconstrDuals = Array{Float64}(0)
+
+    discrete = (traits.int || traits.sos)
+
+    if stat == :Optimal
+        # If we think dual information might be available, try to get it
+        # If not, return an array of the correct length
+        if discrete
+            m.redCosts = fill(NaN, numCols)
+            m.linconstrDuals = fill(NaN, numRows)
+        else
+            if !traits.conic
+                m.redCosts = try
+                    MathProgBase.getreducedcosts(m.internalModel)[1:numCols]
+                catch
+                    fill(NaN, numCols)
+                end
+
+                m.linconstrDuals = try
+                    MathProgBase.getconstrduals(m.internalModel)[1:numRows]
+                catch
+                    fill(NaN, numRows)
+                end
+            elseif !traits.qp && !traits.qc
+                JuMP.fillConicDuals(m)
+            end
+        end
+    else
+        # Problem was not solved to optimality, attempt to extract useful
+        # information anyway
+
+        if traits.lin
+            if stat == :Infeasible
+                m.linconstrDuals = try
+                    infray = MathProgBase.getinfeasibilityray(m.internalModel)
+                    @assert length(infray) == numRows
+                    infray
+                catch
+                    suppress_warnings || warn("Infeasibility ray (Farkas proof) not available")
+                    fill(NaN, numRows)
+                end
+            elseif stat == :Unbounded
+                m.colVal = try
+                    unbdray = MathProgBase.getunboundedray(m.internalModel)
+                    @assert length(unbdray) == numCols
+                    unbdray
+                catch
+                    suppress_warnings || warn("Unbounded ray not available")
+                    fill(NaN, numCols)
+                end
+            end
+        end
+        # conic duals (currently, SOC and SDP only)
+        if !discrete && traits.conic && !traits.qp && !traits.qc
+            if stat == :Infeasible
+                JuMP.fillConicDuals(m)
+            end
+        end
+    end
+
+    # If the problem was solved, or if it terminated prematurely, try
+    # to extract a solution anyway. This commonly occurs when a time
+    # limit or tolerance is set (:UserLimit)
+    if !(stat == :Infeasible || stat == :Unbounded)
+        try
+            # Do a separate try since getobjval could work while getobjbound does not and vice versa
+            objBound = MathProgBase.getobjbound(m.internalModel) + m.obj.aff.constant
+            m.objBound = objBound
+        end
+        try
+            objVal = MathProgBase.getobjval(m.internalModel) + m.obj.aff.constant
+            colVal = MathProgBase.getsolution(m.internalModel)[1:numCols]
+            # Rescale off-diagonal terms of SDP variables
+            if traits.sdp
+                offdiagvars = JuMP.offdiagsdpvars(m)
+                colVal[offdiagvars] /= sqrt(2)
+            end
+            # Don't corrupt the answers if one of the above two calls fails
+            m.objVal = objVal
+            m.colVal = colVal
+        end
+    end
+
+    return stat
+end
