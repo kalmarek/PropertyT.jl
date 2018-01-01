@@ -38,7 +38,7 @@ macro logtime(logger, ex)
         local diff = Base.GC_Diff(Base.gc_num(), stats)
         local ts = time_string(elapsedtime, diff.allocd, diff.total_time,
                                Base.gc_alloc_count(diff))
-        esc(info(logger, ts))
+        $(esc(info))($(esc(logger)), ts)
         val
     end
 end
