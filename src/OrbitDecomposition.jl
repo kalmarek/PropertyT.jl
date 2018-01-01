@@ -182,7 +182,7 @@ function compute_orbit_data{T<:GroupElem}(logger, name::String, G::Nemo.Group, S
     info(logger, "Product matrix")
     @logtime logger pm = GroupRings.create_pm(E_2R, E_rdict, sizes[radius], twisted=true)
     RG = GroupRing(G, E_2R, E_rdict, pm)
-    Δ = PropertyT.splaplacian(RG, S)
+    Δ = PropertyT.spLaplacian(RG, S)
     @assert GroupRings.augmentation(Δ) == 0
     save(joinpath(name, "delta.jld"), "Δ", Δ.coeffs)
     save(joinpath(name, "pm.jld"), "pm", pm)

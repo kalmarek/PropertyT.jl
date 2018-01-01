@@ -80,7 +80,7 @@ filename(prefix::String, ::Type{Val{:Δ}})  = joinpath(prefix, "delta.jld")
 filename(prefix::String, ::Type{Val{:λ}})  = joinpath(prefix, "lambda.jld")
 filename(prefix::String, ::Type{Val{:P}})  = joinpath(prefix, "SDPmatrix.jld")
 
-function Delta(name::String, G::Group)
+function Laplacian(name::String, G::Group)
     info(LOGGER, "Loading precomputed Δ...")
     if exists(filename(name, :Δ)) && exists(filename(name, :pm))
         RG = GroupRing(G, load(filename(name, :pm), "pm"))
@@ -91,15 +91,15 @@ function Delta(name::String, G::Group)
     return Δ
 end
 
-function Delta{T<:GroupElem}(name::String, S::Vector{T}, Id::T; radius::Int=2)
+function Laplacian{T<:GroupElem}(name::String, S::Vector{T}, Id::T; radius::Int=2)
     info(LOGGER, "Computing multiplication table, Δ...")
-    Δ = Delta(S, Id, radius=radius)
+    Δ = Laplacian(S, Id, radius=radius)
     save(filename(name, :pm), "pm", parent(Δ).pm)
     save(filename(name, :Δ), "Δ", Δ.coeffs)
     return Δ
 end
 
-function Delta{T<:GroupElem}(S::Vector{T}, Id::T; radius::Int=2)
+function Laplacian{T<:GroupElem}(S::Vector{T}, Id::T; radius::Int=2)
     info(LOGGER, "Generating metric ball of radius $radius...")
     @logtime LOGGER E_R, sizes = Groups.generate_balls(S, Id, radius=2*radius)
     info(LOGGER, "Generated balls of sizes $sizes.")
@@ -188,10 +188,10 @@ function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius)
 
     if exists(filename(name, :pm)) && exists(filename(name, :Δ))
         # cached
-        Δ = Delta(name, parent(S[1]))
+        Δ = Laplacian(name, parent(S[1]))
     else
         # compute
-        Δ = Delta(name, S, Id, radius=radius)
+        Δ = Laplacian(name, S, Id, radius=radius)
     end
 
     if exists(filename(name, :λ)) && exists(filename(name, :P))
