@@ -26,7 +26,7 @@ function setup_logging(name::String)
 
     e = redirect_stderr(logger.handlers["full_log"].io)
 
-    return logger
+    return LOGGER
 end
 
 macro logtime(logger, ex)
