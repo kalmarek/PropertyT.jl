@@ -45,32 +45,13 @@ function compute_SOS(Q::AbstractArray, RG::GroupRing, l::Int)
     return GroupRingElem(result, RG)
 end
 
-function distance_to_cone{T<:Interval}(elt::GroupRingElem, Q::AbstractArray{T,2}, wlen::Int)
-    SOS = compute_SOS(Q, parent(elt), length(elt.coeffs))
-    SOS_diff = elt - SOS
+function distances_to_cone(elt::GroupRingElem, wlen::Int)
+    ɛ_dist = GroupRings.augmentation(elt)
 
-    ɛ_dist = GroupRings.augmentation(SOS_diff)
-    info(LOGGER, "ɛ(∑ξᵢ*ξᵢ) ∈ $(ɛ_dist)")
-
-    eoi_SOS_L1_dist = norm(SOS_diff,1)
-    info(LOGGER, "‖Δ² - λΔ - ∑ξᵢ*ξᵢ‖₁ ∈ $(eoi_SOS_L1_dist)")
+    eoi_SOS_L1_dist = norm(elt,1)
 
     dist = 2^(wlen-1)*eoi_SOS_L1_dist
-    return dist
-end
-
-function distance_to_cone{T}(elt::GroupRingElem, Q::AbstractArray{T,2}, wlen::Int)
-    SOS = compute_SOS(Q, parent(elt), length(elt.coeffs))
-    SOS_diff = elt - SOS
-
-    ɛ_dist = GroupRings.augmentation(SOS_diff)
-    info(LOGGER, "ɛ(Δ² - λΔ - ∑ξᵢ*ξᵢ) ≈ $(@sprintf("%.10f", ɛ_dist))")
-
-    eoi_SOS_L1_dist = norm(SOS_diff,1)
-    info(LOGGER, "‖Δ² - λΔ - ∑ξᵢ*ξᵢ‖₁ ≈ $(@sprintf("%.10f", eoi_SOS_L1_dist))")
-
-    dist = 2^(wlen-1)*eoi_SOS_L1_dist
-    return dist
+    return dist, ɛ_dist, eoi_SOS_L1_dist
 end
 
 function augIdproj{T, I<:AbstractInterval}(S::Type{I}, Q::AbstractArray{T,2})
