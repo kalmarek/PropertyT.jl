@@ -209,16 +209,19 @@ function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius)
         save(filename(name, :Δ), "Δ", Δ.coeffs)
     end
 
-    if exists(filename(name, :λ)) && exists(filename(name, :P))
+    fullpath = joinpath(name, string(upper_bound))
+    isdir(fullpath) || mkdir(fullpath)
+
+    if exists(filename(fullpath, :λ)) && exists(filename(fullpath, :P))
         info(LOGGER, "Loading precomputed λ, P...")
-        λ, P = λandP(name)
+        λ, P = λandP(fullpath)
     else
         info(LOGGER, "Creating SDP problem...")
         SDP_problem, varλ, varP = create_SDP_problem(Δ, constraints(parent(Δ).pm), upper_bound=upper_bound)
         JuMP.setsolver(SDP_problem, solver)
         info(LOGGER, Base.repr(SDP_problem))
 
-        @logtime LOGGER λ, P = λandP(name, SDP_problem, varλ, varP)
+        @logtime LOGGER λ, P = λandP(fullpath, SDP_problem, varλ, varP)
     end
 
     info(LOGGER, "λ = $λ")
