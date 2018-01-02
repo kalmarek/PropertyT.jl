@@ -100,7 +100,6 @@ filename(prefix, s::Symbol) = filename(prefix, Val{s})
 end
 
 function Laplacian(name::String, G::Group)
-    info(LOGGER, "Loading precomputed Δ...")
     if exists(filename(name, :Δ)) && exists(filename(name, :pm))
         RG = GroupRing(G, load(filename(name, :pm), "pm"))
         Δ = GroupRingElem(load(filename(name, :Δ), "Δ")[:, 1], RG)
@@ -110,25 +109,19 @@ function Laplacian(name::String, G::Group)
     return Δ
 end
 
-function Laplacian{T<:GroupElem}(name::String, S::Vector{T}, Id::T; radius::Int=2)
-    info(LOGGER, "Computing multiplication table, Δ...")
-    Δ = Laplacian(S, Id, radius=radius)
-    save(filename(name, :pm), "pm", parent(Δ).pm)
-    save(filename(name, :Δ), "Δ", Δ.coeffs)
-    return Δ
-end
+function Laplacian{T<:GroupElem}(S::Vector{T}, Id::T,
+    logger=getlogger(); radius::Int=2)
 
-function Laplacian{T<:GroupElem}(S::Vector{T}, Id::T; radius::Int=2)
-    info(LOGGER, "Generating metric ball of radius $radius...")
-    @logtime LOGGER E_R, sizes = Groups.generate_balls(S, Id, radius=2*radius)
-    info(LOGGER, "Generated balls of sizes $sizes.")
+    info(logger, "Generating metric ball of radius $radius...")
+    @logtime logger E_R, sizes = Groups.generate_balls(S, Id, radius=2*radius)
+    info(logger, "Generated balls of sizes $sizes.")
 
-    info(LOGGER, "Creating product matrix...")
-    @logtime LOGGER pm = GroupRings.create_pm(E_R, GroupRings.reverse_dict(E_R), sizes[radius]; twisted=true)
+    info(logger, "Creating product matrix...")
+    @logtime logger pm = GroupRings.create_pm(E_R, GroupRings.reverse_dict(E_R), sizes[radius]; twisted=true)
 
     RG = GroupRing(parent(Id), E_R, pm)
 
-    Δ = splaplacian(RG, S)
+    Δ = spLaplacian(RG, S)
     return Δ
 end
 
@@ -185,10 +178,13 @@ function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius)
 
     if exists(filename(name, :pm)) && exists(filename(name, :Δ))
         # cached
+        info(LOGGER, "Loading precomputed Δ...")
         Δ = Laplacian(name, parent(S[1]))
     else
         # compute
-        Δ = Laplacian(name, S, Id, radius=radius)
+        Δ = Laplacian(S, Id, LOGGER, radius=radius)
+        save(filename(name, :pm), "pm", parent(Δ).pm)
+        save(filename(name, :Δ), "Δ", Δ.coeffs)
     end
 
     if exists(filename(name, :λ)) && exists(filename(name, :P))
