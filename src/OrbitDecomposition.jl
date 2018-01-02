@@ -166,12 +166,13 @@ function orthSVD{T}(M::AbstractMatrix{T})
     return fact[:U][:,1:M_rank]
 end
 
-function compute_orbit_data{T<:GroupElem}(logger, name::String, G::Nemo.Group, S::Vector{T}, autS::Nemo.Group; radius=2)
+function compute_orbit_data{T<:GroupElem}(logger, name::String, S::Vector{T}, autS::Nemo.Group; radius=2)
     isdir(name) || mkdir(name)
 
     info(logger, "Generating ball of radius $(2*radius)")
 
     # TODO: Fix that by multiple dispatch?
+    G = parent(first(S))
     Id = (isa(G, Nemo.Ring) ? one(G) : G())
 
     @logtime logger E_2R, sizes = Groups.generate_balls(S, Id, radius=2*radius);

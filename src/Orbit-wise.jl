@@ -222,7 +222,7 @@ function check_property_T(sett::Settings)
     files_exists = ex.([:pm, :Δ, :Uπs, :orb, :preps])
 
     if !all(files_exists)
-        compute_orbit_data(sett.logger, prepath(sett), sett.G, sett.S, sett.autS, radius=sett.radius)
+        compute_orbit_data(sett.logger, prepath(sett), sett.S, sett.autS, radius=sett.radius)
     end
 
     cond1 = exists(filename(fullpath(sett), :λ))
