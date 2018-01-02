@@ -214,10 +214,11 @@ function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius)
         λ, P = λandP(name)
     else
         info(LOGGER, "Creating SDP problem...")
-        SDP_problem, λ_var, P_var = create_SDP_problem(Δ, PropertyT.constraints(parent(Δ).pm), upper_bound=upper_bound)
+        SDP_problem, varλ, varP = create_SDP_problem(Δ, constraints(parent(Δ).pm), upper_bound=upper_bound)
         JuMP.setsolver(SDP_problem, solver)
+        info(LOGGER, Base.repr(SDP_problem))
 
-        λ, P = λandP(name, SDP_problem, λ_var, P_var)
+        @logtime LOGGER λ, P = λandP(name, SDP_problem, varλ, varP)
     end
 
     info(LOGGER, "λ = $λ")
@@ -229,7 +230,7 @@ function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius)
         warn("The solution matrix doesn't seem to be positive definite!")
 
     if λ > 0
-        return check_λ(name, S, λ, P, radius, logger)
+        return check_λ(name, S, λ, P, radius, LOGGER)
     end
     info(LOGGER, "κ($name, S) ≥ $λ < 0: Tells us nothing about property (T)")
     return false
