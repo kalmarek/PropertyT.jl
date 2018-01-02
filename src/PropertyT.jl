@@ -12,21 +12,29 @@ using MathProgBase
 
 using Memento
 
-const LOGGER = Memento.config("info", fmt="{msg}")
-const LOGGER_SOLVER = Memento.config("info", fmt="{msg}")
-
 function setup_logging(name::String)
     isdir(name) || mkdir(name)
+    L = Memento.config("info", fmt="{date}| {msg}")
 
     handler = Memento.DefaultHandler(
-        joinpath(name,"full_$(string((now()))).log"),    Memento.DefaultFormatter("{date}| {msg}")
-    )
-    handler.levels.x = LOGGER.levels
-    LOGGER.handlers["full_log"] = handler
+        filename(name, :logall), Memento.DefaultFormatter("{date}| {msg}"))
 
-    e = redirect_stderr(logger.handlers["full_log"].io)
+    handler.levels.x = L.levels
+    L.handlers["all"] = handler
 
-    return LOGGER
+    # e = redirect_stderr(L.handlers["all"].io)
+
+    return L
+end
+
+function solverlogger(name)
+    logger = Memento.config("info", fmt="{msg}")
+
+    handler = DefaultHandler(
+        filename(name, :logsolver), DefaultFormatter("{date}| {msg}"))
+    handler.levels.x = logger.levels
+    logger.handlers["solver_log"] = handler
+    return logger
 end
 
 macro logtime(logger, ex)
@@ -173,6 +181,7 @@ Kazhdan_from_sgap(λ,N) = sqrt(2*λ/N)
 function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius)
 
     isdir(name) || mkdir(name)
+    LOGGER = Memento.getlogger()
 
     if exists(filename(name, :pm)) && exists(filename(name, :Δ))
         # cached
