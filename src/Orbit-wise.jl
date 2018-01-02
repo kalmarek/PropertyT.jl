@@ -243,32 +243,11 @@ function check_property_T(sett::Settings)
     info(sett.logger, "maximum(P) = $(maximum(P))")
     info(sett.logger, "minimum(P) = $(minimum(P))")
 
-    if λ > 0
-        pm_fname = filename(prepath(sett), :pm)
-        Δ_fname = filename(prepath(sett), :Δ)
-        RG = GroupRing(sett.G, load(pm_fname, "pm"))
-        Δ = GroupRingElem(load(Δ_fname, "Δ")[:, 1], RG)
-
-        isapprox(eigvals(P), abs.(eigvals(P)), atol=sett.tol) ||
+    isapprox(eigvals(P), abs.(eigvals(P)), atol=sett.tol) ||
         warn("The solution matrix doesn't seem to be positive definite!")
-        #  @assert P == Symmetric(P)
-        @logtime LOGGER Q = real(sqrtm(Symmetric(P)))
 
-        sgap = distance_to_positive_cone(Δ, λ, Q, 2*sett.radius, LOGGER)
-        if isa(sgap, Interval)
-            sgap = sgap.lo
-        end
-        if sgap > 0
-            info(LOGGER, "λ ≥ $(Float64(trunc(sgap,12)))")
-            Kazhdan_κ = PropertyT.Kazhdan_from_sgap(sgap, length(sett.S))
-            Kazhdan_κ = Float64(trunc(Kazhdan_κ, 12))
-            info(LOGGER, "κ($(sett.name), S) ≥ $Kazhdan_κ: Group HAS property (T)!")
-            return true
-        else
-            sgap = Float64(trunc(sgap, 12))
-            info(LOGGER, "λ($(sett.name), S) ≥ $sgap: Group may NOT HAVE property (T)!")
-            return false
-        end
+    if λ > 0
+        return check_λ(sett.name, sett.S, λ, P, sett.radius, sett.logger)
     end
     info(sett.logger, "κ($(sett.name), S) ≥ $λ < 0: Tells us nothing about property (T)")
     return false

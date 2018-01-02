@@ -171,6 +171,28 @@ end
 
 Kazhdan_from_sgap(λ,N) = sqrt(2*λ/N)
 
+function check_λ(name, S, λ, P, radius, logger)
+
+    RG = GroupRing(parent(first(S)), load(filename(name, :pm), "pm"))
+    Δ = GroupRingElem(load(filename(name, :Δ), "Δ")[:, 1], RG)
+
+    @logtime logger Q = real(sqrtm(Symmetric(P)))
+
+    sgap = check_distance_to_cone(Δ, λ, Q, 2*radius, logger)
+
+    if sgap > 0
+        info(logger, "λ ≥ $(Float64(trunc(sgap,12)))")
+        Kazhdan_κ = Kazhdan_from_sgap(sgap, length(S))
+        Kazhdan_κ = Float64(trunc(Kazhdan_κ, 12))
+        info(logger, "κ($name, S) ≥ $Kazhdan_κ: Group HAS property (T)!")
+        return true
+    else
+        sgap = Float64(trunc(sgap, 12))
+        info(logger, "λ($name, S) ≥ $sgap: Group may NOT HAVE property (T)!")
+        return false
+    end
+end
+
 function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius)
 
     isdir(name) || mkdir(name)
@@ -203,28 +225,11 @@ function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius)
     info(LOGGER, "maximum(P) = $(maximum(P))")
     info(LOGGER, "minimum(P) = $(minimum(P))")
 
+    isapprox(eigvals(P), abs.(eigvals(P)), atol=tol) ||
+        warn("The solution matrix doesn't seem to be positive definite!")
+
     if λ > 0
-
-        RG = GroupRing(parent(first(S)), load(filename(name, :pm), "pm"))
-        Δ = GroupRingElem(load(filename(name, :Δ), "Δ")[:, 1], RG)
-
-        isapprox(eigvals(P), abs(eigvals(P)), atol=tol) ||
-            warn("The solution matrix doesn't seem to be positive definite!")
-        @logtime LOGGER Q = real(sqrtm(Symmetric(P)))
-
-        sgap = check_distance_to_cone(Δ, λ, Q, 2*radius, LOGGER)
-
-        if sgap > 0
-            info(LOGGER, "λ ≥ $(Float64(trunc(sgap,12)))")
-            Kazhdan_κ = Kazhdan_from_sgap(sgap, length(S))
-            Kazhdan_κ = Float64(trunc(Kazhdan_κ, 12))
-            info(LOGGER, "κ($name, S) ≥ $Kazhdan_κ: Group HAS property (T)!")
-            return true
-        else
-            sgap = Float64(trunc(sgap, 12))
-            info(LOGGER, "λ($name, S) ≥ $sgap: Group may NOT HAVE property (T)!")
-            return false
-        end
+        return check_λ(name, S, λ, P, radius, logger)
     end
     info(LOGGER, "κ($name, S) ≥ $λ < 0: Tells us nothing about property (T)")
     return false
