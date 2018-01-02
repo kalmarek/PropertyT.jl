@@ -55,23 +55,29 @@ function create_SDP_problem(Δ::GroupRingElem, matrix_constraints; upper_bound=I
     return m, λ, P
 end
 
-function solve_SDP(SDP_problem)
-    info(LOGGER, Base.repr(SDP_problem))
+function solve_SDP(m, varλ, varP; warmstart=nothing)
 
-    o = redirect_stdout(LOGGER_SOLVER.handlers["solver_log"].io)
-    Base.Libc.flush_cstdio()
+    traits = JuMP.ProblemTraits(m, relaxation=false)
 
-    @logtime LOGGER solution_status = MathProgBase.optimize!(SDP_problem.internalModel)
-    Base.Libc.flush_cstdio()
-
-    redirect_stdout(o)
-
-    if solution_status != :Optimal
-        warn(LOGGER, "The solver did not solve the problem successfully!")
+    JuMP.build(m, traits=traits)
+    if warmstart != nothing
+        p_sol, d_sol, s = warmstart
+        MathProgBase.SolverInterface.setwarmstart!(m.internalModel, p_sol; dual_sol = d_sol, slack=s);
     end
-    info(LOGGER, solution_status)
 
-    return 0
+    MathProgBase.optimize!(m.internalModel)
+
+    λ = MathProgBase.getobjval(m.internalModel)
+
+    warmstart = (m.internalModel.primal_sol, m.internalModel.dual_sol,
+          m.internalModel.slack)
+
+    fillfrominternal!(m, traits)
+
+    P = JuMP.getvalue(varP)
+    λ = JuMP.getvalue(varλ)
+
+    return λ, P, warmstart
 end
 
 function fillfrominternal!(m::JuMP.Model, traits)

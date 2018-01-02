@@ -126,58 +126,35 @@ function λandP(name::String)
     return λ, P
 end
 
-function λandP(name::String, SDP_problem::JuMP.Model, varλ, varP, warmstart=false)
+function λandP(name::String, SDP::JuMP.Model, varλ, varP, warmstart=true)
 
-    handler = DefaultHandler(
-       joinpath(name, "solver_$(string(now())).log"),
-       DefaultFormatter("{date}| {msg}")
-       )
-    handler.levels.x = LOGGER_SOLVER.levels
-    LOGGER_SOLVER.handlers["solver_log"] = handler
-
-    if warmstart && isfile(joinpath(name, "warmstart.jld"))
-        ws = load(joinpath(name, "warmstart.jld"), "warmstart")
+    if warmstart && isfile(filename(name, :warm))
+        ws = load(filename(name, :warm), "warmstart")
     else
         ws = nothing
     end
 
-    λ, P, warmstart = compute_λandP(SDP_problem, varλ, varP, warmstart=ws)
+    solver_log = solverlogger(name)
 
-    delete!(LOGGER_SOLVER.handlers, "solver_log")
+    Base.Libc.flush_cstdio()
+    o = redirect_stdout(solver_log.handlers["solver_log"].io)
+    Base.Libc.flush_cstdio()
+
+    λ, P, warmstart = solve_SDP(SDP, varλ, varP, warmstart=ws)
+
+    Base.Libc.flush_cstdio()
+    redirect_stdout(o)
+
+    delete!(solver_log.handlers, "solver_log")
 
     if λ > 0
         save(filename(name, :λ), "λ", λ)
         save(filename(name, :P), "P", P)
-        save(joinpath(name, "warmstart.jld"), "warmstart", warmstart)
+        save(filename(name, :warm), "warmstart", warmstart)
     else
         throw(ErrorException("Solver did not produce a valid solution: λ = $λ"))
     end
     return λ, P
-end
-
-function compute_λandP(m, varλ, varP; warmstart=nothing)
-    λ = 0.0
-    P = nothing
-
-    traits = JuMP.ProblemTraits(m, relaxation=false)
-
-    JuMP.build(m, traits=traits)
-    if warmstart != nothing
-        p_sol, d_sol, s = warmstart
-        MathProgBase.SolverInterface.setwarmstart!(m.internalModel, p_sol; dual_sol = d_sol, slack=s);
-    end
-    solve_SDP(m)
-    λ = MathProgBase.getobjval(m.internalModel)
-
-    warmstart = (m.internalModel.primal_sol, m.internalModel.dual_sol,
-          m.internalModel.slack)
-
-    fillfrominternal!(m, traits)
-
-    P = JuMP.getvalue(varP)
-    λ = JuMP.getvalue(varλ)
-
-    return λ, P, warmstart
 end
 
 Kazhdan_from_sgap(λ,N) = sqrt(2*λ/N)
