@@ -104,19 +104,6 @@ end
 
 sparsify{T}(U::AbstractArray{T}, tol=eps(T); check=true, verbose=false) = sparsify!(deepcopy(U), tol, check=check, verbose=verbose)
 
-function init_orbit_data(logger, sett::Settings; radius=2)
-
-    ex(fname) = isfile(joinpath(prepath(sett), fname))
-
-    files_exists = ex.(["delta.jld", "pm.jld", "U_pis.jld", "orbits.jld", "preps.jld"])
-
-    if !all(files_exists)
-        compute_orbit_data(logger, prepath(sett), sett.G, sett.S, sett.autS, radius=radius)
-    end
-
-    return 0
-end
-
 function transform(U::AbstractArray, V::AbstractArray; sparse=true)
     if sparse
         return sparsify!(U'*V*U)
@@ -230,7 +217,13 @@ end
 
 function check_property_T(sett::Settings)
 
-    init_orbit_data(LOGGER, sett, radius=sett.radius)
+    ex(s) = exists(filename(prepath(sett), s))
+
+    files_exists = ex.([:pm, :Δ, :Uπs, :orb, :preps])
+
+    if !all(files_exists)
+        compute_orbit_data(sett.logger, prepath(sett), sett.G, sett.S, sett.autS, radius=sett.radius)
+    end
 
     cond1 = exists(filename(fullpath(sett), :λ))
     cond2 = exists(filename(fullpath(sett), :P))
