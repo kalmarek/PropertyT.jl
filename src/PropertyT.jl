@@ -70,15 +70,26 @@ end
 
 exists(fname::String) = isfile(fname) || islink(fname)
 
-function filename(prefix, s::Symbol)
-    isdir(prefix) || mkdir(prefix)
-    return filename(prefix, Val{s})
-end
+filename(prefix, s::Symbol) = filename(prefix, Val{s})
 
-filename(prefix::String, ::Type{Val{:pm}}) = joinpath(prefix, "pm.jld")
-filename(prefix::String, ::Type{Val{:Δ}})  = joinpath(prefix, "delta.jld")
-filename(prefix::String, ::Type{Val{:λ}})  = joinpath(prefix, "lambda.jld")
-filename(prefix::String, ::Type{Val{:P}})  = joinpath(prefix, "SDPmatrix.jld")
+@eval begin
+    for (s,n) in [
+        [:pm,   "pm.jld"],
+        [:Δ,    "delta.jld"],
+        [:λ,    "lambda.jld"],
+        [:P,    "SDPmatrix.jld"],
+        [:warm, "warmstart.jld"],
+        [:Uπs,  "U_pis.jld"],
+        [:orb,  "orbits.jld"],
+        [:preps,"preps.jld"],
+
+        [:logall,   "full_$(string(now())).log"],
+        [:logsolver,"solver_$(string(now())).log"]
+        ]
+
+        filename(prefix::String, ::Type{Val{$:(s)}}) = joinpath(prefix, :($n))
+    end
+end
 
 function Laplacian(name::String, G::Group)
     info(LOGGER, "Loading precomputed Δ...")

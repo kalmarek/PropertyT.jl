@@ -184,8 +184,8 @@ function compute_orbit_data{T<:GroupElem}(logger, name::String, G::Nemo.Group, S
     RG = GroupRing(G, E_2R, E_rdict, pm)
     Δ = PropertyT.spLaplacian(RG, S)
     @assert GroupRings.augmentation(Δ) == 0
-    save(joinpath(name, "delta.jld"), "Δ", Δ.coeffs)
-    save(joinpath(name, "pm.jld"), "pm", pm)
+    save(filename(name, :Δ), "Δ", Δ.coeffs)
+    save(filename(name, :pm), "pm", pm)
 
     info(logger, "Decomposing E into orbits of $(autS)")
     @logtime logger orbs = orbit_decomposition(autS, E_2R, E_rdict)
@@ -195,7 +195,7 @@ function compute_orbit_data{T<:GroupElem}(logger, name::String, G::Nemo.Group, S
 
     info(logger, "Action matrices")
     @logtime logger reps = perm_reps(autS, E_2R[1:sizes[radius]], E_rdict)
-    save_preps(joinpath(name, "preps.jld"), reps)
+    save_preps(filename(name, :preps), reps)
     reps = matrix_reps(reps)
 
     info(logger, "Projections")

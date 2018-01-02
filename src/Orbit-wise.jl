@@ -32,23 +32,23 @@ immutable OrbitData{T<:AbstractArray{Float64, 2}, LapType <:AbstractVector{Float
 end
 
 function OrbitData(sett::Settings)
-    splap = load(joinpath(prepath(sett), "delta.jld"), "Δ");
-    pm = load(joinpath(prepath(sett), "pm.jld"), "pm");
+    splap = load(filename(prepath(sett), :Δ), "Δ");
+    pm = load(filename(prepath(sett), :pm), "pm");
     cnstr = PropertyT.constraints(pm);
     splap² = similar(splap)
     splap² = GroupRings.mul!(splap², splap, splap, pm);
 
-    Uπs = load(joinpath(prepath(sett), "U_pis.jld"), "Uπs")
+    Uπs = load(filename(prepath(sett), :Uπs), "Uπs")
     nzros = [i for i in 1:length(Uπs) if size(Uπs[i],2) !=0]
     Uπs = Uπs[nzros]
     Uπs = sparsify!.(Uπs, sett.tol, check=true, verbose=true)
 
     #dimensions of the corresponding πs:
-    dims = load(joinpath(prepath(sett), "U_pis.jld"), "dims")[nzros]
+    dims = load(filename(prepath(sett), :Uπs), "dims")[nzros]
 
     m, P = init_model(size(Uπs,1), [size(U,2) for U in Uπs]);
 
-    orbits = load(joinpath(prepath(sett), "orbits.jld"), "orbits");
+    orbits = load(filename(prepath(sett), :orb), "orbits");
     n = size(Uπs[1],1)
     orb_spcnstrm = [orbit_constraint(cnstr[collect(orb)], n) for orb in orbits]
     orb_splap = orbit_spvector(splap, orbits)
@@ -206,7 +206,7 @@ function λandP(m::JuMP.Model, data::OrbitData, sett::Settings)
 
     info(LOGGER, "Reconstructing P...")
 
-    preps = load_preps(joinpath(prepath(sett), "preps.jld"), sett.autS)
+    preps = load_preps(filename(prepath(sett), :preps), sett.autS)
 
     @logtime LOGGER recP = reconstruct_sol(preps, data.Us, Ps, data.dims)
 
