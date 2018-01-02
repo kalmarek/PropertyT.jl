@@ -80,7 +80,7 @@ function sparsify!{Tv,Ti}(M::SparseMatrixCSC{Tv,Ti}, eps=eps(Tv); verbose=false)
     m = nnz(M)
 
     if verbose
-        info(LOGGER, "Sparsified density:", rpad(densM, 20), " → ", rpad(dens(M), 20))
+        info("Sparsified density:", rpad(densM, 20), " → ", rpad(dens(M), 20))
     end
 
     return M
@@ -92,11 +92,11 @@ function sparsify!{T}(M::AbstractArray{T}, eps=eps(T); check=false, verbose=fals
     M[abs.(M) .< eps] .= zero(T)
 
     if check && rankM != rank(M)
-        warn(LOGGER, "Sparsification decreased the rank!")
+        warn("Sparsification decreased the rank!")
     end
 
     if verbose
-        info(LOGGER, "Sparsified density:", rpad(densM, 20), " → ", rpad(dens(M),20))
+        info("Sparsified density:", rpad(densM, 20), " → ", rpad(dens(M),20))
     end
 
     return sparse(M)
