@@ -14,6 +14,7 @@ immutable Settings{T<:AbstractMathProgSolver}
     upper_bound::Float64
     tol::Float64
     warmstart::Bool
+    logger
 end
 
 prefix(s::Settings) = s.name
@@ -178,8 +179,8 @@ function init_model(n, sizes)
 end
 
 function create_SDP_problem(sett::Settings)
-    info(LOGGER, "Loading orbit data....")
-    @logtime LOGGER SDP_problem, orb_data = OrbitData(sett);
+    info(sett.logger, "Loading orbit data....")
+    @logtime sett.logger SDP_problem, orb_data = OrbitData(sett);
 
     if sett.upper_bound < Inf
         λ = JuMP.getvariable(SDP_problem, :λ)
@@ -187,8 +188,8 @@ function create_SDP_problem(sett::Settings)
     end
 
     t = length(orb_data.laplacian)
-    info(LOGGER, "Adding $t constraints ... ")
-    @logtime LOGGER addconstraints!(SDP_problem, orb_data)
+    info(sett.logger, "Adding $t constraints ... ")
+    @logtime sett.logger addconstraints!(SDP_problem, orb_data)
 
     return SDP_problem, orb_data
 end
@@ -201,14 +202,14 @@ function λandP(m::JuMP.Model, data::OrbitData, warmstart=true)
 end
 
 function λandP(m::JuMP.Model, data::OrbitData, sett::Settings)
-    info(LOGGER, "Solving SDP problem...")
+    info(sett.logger, "Solving SDP problem...")
     λ, Ps = λandP(m, data, sett.warmstart)
 
-    info(LOGGER, "Reconstructing P...")
+    info(sett.logger, "Reconstructing P...")
 
     preps = load_preps(filename(prepath(sett), :preps), sett.autS)
 
-    @logtime LOGGER recP = reconstruct_sol(preps, data.Us, Ps, data.dims)
+    @logtime sett.logger recP = reconstruct_sol(preps, data.Us, Ps, data.dims)
 
     fname = filename(fullpath(sett), :P)
     save(fname, "origP", Ps, "P", recP)
@@ -237,17 +238,17 @@ function check_property_T(sett::Settings)
     if !sett.warmstart && cond1 && cond2
         λ, P = PropertyT.λandP(fullpath(sett))
     else
-        info(LOGGER, "Creating SDP problem...")
+        info(sett.logger, "Creating SDP problem...")
         SDP_problem, orb_data = create_SDP_problem(sett)
         JuMP.setsolver(SDP_problem, sett.solver)
 
         λ, P = λandP(SDP_problem, orb_data, sett)
     end
 
-    info(LOGGER, "λ = $λ")
-    info(LOGGER, "sum(P) = $(sum(P))")
-    info(LOGGER, "maximum(P) = $(maximum(P))")
-    info(LOGGER, "minimum(P) = $(minimum(P))")
+    info(sett.logger, "λ = $λ")
+    info(sett.logger, "sum(P) = $(sum(P))")
+    info(sett.logger, "maximum(P) = $(maximum(P))")
+    info(sett.logger, "minimum(P) = $(minimum(P))")
 
     if λ > 0
         pm_fname = filename(prepath(sett), :pm)
@@ -276,6 +277,6 @@ function check_property_T(sett::Settings)
             return false
         end
     end
-    info(LOGGER, "κ($(sett.name), S) ≥ $λ < 0: Tells us nothing about property (T)")
+    info(sett.logger, "κ($(sett.name), S) ≥ $λ < 0: Tells us nothing about property (T)")
     return false
 end
