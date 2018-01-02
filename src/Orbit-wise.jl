@@ -190,7 +190,7 @@ end
 
 function λandP(m::JuMP.Model, data::OrbitData, sett::Settings)
     info(sett.logger, "Solving SDP problem...")
-    λ, Ps = λandP(m, data, sett.warmstart)
+    @logtime sett.logger λ, Ps = λandP(m, data, sett.warmstart)
 
     info(sett.logger, "Reconstructing P...")
 
@@ -234,6 +234,7 @@ function check_property_T(sett::Settings)
         info(sett.logger, "Creating SDP problem...")
         SDP_problem, orb_data = create_SDP_problem(sett)
         JuMP.setsolver(SDP_problem, sett.solver)
+        info(sett.logger, Base.repr(SDP_problem))
 
         λ, P = λandP(SDP_problem, orb_data, sett)
     end
