@@ -12,19 +12,29 @@ using MathProgBase
 
 using Memento
 
-const logger = Memento.config("info", fmt="{msg}")
-const solver_logger = Memento.config("info", fmt="{msg}")
-
 function setup_logging(name::String)
-   isdir(name) || mkdir(name)
+    isdir(name) || mkdir(name)
+    L = Memento.config("info", fmt="{date}| {msg}")
 
-   Memento.add_handler(logger,
-      Memento.DefaultHandler(joinpath(name,"full_$(string((now()))).log"),
-      Memento.DefaultFormatter("{date}| {msg}")), "full_log")
+    handler = Memento.DefaultHandler(
+        filename(name, :logall), Memento.DefaultFormatter("{date}| {msg}"))
 
-   e = redirect_stderr(logger.handlers["full_log"].io)
+    handler.levels.x = L.levels
+    L.handlers["all"] = handler
 
-   return logger
+    # e = redirect_stderr(L.handlers["all"].io)
+
+    return L
+end
+
+function solverlogger(name)
+    logger = Memento.config("info", fmt="{msg}")
+
+    handler = DefaultHandler(
+        filename(name, :logsolver), DefaultFormatter("{date}| {msg}"))
+    handler.levels.x = logger.levels
+    logger.handlers["solver_log"] = handler
+    return logger
 end
 
 macro logtime(logger, ex)
@@ -35,8 +45,8 @@ macro logtime(logger, ex)
         elapsedtime = Base.time_ns() - elapsedtime
         local diff = Base.GC_Diff(Base.gc_num(), stats)
         local ts = time_string(elapsedtime, diff.allocd, diff.total_time,
-                   Base.gc_alloc_count(diff))
-        esc(info(logger, ts))
+                               Base.gc_alloc_count(diff))
+        $(esc(info))($(esc(logger)), ts)
         val
     end
 end
@@ -66,289 +76,167 @@ function time_string(elapsedtime, bytes, gctime, allocs)
     return str
 end
 
-function exists(fname::String)
-   return isfile(fname) || islink(fname)
+exists(fname::String) = isfile(fname) || islink(fname)
+
+filename(prefix, s::Symbol) = filename(prefix, Val{s})
+
+@eval begin
+    for (s,n) in [
+        [:pm,   "pm.jld"],
+        [:Δ,    "delta.jld"],
+        [:λ,    "lambda.jld"],
+        [:P,    "SDPmatrix.jld"],
+        [:warm, "warmstart.jld"],
+        [:Uπs,  "U_pis.jld"],
+        [:orb,  "orbits.jld"],
+        [:preps,"preps.jld"],
+
+        [:logall,   "full_$(string(now())).log"],
+        [:logsolver,"solver_$(string(now())).log"]
+        ]
+
+        filename(prefix::String, ::Type{Val{$:(s)}}) = joinpath(prefix, :($n))
+    end
 end
 
-function pmΔfilenames(prefix::String)
-   isdir(prefix) || mkdir(prefix)
-   pm_filename = joinpath(prefix, "pm.jld")
-   Δ_coeff_filename = joinpath(prefix, "delta.jld")
-   return pm_filename, Δ_coeff_filename
+function Laplacian(name::String, G::Group)
+    if exists(filename(name, :Δ)) && exists(filename(name, :pm))
+        RG = GroupRing(G, load(filename(name, :pm), "pm"))
+        Δ = GroupRingElem(load(filename(name, :Δ), "Δ")[:, 1], RG)
+    else
+        throw("You need to precompute $(filename(name, :pm)) and $(filename(name, :Δ)) to load it!")
+    end
+    return Δ
 end
 
-function λSDPfilenames(prefix::String)
-   isdir(prefix) || mkdir(prefix)
-   λ_filename = joinpath(prefix, "lambda.jld")
-   SDP_filename = joinpath(prefix, "SDPmatrix.jld")
-   return λ_filename, SDP_filename
-end
+function Laplacian{T<:GroupElem}(S::Vector{T}, Id::T,
+    logger=getlogger(); radius::Int=2)
 
-function ΔandSDPconstraints(prefix::String, G::Group)
-    info(logger, "Loading precomputed pm, Δ, sdp_constraints...")
-    pm_fname, Δ_fname = pmΔfilenames(prefix)
-
-    product_matrix = load(pm_fname, "pm")
-    sdp_constraints = constraints(product_matrix)
-
-    RG = GroupRing(G, product_matrix)
-    Δ = GroupRingElem(load(Δ_fname, "Δ")[:, 1], RG)
-
-    return Δ, sdp_constraints
-end
-
-function ΔandSDPconstraints{T<:GroupElem}(name::String, S::Vector{T}, Id::T; radius::Int=2)
-   info(logger, "Computing pm, Δ, sdp_constraints...")
-   Δ, sdp_constraints = ΔandSDPconstraints(S, Id, radius=radius)
-   pm_fname, Δ_fname = pmΔfilenames(name)
-   save(pm_fname, "pm", parent(Δ).pm)
-   save(Δ_fname, "Δ", Δ.coeffs)
-   return Δ, sdp_constraints
-end
-
-function ΔandSDPconstraints{T<:GroupElem}(S::Vector{T}, Id::T; radius::Int=2)
-    info(logger, "Generating balls of sizes $sizes")
+    info(logger, "Generating metric ball of radius $radius...")
     @logtime logger E_R, sizes = Groups.generate_balls(S, Id, radius=2*radius)
+    info(logger, "Generated balls of sizes $sizes.")
 
     info(logger, "Creating product matrix...")
     @logtime logger pm = GroupRings.create_pm(E_R, GroupRings.reverse_dict(E_R), sizes[radius]; twisted=true)
 
-    info(logger, "Creating sdp_constratints...")
-    @logtime logger sdp_constraints = PropertyT.constraints(pm)
-
     RG = GroupRing(parent(Id), E_R, pm)
 
-    Δ = splaplacian(RG, S)
-    return Δ, sdp_constraints
+    Δ = spLaplacian(RG, S)
+    return Δ
 end
 
 function λandP(name::String)
-    λ_fname, SDP_fname = λSDPfilenames(name)
-    f₁ = exists(λ_fname)
-    f₂ = exists(SDP_fname)
+    λ_fname = filename(name, :λ)
+    P_fname = filename(name, :P)
 
-    if f₁ && f₂
-        info(logger, "Loading precomputed λ, P...")
+    if exists(λ_fname) && exists(P_fname)
         λ = load(λ_fname, "λ")
-        P = load(SDP_fname, "P")
+        P = load(P_fname, "P")
     else
-        throw(ArgumentError("You need to precompute λ and SDP matrix P to load it!"))
+        throw("You need to precompute $λ_fname and $P_fname to load it!")
     end
     return λ, P
 end
 
-function λandP(name::String, SDP_problem::JuMP.Model, varλ, varP, warmstart=false)
-   add_handler(solver_logger,
-      DefaultHandler(joinpath(name, "solver_$(string(now())).log"),
-      DefaultFormatter("{date}| {msg}")),
-      "solver_log")
-   if warmstart && isfile(joinpath(name, "warmstart.jld"))
-      ws = load(joinpath(name, "warmstart.jld"), "warmstart")
-   else
-      ws = nothing
-   end
+function λandP(name::String, SDP::JuMP.Model, varλ, varP, warmstart=true)
 
-   λ, P, warmstart = compute_λandP(SDP_problem, varλ, varP, warmstart=ws)
-
-   remove_handler(solver_logger, "solver_log")
-
-   λ_fname, P_fname = λSDPfilenames(name)
-
-   if λ > 0
-       save(λ_fname, "λ", λ)
-       save(P_fname, "P", P)
-       save(joinpath(name, "warmstart.jld"), "warmstart", warmstart)
-   else
-       throw(ErrorException("Solver did not produce a valid solution!: λ = $λ"))
-   end
-   return λ, P
-
-end
-
-function fillfrominternal!(m::JuMP.Model, traits)
-    # Copied from JuMP/src/solvers.jl:178
-
-    stat::Symbol = MathProgBase.status(m.internalModel)
-
-    numRows, numCols = length(m.linconstr), m.numCols
-    m.objBound = NaN
-    m.objVal = NaN
-    m.colVal = fill(NaN, numCols)
-    m.linconstrDuals = Array{Float64}(0)
-
-    discrete = (traits.int || traits.sos)
-
-    if stat == :Optimal
-        # If we think dual information might be available, try to get it
-        # If not, return an array of the correct length
-        if discrete
-            m.redCosts = fill(NaN, numCols)
-            m.linconstrDuals = fill(NaN, numRows)
-        else
-            if !traits.conic
-                m.redCosts = try
-                    MathProgBase.getreducedcosts(m.internalModel)[1:numCols]
-                catch
-                    fill(NaN, numCols)
-                end
-
-                m.linconstrDuals = try
-                    MathProgBase.getconstrduals(m.internalModel)[1:numRows]
-                catch
-                    fill(NaN, numRows)
-                end
-            elseif !traits.qp && !traits.qc
-                JuMP.fillConicDuals(m)
-            end
-        end
+    if warmstart && isfile(filename(name, :warm))
+        ws = load(filename(name, :warm), "warmstart")
     else
-        # Problem was not solved to optimality, attempt to extract useful
-        # information anyway
-
-        if traits.lin
-            if stat == :Infeasible
-                m.linconstrDuals = try
-                    infray = MathProgBase.getinfeasibilityray(m.internalModel)
-                    @assert length(infray) == numRows
-                    infray
-                catch
-                    suppress_warnings || warn("Infeasibility ray (Farkas proof) not available")
-                    fill(NaN, numRows)
-                end
-            elseif stat == :Unbounded
-                m.colVal = try
-                    unbdray = MathProgBase.getunboundedray(m.internalModel)
-                    @assert length(unbdray) == numCols
-                    unbdray
-                catch
-                    suppress_warnings || warn("Unbounded ray not available")
-                    fill(NaN, numCols)
-                end
-            end
-        end
-        # conic duals (currently, SOC and SDP only)
-        if !discrete && traits.conic && !traits.qp && !traits.qc
-            if stat == :Infeasible
-                JuMP.fillConicDuals(m)
-            end
-        end
+        ws = nothing
     end
 
-    # If the problem was solved, or if it terminated prematurely, try
-    # to extract a solution anyway. This commonly occurs when a time
-    # limit or tolerance is set (:UserLimit)
-    if !(stat == :Infeasible || stat == :Unbounded)
-        try
-            # Do a separate try since getobjval could work while getobjbound does not and vice versa
-            objBound = MathProgBase.getobjbound(m.internalModel) + m.obj.aff.constant
-            m.objBound = objBound
-        end
-        try
-            objVal = MathProgBase.getobjval(m.internalModel) + m.obj.aff.constant
-            colVal = MathProgBase.getsolution(m.internalModel)[1:numCols]
-            # Rescale off-diagonal terms of SDP variables
-            if traits.sdp
-                offdiagvars = JuMP.offdiagsdpvars(m)
-                colVal[offdiagvars] /= sqrt(2)
-            end
-            # Don't corrupt the answers if one of the above two calls fails
-            m.objVal = objVal
-            m.colVal = colVal
-        end
+    solver_log = solverlogger(name)
+
+    Base.Libc.flush_cstdio()
+    o = redirect_stdout(solver_log.handlers["solver_log"].io)
+    Base.Libc.flush_cstdio()
+
+    λ, P, warmstart = solve_SDP(SDP, varλ, varP, warmstart=ws)
+
+    Base.Libc.flush_cstdio()
+    redirect_stdout(o)
+
+    delete!(solver_log.handlers, "solver_log")
+
+    if λ > 0
+        save(filename(name, :λ), "λ", λ)
+        save(filename(name, :P), "P", P)
+        save(filename(name, :warm), "warmstart", warmstart)
+    else
+        throw(ErrorException("Solver did not produce a valid solution: λ = $λ"))
     end
-
-    return stat
-end
-
-function compute_λandP(m, varλ, varP; warmstart=nothing)
-    λ = 0.0
-    P = nothing
-
-    traits = JuMP.ProblemTraits(m, relaxation=false)
-
-    while λ == 0.0
-        try
-            JuMP.build(m, traits=traits)
-            if warmstart != nothing
-                p_sol, d_sol, s = warmstart
-                MathProgBase.SolverInterface.setwarmstart!(m.internalModel, p_sol; dual_sol = d_sol, slack=s);
-            end
-            solve_SDP(m)
-            λ = MathProgBase.getobjval(m.internalModel)
-        catch y
-            warn(solver_logger, y)
-        end
-    end
-
-    warmstart = (m.internalModel.primal_sol, m.internalModel.dual_sol,
-          m.internalModel.slack)
-
-    fillfrominternal!(m, traits)
-
-    P = JuMP.getvalue(varP)
-    λ = JuMP.getvalue(varλ)
-
-    return λ, P, warmstart
+    return λ, P
 end
 
 Kazhdan_from_sgap(λ,N) = sqrt(2*λ/N)
 
+function check_λ(name, S, λ, P, radius, logger)
+
+    RG = GroupRing(parent(first(S)), load(filename(name, :pm), "pm"))
+    Δ = GroupRingElem(load(filename(name, :Δ), "Δ")[:, 1], RG)
+
+    @logtime logger Q = real(sqrtm(Symmetric(P)))
+
+    sgap = check_distance_to_cone(Δ, λ, Q, 2*radius, logger)
+
+    if sgap > 0
+        info(logger, "λ($name, S) ≥ $(Float64(trunc(sgap,12)))")
+        Kazhdan_κ = Kazhdan_from_sgap(sgap, length(S))
+        Kazhdan_κ = Float64(trunc(Kazhdan_κ, 12))
+        info(logger, "κ($name, S) ≥ $Kazhdan_κ: Group HAS property (T)!")
+        return true
+    else
+        sgap = Float64(trunc(sgap, 12))
+        info(logger, "λ($name, S) ≥ $sgap: Group may NOT HAVE property (T)!")
+        return false
+    end
+end
+
 function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius)
 
     isdir(name) || mkdir(name)
+    LOGGER = Memento.getlogger()
 
-    if all(exists.(pmΔfilenames(name)))
+    if exists(filename(name, :pm)) && exists(filename(name, :Δ))
         # cached
-        Δ, sdp_constraints = ΔandSDPconstraints(name, parent(S[1]))
+        info(LOGGER, "Loading precomputed Δ...")
+        Δ = Laplacian(name, parent(S[1]))
     else
         # compute
-        Δ, sdp_constraints = ΔandSDPconstraints(name, S, Id, radius=radius)
+        Δ = Laplacian(S, Id, LOGGER, radius=radius)
+        save(filename(name, :pm), "pm", parent(Δ).pm)
+        save(filename(name, :Δ), "Δ", Δ.coeffs)
     end
 
-   if all(exists.(λSDPfilenames(name)))
-      λ, P = λandP(name)
-   else
-      info(logger, "Creating SDP problem...")
-      SDP_problem, λ, P = create_SDP_problem(Δ, sdp_constraints, upper_bound=upper_bound)
-      JuMP.setsolver(SDP_problem, solver)
+    fullpath = joinpath(name, string(upper_bound))
+    isdir(fullpath) || mkdir(fullpath)
 
+    if exists(filename(fullpath, :λ)) && exists(filename(fullpath, :P))
+        info(LOGGER, "Loading precomputed λ, P...")
+        λ, P = λandP(fullpath)
+    else
+        info(LOGGER, "Creating SDP problem...")
+        SDP_problem, varλ, varP = create_SDP_problem(Δ, constraints(parent(Δ).pm), upper_bound=upper_bound)
+        JuMP.setsolver(SDP_problem, solver)
+        info(LOGGER, Base.repr(SDP_problem))
 
-      λ, P = λandP(name, SDP_problem, λ, P)
-   end
+        @logtime LOGGER λ, P = λandP(fullpath, SDP_problem, varλ, varP)
+    end
 
-   info(logger, "λ = $λ")
-   info(logger, "sum(P) = $(sum(P))")
-   info(logger, "maximum(P) = $(maximum(P))")
-   info(logger, "minimum(P) = $(minimum(P))")
+    info(LOGGER, "λ = $λ")
+    info(LOGGER, "sum(P) = $(sum(P))")
+    info(LOGGER, "maximum(P) = $(maximum(P))")
+    info(LOGGER, "minimum(P) = $(minimum(P))")
 
-   if λ > 0
-      pm_fname, Δ_fname = pmΔfilenames(name)
-      RG = GroupRing(parent(first(S)), load(pm_fname, "pm"))
-      Δ = GroupRingElem(load(Δ_fname, "Δ")[:, 1], RG)
+    isapprox(eigvals(P), abs.(eigvals(P)), atol=tol) ||
+        warn("The solution matrix doesn't seem to be positive definite!")
 
-      isapprox(eigvals(P), abs(eigvals(P)), atol=tol) ||
-         warn("The solution matrix doesn't seem to be positive definite!")
-     #  @assert P == Symmetric(P)
-      @logtime logger Q = real(sqrtm(Symmetric(P)))
-
-      sgap = distance_to_positive_cone(Δ, λ, Q, 2*radius)
-      if isa(sgap, Interval)
-         sgap = sgap.lo
-      end
-      if sgap > 0
-         info(logger, "λ ≥ $(Float64(trunc(sgap,12)))")
-         Kazhdan_κ = Kazhdan_from_sgap(sgap, length(S))
-         Kazhdan_κ = Float64(trunc(Kazhdan_κ, 12))
-         info(logger, "κ($name, S) ≥ $Kazhdan_κ: Group HAS property (T)!")
-         return true
-      else
-         sgap = Float64(trunc(sgap, 12))
-         info(logger, "λ($name, S) ≥ $sgap: Group may NOT HAVE property (T)!")
-         return false
-      end
-   end
-   info(logger, "κ($name, S) ≥ $λ < 0: Tells us nothing about property (T)")
-   return false
+    if λ > 0
+        return check_λ(name, S, λ, P, radius, LOGGER)
+    end
+    info(LOGGER, "κ($name, S) ≥ $λ < 0: Tells us nothing about property (T)")
+    return false
 end
 
 include("SDPs.jl")
