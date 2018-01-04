@@ -181,7 +181,7 @@ function check_λ(name, S, λ, P, radius, logger)
     sgap = check_distance_to_cone(Δ, λ, Q, 2*radius, logger)
 
     if sgap > 0
-        info(logger, "λ ≥ $(Float64(trunc(sgap,12)))")
+        info(logger, "λ($name, S) ≥ $(Float64(trunc(sgap,12)))")
         Kazhdan_κ = Kazhdan_from_sgap(sgap, length(S))
         Kazhdan_κ = Float64(trunc(Kazhdan_κ, 12))
         info(logger, "κ($name, S) ≥ $Kazhdan_κ: Group HAS property (T)!")
