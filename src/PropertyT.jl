@@ -193,7 +193,7 @@ function check_λ(name, S, λ, P, radius, logger)
     end
 end
 
-function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius)
+function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius, warm::Bool=false)
 
     isdir(name) || mkdir(name)
     LOGGER = Memento.getlogger()
@@ -212,7 +212,10 @@ function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius)
     fullpath = joinpath(name, string(upper_bound))
     isdir(fullpath) || mkdir(fullpath)
 
-    if exists(filename(fullpath, :λ)) && exists(filename(fullpath, :P))
+    cond1 = exists(filename(fullpath, :λ))
+    cond2 = exists(filename(fullpath, :P))
+
+    if !sett.warmstart && cond1 && cond2
         info(LOGGER, "Loading precomputed λ, P...")
         λ, P = λandP(fullpath)
     else
