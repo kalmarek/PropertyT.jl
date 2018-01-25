@@ -229,7 +229,7 @@ function check_property_T(sett::Settings)
     cond2 = exists(filename(fullpath(sett), :P))
 
     if !sett.warmstart && cond1 && cond2
-        λ, P = PropertyT.λandP(fullpath(sett))
+        λ, P = λandP(fullpath(sett))
     else
         info(sett.logger, "Creating SDP problem...")
         SDP_problem, orb_data = create_SDP_problem(sett)
