@@ -1,7 +1,7 @@
 julia
 JuMP 0.18.0
 SCS
-IntervalArithmetic 0.10
+IntervalArithmetic 
 JLD
 Memento
 Nemo 0.7
