@@ -67,7 +67,7 @@ function central_projection(RG::GroupRing, chi::AbstractCharacter, T::Type=Ratio
     return result
 end
 
-function idempotents(RG::GroupRing{Generic.PermGroup}, T::Type=Rational{Int})
+function idempotents(RG::GroupRing{Generic.PermGroup{S}}, T::Type=Rational{S}) where S<:Integer
     if RG.group.n == 1
         return GroupRingElem{T}[one(RG,T)]
     elseif RG.group.n == 2
@@ -76,7 +76,7 @@ function idempotents(RG::GroupRing{Generic.PermGroup}, T::Type=Rational{Int})
         return GroupRingElem{T}[1//2*(Id + transp), 1//2*(Id - transp)]
 
     end
-    projs = Vector{Vector{Generic.perm}}()
+    projs = Vector{Vector{Generic.perm{S}}}()
     for l in 2:RG.group.n
         u = RG.group([circshift([i for i in 1:l], -1); [i for i in l+1:RG.group.n]])
         i = 0
@@ -129,14 +129,15 @@ function rankOne_projections(G::Generic.PermGroup, T::Type=Rational{Int})
     end
 
     RGidems = idempotents(RG, T)
-    l = length(Partitions(G.n))
+    l = length(AllParts(G.n))
 
-    parts = collect(Partitions(G.n))
-    chars = [PropertyT.PermCharacter(p) for p in parts]
+    chars = [PropertyT.PermCharacter(p) for p in AllParts(G.n)]
     min_projs = Vector{eltype(RGidems)}(l)
 
-    for i in 1:l
-        chi = PropertyT.PermCharacter(parts[i])
+    i = 0
+    for part in AllParts(G.n)
+        i += 1
+        chi = PropertyT.PermCharacter(part)
         min_projs[i] = rankOne_projection(chi,RGidems)*central_projection(RG,chi)
     end
 

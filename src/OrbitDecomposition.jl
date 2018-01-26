@@ -100,7 +100,7 @@ function matrix_repr(p::perm)
     return sparse(1:N, p.d, [1.0 for _ in 1:N])
 end
 
-function matrix_reps{T<:GroupElem}(preps::Dict{T,perm})
+function matrix_reps(preps::Dict{T,perm{I}}) where {T<:GroupElem, I<:Integer}
     kk = collect(keys(preps))
     mreps = Vector{SparseMatrixCSC{Float64, Int}}(length(kk))
     Threads.@threads for i in 1:length(kk)
