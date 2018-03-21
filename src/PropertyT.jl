@@ -215,7 +215,7 @@ function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius,
     cond1 = exists(filename(fullpath, :λ))
     cond2 = exists(filename(fullpath, :P))
 
-    if !sett.warmstart && cond1 && cond2
+    if !(warm) && cond1 && cond2
         info(LOGGER, "Loading precomputed λ, P...")
         λ, P = λandP(fullpath)
     else
