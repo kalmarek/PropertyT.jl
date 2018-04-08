@@ -15,8 +15,16 @@ struct PermCharacter <: AbstractCharacter
     p::Generic.Partition
 end
 
-struct DirectProdCharacter <: AbstractCharacter
-    i::Int
+struct DirectProdCharacter{N, T<:AbstractCharacter} <: AbstractCharacter
+    chars::NTuple{N, T}
+end
+
+function (chi::DirectProdCharacter)(g::DirectProductGroupElem)
+    res = 1
+    for (χ, elt) in zip(chi.chars, g.elts)
+        res *= χ(elt)
+    end
+    return res
 end
 
 function (chi::PermCharacter)(g::Generic.perm)
@@ -25,16 +33,9 @@ function (chi::PermCharacter)(g::Generic.perm)
     return Int(Nemo.Generic.MN1inner(R, p, 1, Nemo.Generic._charvalsTable))
 end
 
-Nemo.isone(p::GroupElem) = p == parent(p)()
-
 function Nemo.dim(χ::PropertyT.PermCharacter)
     G = PermutationGroup(sum(χ.p))
     return χ(G())
-end
-
-## NOTE: this works only for Z/2!!!!
-function (chi::DirectProdCharacter)(g::DirectProductGroupElem)
-    return reduce(*, 1, ((-1)^isone(g.elts[j]) for j in 1:chi.i))
 end
 
 for T in [PermCharacter, DirectProdCharacter]
