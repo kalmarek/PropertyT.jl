@@ -136,15 +136,10 @@ function rankOne_projections(G::Generic.PermGroup, T::Type=Rational{Int})
     end
 
     RGidems = idempotents(RG, T)
-    l = length(AllParts(G.n))
 
-    chars = [PropertyT.PermCharacter(p) for p in AllParts(G.n)]
-    min_projs = Vector{eltype(RGidems)}(l)
+    min_projs = Vector{eltype(RGidems)}(length(AllParts(G.n)))
 
-    i = 0
-    for part in AllParts(G.n)
-        i += 1
-        chi = PropertyT.PermCharacter(part)
+    for (i,chi) in enumerate(characters(G))
         min_projs[i] = rankOne_projection(chi,RGidems)*central_projection(RG,chi)
     end
 
