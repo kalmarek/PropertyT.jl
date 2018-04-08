@@ -201,7 +201,7 @@ function compute_orbit_data{T<:GroupElem}(logger, name::String, S::Vector{T}, au
     reps = matrix_reps(reps)
 
     info(logger, "Projections")
-    @logtime logger autS_mps = rankOne_projections(autS);
+    @logtime logger autS_mps = Projections.rankOne_projections(autS);
 
     @logtime logger π_E_projections = [Cstar_repr(p, reps) for p in autS_mps]
 

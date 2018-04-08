@@ -1,3 +1,8 @@
+module Projections
+
+using Nemo
+using Groups
+using GroupRings
 ###############################################################################
 #
 #  Characters of Symmetric Group and DirectProduct
@@ -227,3 +232,5 @@ function rankOne_projections(BN::WreathProduct, T::Type=Rational{Int})
         end
         return elts
     end
+
+end # of module Projections
