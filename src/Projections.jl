@@ -102,8 +102,7 @@ function idempotents(RG::GroupRing{Generic.PermGroup{S}}, T::Type=Rational{S}) w
     return unique(idems)
 end
 
-function rankOne_projection(chi::PropertyT.PermCharacter,
-    idems::Vector{T}) where {T<:GroupRingElem}
+function rankOne_projection(chi::PermCharacter, idems::Vector{T}) where {T<:GroupRingElem}
 
     RG = parent(first(idems))
     S = eltype(first(idems))
@@ -114,12 +113,14 @@ function rankOne_projection(chi::PropertyT.PermCharacter,
     for (i,j,k) in Base.product(ids, ids, ids)
         if chi(i) == zzz || chi(j) == zzz || chi(k) == zzz
             continue
-        end
-        elt = i*j*k
-        elt^2 == elt || continue
-        if chi(elt) == one(S)
-            return elt
-            # return (i,j,k)
+        else
+            elt = i*j*k
+            if elt^2 != elt
+                continue
+            elseif chi(elt) == one(S)
+                return elt
+                # return (i,j,k)
+            end
         end
     end
     throw("Couldn't find rank-one projection for $chi")
