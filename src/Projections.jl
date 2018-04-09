@@ -139,8 +139,6 @@ end
 function rankOne_projections(G::Generic.PermGroup, T::Type=Rational{Int})
     if G.n == 1
         return [one(GroupRing(G), T)]
-    elseif G.n < 8
-        RG = GroupRing(G, fastm=true)
     else
         RG = GroupRing(G, fastm=false)
     end
