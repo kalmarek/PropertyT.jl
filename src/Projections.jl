@@ -3,6 +3,9 @@ module Projections
 using Nemo
 using Groups
 using GroupRings
+
+export PermCharacter, DirectProdCharacter, rankOne_projections
+
 ###############################################################################
 #
 #  Characters of Symmetric Group and DirectProduct
