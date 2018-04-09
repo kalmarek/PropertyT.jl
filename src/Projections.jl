@@ -36,7 +36,7 @@ function (chi::PermCharacter)(g::Generic.perm)
     return Int(Nemo.Generic.MN1inner(R, p, 1, Nemo.Generic._charvalsTable))
 end
 
-function Nemo.dim(χ::PropertyT.PermCharacter)
+function Nemo.dim(χ::PermCharacter)
     G = PermutationGroup(sum(χ.p))
     return χ(G())
 end
