@@ -146,39 +146,46 @@ function rankOne_projections(G::Generic.PermGroup, T::Type=Rational{Int})
     return min_projs
 end
 
-function rankOne_projections(BN::WreathProduct, T::Type=Rational{Int})
+function rankOne_projections(Bn::WreathProduct, T::Type=Rational{Int})
 
-    N = BN.P.n
+    N = Bn.P.n
     # projections as elements of the group rings RSₙ
-    SNprojs_nc = [rankOne_projections(PermutationGroup(i)) for i in 1:N]
+    Sn_rankOnePr = [rankOne_projections(PermutationGroup(i)) for i in 1:N]
 
     # embedding into group ring of BN
-    RBN = GroupRing(BN)
-    RFFFF_projs = [central_projection(GroupRing(BN.N), DirectProdCharacter(i),T)
-    for i in 1:BN.P.n]
+    RBn = GroupRing(Bn)
+    RN = GroupRing(Bn.N)
 
-        e0 = central_projection(GroupRing(BN.N), DirectProdCharacter(0), T)
-        Q0 = RBN(e0, g -> BN(g))
-        Qs = [RBN(q, g -> BN(g)) for q in RFFFF_projs]
+    # Bn.N = (Z/2Z)ⁿ characters corresponding to the first k coordinates:
 
-        all_projs = [Q0*RBN(p, g->BN(g)) for p in SNprojs_nc[N]]
-
-        range = collect(1:N)
-        for i in 1:N-1
-            first_emb = g->BN(Nemo.Generic.emb!(BN.P(), g, range[1:i]))
-            last_emb = g->BN(Nemo.Generic.emb!(BN.P(), g, range[i+1:end]))
-
-            Sk_first = [RBN(p, first_emb) for p in SNprojs_nc[i]]
-            Sk_last = [RBN(p, last_emb) for p in SNprojs_nc[N-i]]
-
-            append!(all_projs,
-            [Qs[i]*p1*p2 for (p1,p2) in Base.product(Sk_first,Sk_last)])
-        end
-
-        append!(all_projs, [Qs[N]*RBN(p, g->BN(g)) for p in SNprojs_nc[N]])
-
-        return all_projs
+    function OrbitSelector(n::Integer, k::Integer,
+            chi::Projections.AbstractCharacter, psi::Projections.AbstractCharacter)
+        return Projections.DirectProdCharacter(ntuple(i -> (i <= k ? chi : psi), n))
     end
+
+    sign, id = collect(characters(Bn.N.group))
+    BnN_orbits = Dict(i => OrbitSelector(N, i, sign, id) for i in 0:N)
+
+    Q = Dict(i => RBn(central_projection(RN, BnN_orbits[i], T), g -> Bn(g)) for i in 0:N)
+
+    all_projs = [Q[0]*RBn(p, g->Bn(g)) for p in Sn_rankOnePr[N]]
+
+    r = collect(1:N)
+    for i in 1:N-1
+        first_emb = g->Bn(Nemo.Generic.emb!(Bn.P(), g, view(r, 1:i)))
+        last_emb = g->Bn(Nemo.Generic.emb!(Bn.P(), g, view(r, (i+1):N)))
+
+        Sk_first = (RBn(p, first_emb) for p in Sn_rankOnePr[i])
+        Sk_last = (RBn(p, last_emb) for p in Sn_rankOnePr[N-i])
+
+        append!(all_projs,
+        [Q[i]*p1*p2 for (p1,p2) in Base.product(Sk_first,Sk_last)])
+    end
+
+    append!(all_projs, [Q[N]*RBn(p, g->Bn(g)) for p in Sn_rankOnePr[N]])
+
+    return all_projs
+end
 
 ##############################################################################
 #
