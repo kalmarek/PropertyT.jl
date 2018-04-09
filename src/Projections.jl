@@ -54,6 +54,13 @@ for T in [PermCharacter, DirectProdCharacter]
     end
 end
 
+characters(G::Generic.PermGroup) = (PermCharacter(p) for p in AllParts(G.n))
+
+function characters(G::DirectProductGroup)
+    nfold_chars = Iterators.repeated(characters(G.group), G.n)
+    return (DirectProdCharacter(idx) for idx in Iterators.product(nfold_chars...))
+end
+
 ###############################################################################
 #
 #  Projections
