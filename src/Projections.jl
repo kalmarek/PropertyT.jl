@@ -158,7 +158,7 @@ function rankOne_projections(Bn::WreathProduct, T::Type=Rational{Int})
 
     N = Bn.P.n
     # projections as elements of the group rings RSₙ
-    Sn_rankOnePr = [rankOne_projections(PermutationGroup(i)) for i in 1:N]
+    Sn_rankOnePr = [rankOne_projections(PermutationGroup(Int8(i))) for i in 1:N]
 
     # embedding into group ring of BN
     RBn = GroupRing(Bn)
