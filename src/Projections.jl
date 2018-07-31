@@ -102,6 +102,7 @@ function idempotents(RG::GroupRing{Generic.PermGroup{S}}, T::Type=Rational{Int})
     end
 
     idems = Vector{GroupRingElem{T}}()
+
     for p in projs
         append!(idems, [RG(p, T), RG(p, T, alt=true)])
     end
@@ -151,6 +152,11 @@ function rankOne_projections(G::Generic.PermGroup, T::Type=Rational{Int})
     return min_projs
 end
 
+function orbit_selector(n::Integer, k::Integer,
+        chi::AbstractCharacter, psi::AbstractCharacter)
+    return Projections.DirectProdCharacter(ntuple(i -> (i <= k ? chi : psi), n))
+end
+
 function rankOne_projections(Bn::WreathProduct, T::Type=Rational{Int})
 
     N = Bn.P.n
@@ -161,15 +167,9 @@ function rankOne_projections(Bn::WreathProduct, T::Type=Rational{Int})
     RBn = GroupRing(Bn)
     RN = GroupRing(Bn.N)
 
-    # Bn.N = (Z/2Z)ⁿ characters corresponding to the first k coordinates:
-
-    function OrbitSelector(n::Integer, k::Integer,
-            chi::Projections.AbstractCharacter, psi::Projections.AbstractCharacter)
-        return Projections.DirectProdCharacter(ntuple(i -> (i <= k ? chi : psi), n))
-    end
-
     sign, id = collect(characters(Bn.N.group))
-    BnN_orbits = Dict(i => OrbitSelector(N, i, sign, id) for i in 0:N)
+    # Bn.N = (Z/2Z)ⁿ characters corresponding to the first k coordinates:
+    BnN_orbits = Dict(i => orbit_selector(N, i, sign, id) for i in 0:N)
 
     Q = Dict(i => RBn(central_projection(RN, BnN_orbits[i], T), g -> Bn(g)) for i in 0:N)
 
