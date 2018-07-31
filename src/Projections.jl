@@ -1,6 +1,6 @@
 module Projections
 
-using Nemo
+using AbstractAlgebra
 using Groups
 using GroupRings
 
@@ -31,15 +31,12 @@ function (chi::DirectProdCharacter)(g::DirectProductGroupElem)
 end
 
 function (chi::PermCharacter)(g::Generic.perm)
-    R = Nemo.partitionseq(chi.p)
-    p = Partition(Nemo.Generic.permtype(g))
-    return Int(Nemo.Generic.MN1inner(R, p, 1, Nemo.Generic._charvalsTable))
+    R = AbstractAlgebra.partitionseq(chi.p)
+    p = Partition(Generic.permtype(g))
+    return Int(Generic.MN1inner(R, p, 1, Generic._charvalsTable))
 end
 
-function Nemo.dim(χ::PermCharacter)
-    G = PermutationGroup(sum(χ.p))
-    return χ(G())
-end
+AbstractAlgebra.dim(χ::PermCharacter) = dim(YoungTableau(χ.p))
 
 for T in [PermCharacter, DirectProdCharacter]
     @eval begin
@@ -180,8 +177,8 @@ function rankOne_projections(Bn::WreathProduct, T::Type=Rational{Int})
 
     r = collect(1:N)
     for i in 1:N-1
-        first_emb = g->Bn(Nemo.Generic.emb!(Bn.P(), g, view(r, 1:i)))
-        last_emb = g->Bn(Nemo.Generic.emb!(Bn.P(), g, view(r, (i+1):N)))
+        first_emb = g->Bn(Generic.emb!(Bn.P(), g, view(r, 1:i)))
+        last_emb = g->Bn(Generic.emb!(Bn.P(), g, view(r, (i+1):N)))
 
         Sk_first = (RBn(p, first_emb) for p in Sn_rankOnePr[i])
         Sk_last = (RBn(p, last_emb) for p in Sn_rankOnePr[N-i])
