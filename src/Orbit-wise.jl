@@ -42,7 +42,7 @@ function OrbitData(sett::Settings)
     Uπs = load(filename(prepath(sett), :Uπs), "Uπs")
     nzros = [i for i in 1:length(Uπs) if size(Uπs[i],2) !=0]
     Uπs = Uπs[nzros]
-    Uπs = sparsify!.(Uπs, sett.tol, check=true, verbose=true)
+    Uπs = map(x -> sparsify!(x, sett.tol, verbose=true), Uπs)
 
     #dimensions of the corresponding πs:
     dims = load(filename(prepath(sett), :Uπs), "dims")[nzros]
@@ -64,11 +64,10 @@ end
 
 include("OrbitDecomposition.jl")
 
-dens(M::SparseMatrixCSC) = length(M.nzval)/length(M)
-dens(M::AbstractArray) = length(findn(M)[1])/length(M)
+dens(M::SparseMatrixCSC) = nnz(M)/length(M)
+dens(M::AbstractArray) = countnz(M)/length(M)
 
 function sparsify!{Tv,Ti}(M::SparseMatrixCSC{Tv,Ti}, eps=eps(Tv); verbose=false)
-    n = nnz(M)
 
     densM = dens(M)
     for i in eachindex(M.nzval)
@@ -77,32 +76,34 @@ function sparsify!{Tv,Ti}(M::SparseMatrixCSC{Tv,Ti}, eps=eps(Tv); verbose=false)
         end
     end
     dropzeros!(M)
-    m = nnz(M)
 
     if verbose
-        info("Sparsified density:", rpad(densM, 20), " → ", rpad(dens(M), 20))
+        info("Sparsified density:", rpad(densM, 20), " → ", rpad(dens(M), 20), " ($(nnz(M)) non-zeros)")
     end
 
     return M
 end
 
-function sparsify!{T}(M::AbstractArray{T}, eps=eps(T); check=false, verbose=false)
+function sparsify!{T}(M::AbstractArray{T}, eps=eps(T); verbose=false)
     densM = dens(M)
-    rankM = rank(M)
-    M[abs.(M) .< eps] .= zero(T)
+    if verbose
+        info("Sparsifying $(size(M))-matrix... ")
+    end
 
-    if check && rankM != rank(M)
-        warn("Sparsification decreased the rank!")
+    for n in eachindex(M)
+        if abs(M[n]) < eps
+            M[n] = zero(T)
+        end
     end
 
     if verbose
-        info("Sparsified density:", rpad(densM, 20), " → ", rpad(dens(M),20))
+        info("$(rpad(densM, 20)) → $(rpad(dens(M),20))), ($(countnz(M)) non-zeros)")
     end
 
     return sparse(M)
 end
 
-sparsify{T}(U::AbstractArray{T}, tol=eps(T); check=true, verbose=false) = sparsify!(deepcopy(U), tol, check=check, verbose=verbose)
+sparsify{T}(U::AbstractArray{T}, tol=eps(T); verbose=false) = sparsify!(deepcopy(U), tol, verbose=verbose)
 
 function transform(U::AbstractArray, V::AbstractArray; sparse=true)
     if sparse
