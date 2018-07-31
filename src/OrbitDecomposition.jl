@@ -2,45 +2,6 @@ include("Projections.jl")
 
 ###############################################################################
 #
-#  Iterator protocol for Nemo.FinField
-#
-###############################################################################
-
-mutable struct FFEltsIter{T<:Generic.FinField}
-    all::Int
-    field::T
-
-    function FFEltsIter{T}(F::T) where {T}
-        return new(Int(characteristic(F)^degree(F)), F)
-    end
-end
-FFEltsIter(F::T) where {T<:Nemo.FinField} = FFEltsIter{T}(F)
-
-import Base: start, next, done, eltype, length
-
-Base.start(A::FFEltsIter) = (zero(A.field), 0)
-Base.next(A::FFEltsIter, state) = next_ffelem(state...)
-Base.done(A::FFEltsIter, state) = state[2] >= A.all
-Base.eltype(::Type{FFEltsIter}) = elem_type(A.field)
-Base.length(A::FFEltsIter) = A.all
-
-function next_ffelem(f::Nemo.FinFieldElem, c::Int)
-    if c == 0
-        return (f, (f, 1))
-    elseif c == 1
-        f = one(parent(f))
-        return (f, (f, 2))
-    else
-        f = gen(parent(f))*f
-        return (f, (f, c+1))
-    end
-end
-
-import Nemo.elements
-elements(F::Nemo.FinField) = FFEltsIter(F)
-
-###############################################################################
-#
 #  Orbit stuff
 #
 ###############################################################################
