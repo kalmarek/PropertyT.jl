@@ -204,7 +204,7 @@ function λandP(m::JuMP.Model, data::OrbitData, sett::Settings)
     return λ, recP
 end
 
-function load_preps(fname::String, G::Nemo.Group)
+function load_preps(fname::String, G::Group)
     lded_preps = load(fname, "perms_d")
     permG = PermutationGroup(length(first(lded_preps)))
     @assert length(lded_preps) == order(G)

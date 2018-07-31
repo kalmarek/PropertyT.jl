@@ -1,9 +1,10 @@
 julia
 JuMP 0.18.0
 SCS
-IntervalArithmetic 
+IntervalArithmetic
 JLD
 Memento
-Nemo 0.7.9-
+Nemo
+AbstractAlgebra
 Groups
 GroupRings

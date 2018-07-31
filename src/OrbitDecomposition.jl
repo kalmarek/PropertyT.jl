@@ -6,7 +6,7 @@ include("Projections.jl")
 #
 ###############################################################################
 
-function orbit_decomposition(G::Nemo.Group, E::Vector, rdict=GroupRings.reverse_dict(E))
+function orbit_decomposition(G::Group, E::Vector, rdict=GroupRings.reverse_dict(E))
 
     elts = collect(elements(G))
 
@@ -82,9 +82,9 @@ end
 function perm_reps(G::Group, E::Vector, E_rdict=GroupRings.reverse_dict(E))
     elts = collect(elements(G))
     l = length(elts)
-    preps = Vector{Generic.perm}(l)
+    preps = Vector{perm}(l)
 
-    permG = Nemo.PermutationGroup(length(E))
+    permG = PermutationGroup(length(E))
 
     Threads.@threads for i in 1:l
         preps[i] = permG(PropertyT.perm_repr(elts[i], E, E_rdict))
@@ -128,14 +128,14 @@ function orthSVD{T}(M::AbstractMatrix{T})
     return fact[:U][:,1:M_rank]
 end
 
-function compute_orbit_data{T<:GroupElem}(logger, name::String, S::Vector{T}, autS::Nemo.Group; radius=2)
+function compute_orbit_data{T<:GroupElem}(logger, name::String, S::Vector{T}, autS::Group; radius=2)
     isdir(name) || mkdir(name)
 
     info(logger, "Generating ball of radius $(2*radius)")
 
     # TODO: Fix that by multiple dispatch?
     G = parent(first(S))
-    Id = (isa(G, Nemo.Ring) ? one(G) : G())
+    Id = (isa(G, Ring) ? one(G) : G())
 
     @logtime logger E_2R, sizes = Groups.generate_balls(S, Id, radius=2*radius);
     info(logger, "Balls of sizes $sizes.")

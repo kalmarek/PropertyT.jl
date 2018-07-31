@@ -1,10 +1,10 @@
 module PropertyT
 
-using Nemo
+using AbstractAlgebra
 using Groups
 using GroupRings
 
-import Nemo: Group, GroupElem, Ring, Generic.perm
+import AbstractAlgebra: Group, GroupElem, Ring, perm
 
 using JLD
 using JuMP
