@@ -12,28 +12,11 @@ using MathProgBase
 
 using Memento
 
-function setup_logging(name::String)
+function setup_logging(name::String, handlername::Symbol)
     isdir(name) || mkdir(name)
-    L = Memento.config("info", fmt="{date}| {msg}")
-
-    handler = Memento.DefaultHandler(
-        filename(name, :logall), Memento.DefaultFormatter("{date}| {msg}"))
-
-    handler.levels.x = L.levels
-    L.handlers["all"] = handler
-
-    # e = redirect_stderr(L.handlers["all"].io)
-
-    return L
-end
-
-function solverlogger(name)
-    logger = Memento.config("info", fmt="{msg}")
-
-    handler = DefaultHandler(
-        filename(name, :logsolver), DefaultFormatter("{date}| {msg}"))
-    handler.levels.x = logger.levels
-    logger.handlers["solver_log"] = handler
+    logger = Memento.config!("info", fmt="{date}| {msg}")
+    handler = DefaultHandler(filename(name, Symbol(handlername)), DefaultFormatter("{date}| {msg}"))
+    logger.handlers[String(handlername)] = handler
     return logger
 end
 
@@ -91,8 +74,8 @@ filename(prefix, s::Symbol) = filename(prefix, Val{s})
         [:orb,  "orbits.jld"],
         [:preps,"preps.jld"],
 
-        [:logall,   "full_$(string(now())).log"],
-        [:logsolver,"solver_$(string(now())).log"]
+        [:fulllog,   "full_$(string(now())).log"],
+        [:solverlog,   "solver_$(string(now())).log"]
         ]
 
         filename(prefix::String, ::Type{Val{$:(s)}}) = joinpath(prefix, :($n))
@@ -146,10 +129,10 @@ function λandP(name::String, SDP::JuMP.Model, varλ, varP, warmstart=true)
         ws = nothing
     end
 
-    solver_log = solverlogger(name)
+    solver_log = setup_logging(name, :solverlog)
 
     Base.Libc.flush_cstdio()
-    o = redirect_stdout(solver_log.handlers["solver_log"].io)
+    o = redirect_stdout(solver_log.handlers["solverlog"].io)
     Base.Libc.flush_cstdio()
 
     λ, P, warmstart = solve_SDP(SDP, varλ, varP, warmstart=ws)
@@ -157,7 +140,7 @@ function λandP(name::String, SDP::JuMP.Model, varλ, varP, warmstart=true)
     Base.Libc.flush_cstdio()
     redirect_stdout(o)
 
-    delete!(solver_log.handlers, "solver_log")
+    delete!(solver_log.handlers, "solverlog")
 
     if λ > 0
         save(filename(name, :λ), "λ", λ)
