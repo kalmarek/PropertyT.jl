@@ -80,6 +80,15 @@ function central_projection(RG::GroupRing, chi::AbstractCharacter, T::Type=Ratio
     return result
 end
 
+function (RG::GroupRing{Gr,T})(V::Vector{T}, S::Type=Rational{Int}; alt=false) where {Gr<:Generic.PermGroup, T<:GroupElem}
+    res = RG(S)
+    for g in V
+        c = (alt ? sign(g)*one(S) : one(S))
+        res[g] += c/length(V)
+    end
+    return res
+end
+
 function idempotents(RG::GroupRing{Generic.PermGroup{S}}, T::Type=Rational{Int}) where S<:Integer
     if RG.group.n == 1
         return GroupRingElem{T}[one(RG,T)]
