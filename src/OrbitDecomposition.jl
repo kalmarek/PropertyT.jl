@@ -87,7 +87,7 @@ function perm_reps(G::Group, E::Vector, E_rdict=GroupRings.reverse_dict(E))
     permG = PermutationGroup(length(E))
 
     Threads.@threads for i in 1:l
-        preps[i] = permG(PropertyT.perm_repr(elts[i], E, E_rdict))
+        preps[i] = permG(PropertyT.perm_repr(elts[i], E, E_rdict), false)
     end
 
     return Dict(elts[i]=>preps[i] for i in 1:l)
