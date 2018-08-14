@@ -1,5 +1,3 @@
-import Base: rationalize
-
 using IntervalArithmetic
 
 IntervalArithmetic.setrounding(Interval, :tight)
@@ -7,9 +5,20 @@ IntervalArithmetic.setformat(sigfigs=12)
 
 import IntervalArithmetic.±
 
-function (±){T<:Number}(X::AbstractArray{T}, tol::Real)
-    r{T}(x::T) = (x == zero(T)? @interval(0) : x ± tol)
-    return r.(X)
+function (±)(X::SparseVector, tol::Real)
+    I, V = findnz(X)
+    Vint = [v ± tol for v in V]
+    return sparsevec(I, Vint)
+end
+
+function (±)(X::Array{T}, tol::Real) where {T<:AbstractFloat}
+    result = zeros(Interval{Float64}, size(X)...)
+    for i in eachindex(X)
+        if X[i] != zero(T)
+            result[i] = X[i] ± tol
+        end
+    end
+    return result
 end
 
 (±)(X::GroupRingElem, tol::Real) = GroupRingElem(X.coeffs ± tol, parent(X))
