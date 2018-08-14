@@ -3,28 +3,6 @@ using IntervalArithmetic
 IntervalArithmetic.setrounding(Interval, :tight)
 IntervalArithmetic.setformat(sigfigs=12)
 
-import IntervalArithmetic.±
-
-function (±)(X::SparseVector, tol::Real)
-    I, V = findnz(X)
-    Vint = [v ± tol for v in V]
-    return sparsevec(I, Vint)
-end
-
-function (±)(X::Array{T}, tol::Real) where {T<:AbstractFloat}
-    result = zeros(Interval{Float64}, size(X)...)
-    for i in eachindex(X)
-        if X[i] != zero(T)
-            result[i] = X[i] ± tol
-        end
-    end
-    return result
-end
-
-(±)(X::GroupRingElem, tol::Real) = GroupRingElem(X.coeffs ± tol, parent(X))
-
-EOI{T<:Number}(Δ::GroupRingElem{T}, λ::T) = Δ*Δ - λ*Δ
-
 function groupring_square(pm, vect::AbstractVector)
     zzz = zeros(eltype(vect), maximum(pm))
     return GroupRings.mul!(zzz, vect, vect, pm)
