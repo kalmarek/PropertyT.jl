@@ -146,7 +146,7 @@ function compute_orbit_data{T<:GroupElem}(logger, name::String, S::Vector{T}, au
     @logtime logger pm = GroupRings.create_pm(E_2R, E_rdict, sizes[radius], twisted=true)
     RG = GroupRing(G, E_2R, E_rdict, pm)
     Δ = PropertyT.spLaplacian(RG, S)
-    @assert GroupRings.augmentation(Δ) == 0
+    @assert GroupRings.aug(Δ) == 0
     save(filename(name, :Δ), "Δ", Δ.coeffs)
     save(filename(name, :pm), "pm", pm)
 
