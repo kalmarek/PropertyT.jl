@@ -25,12 +25,12 @@ end
 
 EOI{T<:Number}(Δ::GroupRingElem{T}, λ::T) = Δ*Δ - λ*Δ
 
-function groupring_square(vect::AbstractVector, pm)
+function groupring_square(pm, vect::AbstractVector)
     zzz = zeros(eltype(vect), maximum(pm))
     return GroupRings.mul!(zzz, vect, vect, pm)
 end
 
-function compute_SOS(Q::AbstractArray, pm::Array{Int,2})
+function compute_SOS(pm::Array{I,2}, Q::AbstractArray) where I<:Integer
 
     # result = zeros(eltype(Q), maximum(pm))
     # r = similar(result)
@@ -42,28 +42,17 @@ function compute_SOS(Q::AbstractArray, pm::Array{Int,2})
     @everywhere groupring_square = PropertyT.groupring_square
 
     result = @parallel (+) for i in 1:size(Q,2)
-        groupring_square(Q[:,i], pm)
+        groupring_square(pm, Q[:,i])
     end
 
     return result
-
 end
 
-function compute_SOS(Q::AbstractArray, RG::GroupRing)
-    result = compute_SOS(Q, RG.pm)
-    return GroupRingElem(result, RG)
+function compute_SOS(RG::GroupRing, Q::AbstractArray)
+    result = compute_SOS(RG.pm, Q)
+    return RG(result)
 end
 
-function distances_to_cone(elt::GroupRingElem, wlen::Int)
-    ɛ_dist = GroupRings.augmentation(elt)
-
-    eoi_SOS_L1_dist = norm(elt,1)
-
-    dist = 2^(wlen-1)*eoi_SOS_L1_dist
-    return dist, ɛ_dist, eoi_SOS_L1_dist
-end
-
-function augIdproj{T, I<:AbstractInterval}(S::Type{I}, Q::AbstractArray{T,2})
 function augIdproj(Q::AbstractArray{T,2}) where {T<:Real}
     R = zeros(Interval{T}, size(Q))
     l = size(Q, 2)
@@ -89,56 +78,42 @@ function augIdproj(Q::AbstractArray{T,2}, logger) where {T<:Real}
     return Q
 end
 
-function distance_to_cone(elt::GroupRingElem, λ::T, Q::AbstractArray{T,2}, wlen::Int, logger) where {T<:AbstractFloat}
-
+function distance_to_cone(Δ::GroupRingElem, λ, Q; wlen::Int=4, logger=getlogger())
     info(logger, "------------------------------------------------------------")
-    info(logger, "λ = $λ")
     info(logger, "Checking in floating-point arithmetic...")
-    @logtime logger SOS_diff = elt - compute_SOS(Q, parent(elt), length(elt.coeffs))
-    dist, ɛ_dist, eoi_SOS_L1_dist = distances_to_cone(SOS_diff, wlen)
-    info(logger, "ɛ(Δ² - λΔ - ∑ξᵢ*ξᵢ) ≈ $(@sprintf("%.10f", ɛ_dist))")
-    info(logger, "‖Δ² - λΔ - ∑ξᵢ*ξᵢ‖₁ ≈ $(@sprintf("%.10f", eoi_SOS_L1_dist))")
+    info(logger, "λ = $λ")
+    @logtime logger sos = compute_SOS(parent(Δ), Q)
+    residue = Δ^2-λ*Δ - sos
+    info(logger, "ɛ(Δ² - λΔ - ∑ξᵢ*ξᵢ) ≈ $(@sprintf("%.10f", aug(residue)))")
+    L1_norm = norm(residue,1)
+    info(logger, "‖Δ² - λΔ - ∑ξᵢ*ξᵢ‖₁ ≈ $(@sprintf("%.10f", L1_norm))")
 
-    fp_distance = λ - dist
+    distance = λ - 2^(wlen-1)*L1_norm
 
     info(logger, "Floating point distance (to positive cone) ≈")
-    info(logger, "$(@sprintf("%.10f", fp_distance))")
+    info(logger, "$(@sprintf("%.10f", distance))")
     info(logger, "")
 
-    return fp_distance
-end
-
-function distance_to_cone(elt::GroupRingElem, λ::T, Q::AbstractArray{T,2}, wlen::Int, logger) where {T<:AbstractInterval}
-    info(logger, "------------------------------------------------------------")
-    info(logger, "λ = $λ")
-    info(logger, "Checking in interval arithmetic...")
-    @logtime logger SOS_diff = elt - compute_SOS(Q, parent(elt), length(elt.coeffs))
-    dist, ɛ_dist, eoi_SOS_L1_dist = distances_to_cone(SOS_diff, wlen)
-    info(logger, "ɛ(∑ξᵢ*ξᵢ) ∈ $(ɛ_dist)")
-    info(logger, "‖Δ² - λΔ - ∑ξᵢ*ξᵢ‖₁ ∈ $(eoi_SOS_L1_dist)")
-
-    int_distance = λ - dist
-
-    info(logger, "The Augmentation-projected actual distance (to positive cone) ∈")
-    info(logger, "$(int_distance)")
-    info(logger, "")
-
-    return int_distance
-end
-
-function check_distance_to_cone(Δ::GroupRingElem, λ, Q, wlen::Int, logger)
-
-    fp_distance = distance_to_cone(EOI(Δ, λ), λ, Q, wlen, logger)
-
-    if fp_distance ≤ 0
-        return fp_distance
+    if distance ≤ 0
+        return distance
     end
 
     λ = @interval(λ)
-    Δ = GroupRingElem([@interval(c) for c in Δ.coeffs], parent(Δ))
+    eoi = Δ^2 - λ*Δ
     Q = augIdproj(Q, logger)
 
-    int_distance = distance_to_cone(EOI(Δ, λ), λ, Q, wlen, logger)
+    info(logger, "------------------------------------------------------------")
+    info(logger, "Checking in interval arithmetic...")
+    info(logger, "λ ∈ $λ")
+    @logtime logger sos = compute_SOS(parent(Δ), Q)
+    residue = Δ^2-λ*Δ - sos
+    info(logger, "ɛ(∑ξᵢ*ξᵢ) ∈ $(aug(residue))")
+    info(logger, "‖Δ² - λΔ - ∑ξᵢ*ξᵢ‖₁ ∈ $(L1_norm)")
 
-    return int_distance.lo
+    distance = λ - 2^(wlen-1)*L1_norm
+    info(logger, "The Augmentation-projected distance (to positive cone) ∈")
+    info(logger, "$(distance)")
+    info(logger, "")
+
+    return distance.lo
 end
