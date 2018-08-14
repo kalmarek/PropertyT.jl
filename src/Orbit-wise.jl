@@ -249,8 +249,17 @@ function check_property_T(sett::Settings)
         warn("The solution matrix doesn't seem to be positive definite!")
 
     if λ > 0
-        return check_λ(sett.name, sett.S, λ, P, sett.radius, sett.logger)
+        RG = GroupRing(parent(first(sett.S)), load(filename(sett.name, :pm), "pm"))
+        Δ = RG(load(filename(name, :Δ), "Δ")[:, 1])
+        @logtime logger Q = real(sqrtm(Symmetric(P)))
+
+        sgap = distance_to_cone(Δ, λ, Q, wlen=2*sett.radius, logger=sett.logger)
+        Kazhdan_κ = Kazhdan(sgap, length(S))
+        if Kazhdan_κ > 0
+            info(logger, "κ($name, S) ≥ $Kazhdan_κ: Group HAS property (T)!")
+            return true
+        end
     end
-    info(sett.logger, "κ($(sett.name), S) ≥ $λ < 0: Tells us nothing about property (T)")
+    info(LOGGER, "κ($name, S) ≥ $λ < 0: Tells us nothing about property (T)")
     return false
 end
