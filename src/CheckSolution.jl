@@ -25,14 +25,14 @@ end
 
 EOI{T<:Number}(Δ::GroupRingElem{T}, λ::T) = Δ*Δ - λ*Δ
 
-function groupring_square(vect::AbstractVector, l, pm)
-    zzz = zeros(eltype(vect), l)
+function groupring_square(vect::AbstractVector, pm)
+    zzz = zeros(eltype(vect), maximum(pm))
     return GroupRings.mul!(zzz, vect, vect, pm)
 end
 
-function compute_SOS(Q::AbstractArray, pm::Array{Int,2}, l::Int)
+function compute_SOS(Q::AbstractArray, pm::Array{Int,2})
 
-    # result = zeros(eltype(Q), l)
+    # result = zeros(eltype(Q), maximum(pm))
     # r = similar(result)
     # for i in 1:size(Q,2)
     #    print(" $i")
@@ -42,15 +42,15 @@ function compute_SOS(Q::AbstractArray, pm::Array{Int,2}, l::Int)
     @everywhere groupring_square = PropertyT.groupring_square
 
     result = @parallel (+) for i in 1:size(Q,2)
-        groupring_square(Q[:,i], l, pm)
+        groupring_square(Q[:,i], pm)
     end
 
     return result
 
 end
 
-function compute_SOS(Q::AbstractArray, RG::GroupRing, l::Int)
-    result = compute_SOS(Q, RG.pm, l)
+function compute_SOS(Q::AbstractArray, RG::GroupRing)
+    result = compute_SOS(Q, RG.pm)
     return GroupRingElem(result, RG)
 end
 
