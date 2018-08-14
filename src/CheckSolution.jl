@@ -64,23 +64,24 @@ function distances_to_cone(elt::GroupRingElem, wlen::Int)
 end
 
 function augIdproj{T, I<:AbstractInterval}(S::Type{I}, Q::AbstractArray{T,2})
+function augIdproj(Q::AbstractArray{T,2}) where {T<:Real}
+    R = zeros(Interval{T}, size(Q))
     l = size(Q, 2)
-    R = zeros(S, (l,l))
     Threads.@threads for j in 1:l
         col = sum(view(Q, :,j))/l
-        for i in 1:l
-            R[i,j] = Q[i,j] - col ± eps(0.0)
+        for i in 1:size(Q, 1)
+            R[i,j] = @interval(Q[i,j] - col)
         end
     end
     return R
 end
 
-function augIdproj{T}(Q::AbstractArray{T,2}, logger)
+function augIdproj(Q::AbstractArray{T,2}, logger) where {T<:Real}
     info(logger, "Projecting columns of Q to the augmentation ideal...")
-    @logtime logger Q = augIdproj(Interval{T}, Q)
+    @logtime logger Q = augIdproj(Q)
 
     info(logger, "Checking that sum of every column contains 0.0... ")
-    check = all([0.0 in sum(view(Q, :, i)) for i in 1:size(Q, 2)])
+    check = all([zero(T) in sum(view(Q, :, i)) for i in 1:size(Q, 2)])
     info(logger, (check? "They do." : "FAILED!"))
 
     @assert check
