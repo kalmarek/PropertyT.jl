@@ -177,23 +177,24 @@ function rankOne_projections(RBn::GroupRing{G}, T::Type=Rational{Int}) where {G<
     # Bn.N = (Z/2Z)ⁿ characters corresponding to the first k coordinates:
     BnN_orbits = Dict(i => orbit_selector(N, i, sign, id) for i in 0:N)
 
-    Q = Dict(i => RBn(central_projection(RN, BnN_orbits[i], T), g -> Bn(g)) for i in 0:N)
+    Q = Dict(i => RBn(g -> Bn(g), central_projection(RN, BnN_orbits[i], T)) for i in 0:N)
+    Q = Dict(key => full(val) for (key, val) in Q)
 
-    all_projs = [Q[0]*RBn(p, g->Bn(g)) for p in Sn_rankOnePr[N]]
+    all_projs = [Q[0]*RBn(g->Bn(g), p) for p in Sn_rankOnePr[N]]
 
     r = collect(1:N)
     for i in 1:N-1
         first_emb = g->Bn(Generic.emb!(Bn.P(), g, view(r, 1:i)))
         last_emb = g->Bn(Generic.emb!(Bn.P(), g, view(r, (i+1):N)))
 
-        Sk_first = (RBn(p, first_emb) for p in Sn_rankOnePr[i])
-        Sk_last = (RBn(p, last_emb) for p in Sn_rankOnePr[N-i])
+        Sk_first = (RBn(first_emb, p) for p in Sn_rankOnePr[i])
+        Sk_last = (RBn(last_emb, p) for p in Sn_rankOnePr[N-i])
 
         append!(all_projs,
         [Q[i]*p1*p2 for (p1,p2) in Base.product(Sk_first,Sk_last)])
     end
 
-    append!(all_projs, [Q[N]*RBn(p, g->Bn(g)) for p in Sn_rankOnePr[N]])
+    append!(all_projs, [Q[N]*RBn(g->Bn(g), p) for p in Sn_rankOnePr[N]])
 
     return all_projs
 end
