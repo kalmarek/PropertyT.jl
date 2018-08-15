@@ -68,8 +68,7 @@ end
 ###############################################################################
 
 function central_projection(RG::GroupRing, chi::AbstractCharacter, T::Type=Rational{Int})
-    result = RG(T)
-    result.coeffs = full(result.coeffs)
+    result = RG(zeros(T, length(RG.basis)))
     dim = chi(RG.group())
     ord = Int(order(RG.group))
 
