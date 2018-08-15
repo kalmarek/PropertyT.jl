@@ -86,6 +86,7 @@ function distance_to_cone(Δ::GroupRingElem, λ, Q; wlen::Int=4, logger=getlogge
     @logtime logger sos = compute_SOS(parent(Δ), Q)
     residue = Δ^2-λ*Δ - sos
     info(logger, "ɛ(∑ξᵢ*ξᵢ) ∈ $(aug(residue))")
+    L1_norm = norm(residue,1)
     info(logger, "‖Δ² - λΔ - ∑ξᵢ*ξᵢ‖₁ ∈ $(L1_norm)")
 
     distance = λ - 2^(wlen-1)*L1_norm
