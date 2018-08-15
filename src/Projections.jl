@@ -79,11 +79,10 @@ function central_projection(RG::GroupRing, chi::AbstractCharacter, T::Type=Ratio
     return result
 end
 
-function (RG::GroupRing{Gr,T})(V::Vector{T}, S::Type=Rational{Int}; alt=false) where {Gr<:Generic.PermGroup, T<:GroupElem}
+function alternating_emb(RG::GroupRing{Gr,T}, V::Vector{T}, S::Type=Rational{Int}) where {Gr<:Generic.PermGroup, T<:GroupElem}
     res = RG(S)
     for g in V
-        c = (alt ? sign(g)*one(S) : one(S))
-        res[g] += c/length(V)
+        res[g] += sign(g)
     end
     return res
 end
@@ -112,7 +111,7 @@ function idempotents(RG::GroupRing{Generic.PermGroup{S}}, T::Type=Rational{Int})
     idems = Vector{GroupRingElem{T}}()
 
     for p in projs
-        append!(idems, [RG(p, T), RG(p, T, alt=true)])
+        append!(idems, [RG(p, T)//length(p), alternating_emb(RG, p, T)//length(p)])
     end
 
     return unique(idems)
