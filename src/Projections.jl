@@ -148,11 +148,7 @@ function rankOne_projections(RG::GroupRing{G}, T::Type=Rational{Int}) where G<:G
 
     RGidems = idempotents(RG, T)
 
-    min_projs = Vector{eltype(RGidems)}(length(AllParts(G.n)))
-
-    for (i,chi) in enumerate(characters(G))
-        min_projs[i] = rankOne_projection(chi,RGidems)*central_projection(RG,chi)
-    end
+    min_projs = [central_projection(RG,chi)*rankOne_projection(chi,RGidems) for chi in characters(RG.group)]
 
     return min_projs
 end
