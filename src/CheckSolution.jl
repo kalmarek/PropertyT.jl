@@ -28,7 +28,7 @@ end
 
 function compute_SOS(RG::GroupRing, Q::AbstractArray)
     result = compute_SOS(RG.pm, Q)
-    return RG(result)
+    return GroupRingElem(result, RG)
 end
 
 function augIdproj(Q::AbstractArray{T,2}) where {T<:Real}
