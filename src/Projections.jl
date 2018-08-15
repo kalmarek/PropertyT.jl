@@ -92,7 +92,7 @@ function idempotents(RG::GroupRing{Generic.PermGroup{S}}, T::Type=Rational{Int})
         return GroupRingElem{T}[one(RG,T)]
     elseif RG.group.n == 2
         Id = one(RG,T)
-        transp = convert(T, RG(RG.group([2,1])))
+        transp = RG(perm"(1,2)", T)
         return GroupRingElem{T}[1//2*(Id + transp), 1//2*(Id - transp)]
     end
 
