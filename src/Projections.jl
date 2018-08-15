@@ -142,11 +142,9 @@ function rankOne_projection(chi::PermCharacter, idems::Vector{T}) where {T<:Grou
     throw("Couldn't find rank-one projection for $chi")
 end
 
-function rankOne_projections(G::Generic.PermGroup, T::Type=Rational{Int})
-    if G.n == 1
-        return [one(GroupRing(G), T)]
-    else
-        RG = GroupRing(G, fastm=false)
+function rankOne_projections(RG::GroupRing{G}, T::Type=Rational{Int}) where G<:Generic.PermGroup
+    if RG.group.n == 1
+        return [GroupRingElem([one(T)], RG)]
     end
 
     RGidems = idempotents(RG, T)
@@ -165,14 +163,14 @@ function orbit_selector(n::Integer, k::Integer,
     return Projections.DirectProdCharacter(ntuple(i -> (i <= k ? chi : psi), n))
 end
 
-function rankOne_projections(Bn::WreathProduct, T::Type=Rational{Int})
+function rankOne_projections(RBn::GroupRing{G}, T::Type=Rational{Int}) where {G<:WreathProduct}
 
+    Bn = RBn.group
     N = Bn.P.n
     # projections as elements of the group rings RSₙ
-    Sn_rankOnePr = [rankOne_projections(PermutationGroup(Int8(i))) for i in 1:N]
+    Sn_rankOnePr = [rankOne_projections(GroupRing(PermutationGroup(i))) for i in typeof(N)(1):N]
 
     # embedding into group ring of BN
-    RBn = GroupRing(Bn)
     RN = GroupRing(Bn.N)
 
     sign, id = collect(characters(Bn.N.group))
