@@ -22,7 +22,7 @@ function spLaplacian(RG::GroupRing, S, T::Type=Float64)
     return result
 end
 
-function spLaplacian{TT<:Ring}(RG::GroupRing{TT}, S, T::Type=Float64)
+function spLaplacian(RG::GroupRing{R}, S, T::Type=Float64) where {R<:Ring}
     result = RG(T)
     result[one(RG.group)] = T(length(S))
     for s in S
