@@ -157,15 +157,15 @@ Kazhdan(λ::Number,N::Integer) = sqrt(2*λ/N)
 function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius, warm::Bool=false)
 
     isdir(name) || mkdir(name)
-    LOGGER = Memento.getlogger()
+    logger = Memento.getlogger()
 
     if exists(filename(name, :pm)) && exists(filename(name, :Δ))
         # cached
-        info(LOGGER, "Loading precomputed Δ...")
+        info(logger, "Loading precomputed Δ...")
         Δ = Laplacian(name, parent(S[1]))
     else
         # compute
-        Δ = Laplacian(S, Id, LOGGER, radius=radius)
+        Δ = Laplacian(S, Id, logger, radius=radius)
         save(filename(name, :pm), "pm", parent(Δ).pm)
         save(filename(name, :Δ), "Δ", Δ.coeffs)
     end
@@ -177,39 +177,44 @@ function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius,
     cond2 = exists(filename(fullpath, :P))
 
     if !(warm) && cond1 && cond2
-        info(LOGGER, "Loading precomputed λ, P...")
+        info(logger, "Loading precomputed λ, P...")
         λ, P = λandP(fullpath)
     else
-        info(LOGGER, "Creating SDP problem...")
+        info(logger, "Creating SDP problem...")
         SDP_problem, varλ, varP = create_SDP_problem(Δ, constraints(parent(Δ).pm), upper_bound=upper_bound)
         JuMP.setsolver(SDP_problem, solver)
-        info(LOGGER, Base.repr(SDP_problem))
+        info(logger, Base.repr(SDP_problem))
 
-        @logtime LOGGER λ, P = λandP(fullpath, SDP_problem, varλ, varP)
+        @logtime logger λ, P = λandP(fullpath, SDP_problem, varλ, varP)
     end
 
-    info(LOGGER, "λ = $λ")
-    info(LOGGER, "sum(P) = $(sum(P))")
-    info(LOGGER, "maximum(P) = $(maximum(P))")
-    info(LOGGER, "minimum(P) = $(minimum(P))")
+    info(logger, "λ = $λ")
+    info(logger, "sum(P) = $(sum(P))")
+    info(logger, "maximum(P) = $(maximum(P))")
+    info(logger, "minimum(P) = $(minimum(P))")
 
     isapprox(eigvals(P), abs.(eigvals(P)), atol=tol) ||
         warn("The solution matrix doesn't seem to be positive definite!")
 
-    if λ > 0
+    return interpret_results(name, S, radius, λ, P, logger)
+end
 
-        RG = GroupRing(parent(first(S)), load(filename(name, :pm), "pm"))
-        Δ = RG(load(filename(name, :Δ), "Δ")[:, 1])
-        @logtime logger Q = real(sqrtm(Symmetric(P)))
+function interpret_results(name, S, radius, λ, P, logger)
 
-        sgap = distance_to_cone(Δ, λ, Q, wlen=2*radius, logger=LOGGER)
+    RG = GroupRing(parent(first(S)), load(filename(name, :pm), "pm"))
+    Δ = GroupRingElem(load(filename(name, :Δ), "Δ")[:, 1], RG)
+    @logtime logger Q = real(sqrtm(Symmetric(P)))
+
+    sgap = distance_to_cone(Δ, λ, Q, wlen=2*radius, logger=logger)
+
+    if sgap > 0
         Kazhdan_κ = Kazhdan(sgap, length(S))
         if Kazhdan_κ > 0
             info(logger, "κ($name, S) ≥ $Kazhdan_κ: Group HAS property (T)!")
             return true
         end
     end
-    info(LOGGER, "κ($name, S) ≥ $λ < 0: Tells us nothing about property (T)")
+    info(logger, "λ($name, S) ≥ $sgap < 0: Tells us nothing about property (T)")
     return false
 end
 
