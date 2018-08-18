@@ -129,8 +129,6 @@ function λandP(name::String, SDP::JuMP.Model, varλ, varP, warmstart=true)
         ws = nothing
     end
 
-    solver_log = setup_logging(name, :solverlog)
-
     function f()
         Base.Libc.flush_cstdio()
         λ, P, w = solve_SDP(SDP, varλ, varP, warmstart=ws)
@@ -138,9 +136,9 @@ function λandP(name::String, SDP::JuMP.Model, varλ, varP, warmstart=true)
         return λ, P, w
     end
 
-    λ, P, warmstart = redirect_stdout(f, solver_log.handlers["solverlog"].io)
-
-    delete!(solver_log.handlers, "solverlog")
+    solverlog = open(filename(name, :solverlog),"a+")
+    λ, P, warmstart = redirect_stdout(f, solverlog)
+    close(solverlog)
 
     if λ > 0
         save(filename(name, :λ), "λ", λ)
