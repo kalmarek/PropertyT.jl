@@ -14,7 +14,6 @@ immutable Settings{T<:AbstractMathProgSolver}
     upper_bound::Float64
     tol::Float64
     warmstart::Bool
-    logger
 end
 
 prefix(s::Settings) = s.name
@@ -167,8 +166,8 @@ function init_model(n, sizes)
 end
 
 function create_SDP_problem(sett::Settings)
-    info(sett.logger, "Loading orbit data....")
-    @logtime sett.logger SDP_problem, orb_data = OrbitData(sett);
+    info("Loading orbit data....")
+    @time SDP_problem, orb_data = OrbitData(sett);
 
     if sett.upper_bound < Inf
         λ = JuMP.getvariable(SDP_problem, :λ)
@@ -176,8 +175,8 @@ function create_SDP_problem(sett::Settings)
     end
 
     t = length(orb_data.laplacian)
-    info(sett.logger, "Adding $t constraints ... ")
-    @logtime sett.logger addconstraints!(SDP_problem, orb_data)
+    info("Adding $t constraints ... ")
+    @time addconstraints!(SDP_problem, orb_data)
 
     return SDP_problem, orb_data
 end
@@ -190,14 +189,14 @@ function λandP(m::JuMP.Model, data::OrbitData, warmstart=true)
 end
 
 function λandP(m::JuMP.Model, data::OrbitData, sett::Settings)
-    info(sett.logger, "Solving SDP problem...")
-    @logtime sett.logger λ, Ps = λandP(m, data, sett.warmstart)
+    info("Solving SDP problem...")
+    @time λ, Ps = λandP(m, data, sett.warmstart)
 
-    info(sett.logger, "Reconstructing P...")
+    info("Reconstructing P...")
 
     preps = load_preps(filename(prepath(sett), :preps), sett.autS)
 
-    @logtime sett.logger recP = reconstruct_sol(preps, data.Us, Ps, data.dims)
+    @time recP = reconstruct_sol(preps, data.Us, Ps, data.dims)
 
     fname = filename(fullpath(sett), :P)
     save(fname, "origP", Ps, "P", recP)
@@ -223,7 +222,7 @@ function check_property_T(sett::Settings)
     files_exists = ex.([:pm, :Δ, :Uπs, :orb, :preps])
 
     if !all(files_exists)
-        compute_orbit_data(sett.logger, prepath(sett), sett.S, sett.autS, radius=sett.radius)
+        compute_orbit_data(prepath(sett), sett.S, sett.autS, radius=sett.radius)
     end
 
     cond1 = exists(filename(fullpath(sett), :λ))
@@ -232,21 +231,21 @@ function check_property_T(sett::Settings)
     if !sett.warmstart && cond1 && cond2
         λ, P = λandP(fullpath(sett))
     else
-        info(sett.logger, "Creating SDP problem...")
+        info("Creating SDP problem...")
         SDP_problem, orb_data = create_SDP_problem(sett)
         JuMP.setsolver(SDP_problem, sett.solver)
-        info(sett.logger, Base.repr(SDP_problem))
+        info(Base.repr(SDP_problem))
 
         λ, P = λandP(SDP_problem, orb_data, sett)
     end
 
-    info(sett.logger, "λ = $λ")
-    info(sett.logger, "sum(P) = $(sum(P))")
-    info(sett.logger, "maximum(P) = $(maximum(P))")
-    info(sett.logger, "minimum(P) = $(minimum(P))")
+    info("λ = $λ")
+    info("sum(P) = $(sum(P))")
+    info("maximum(P) = $(maximum(P))")
+    info("minimum(P) = $(minimum(P))")
 
     isapprox(eigvals(P), abs.(eigvals(P)), atol=sett.tol) ||
         warn("The solution matrix doesn't seem to be positive definite!")
 
-    return interpret_results(sett.name, sett.S, sett.radius, λ, P, sett.logger)
+    return interpret_results(sett.name, sett.S, sett.radius, λ, P)
 end

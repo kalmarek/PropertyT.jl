@@ -43,56 +43,52 @@ function augIdproj(Q::AbstractArray{T,2}) where {T<:Real}
     return R
 end
 
-function augIdproj(Q::AbstractArray{T,2}, logger) where {T<:Real}
-    info(logger, "Projecting columns of Q to the augmentation ideal...")
-    @logtime logger Q = augIdproj(Q)
-
-    info(logger, "Checking that sum of every column contains 0.0... ")
-    check = all([zero(T) in sum(view(Q, :, i)) for i in 1:size(Q, 2)])
-    info(logger, (check? "They do." : "FAILED!"))
-
-    @assert check
-
-    return Q
-end
-
-function distance_to_cone(Δ::GroupRingElem, λ, Q; wlen::Int=4, logger=getlogger())
-    info(logger, "------------------------------------------------------------")
-    info(logger, "Checking in floating-point arithmetic...")
-    info(logger, "λ = $λ")
-    @logtime logger sos = compute_SOS(parent(Δ), Q)
+function distance_to_cone(Δ::GroupRingElem, λ, Q; wlen::Int=4)
+    info("------------------------------------------------------------")
+    info("Checking in floating-point arithmetic...")
+    info("λ = $λ")
+    @time sos = compute_SOS(parent(Δ), Q)
     residue = Δ^2-λ*Δ - sos
-    info(logger, "ɛ(Δ² - λΔ - ∑ξᵢ*ξᵢ) ≈ $(@sprintf("%.10f", aug(residue)))")
+    info("ɛ(Δ² - λΔ - ∑ξᵢ*ξᵢ) ≈ $(@sprintf("%.10f", aug(residue)))")
     L1_norm = norm(residue,1)
-    info(logger, "‖Δ² - λΔ - ∑ξᵢ*ξᵢ‖₁ ≈ $(@sprintf("%.10f", L1_norm))")
+    info("‖Δ² - λΔ - ∑ξᵢ*ξᵢ‖₁ ≈ $(@sprintf("%.10f", L1_norm))")
 
     distance = λ - 2^(wlen-1)*L1_norm
 
-    info(logger, "Floating point distance (to positive cone) ≈")
-    info(logger, "$(@sprintf("%.10f", distance))")
-    info(logger, "")
+    info("Floating point distance (to positive cone) ≈")
+    info("$(@sprintf("%.10f", distance))")
+    info("")
 
     if distance ≤ 0
         return distance
     end
 
+    info("------------------------------------------------------------")
+    info("Checking in interval arithmetic...")
+    info("λ ∈ $λ")
+
     λ = @interval(λ)
     eoi = Δ^2 - λ*Δ
-    Q = augIdproj(Q, logger)
+    info("Projecting columns of Q to the augmentation ideal...")
+    T = eltype(Q)
+    @time Q = augIdproj(Q)
 
-    info(logger, "------------------------------------------------------------")
-    info(logger, "Checking in interval arithmetic...")
-    info(logger, "λ ∈ $λ")
-    @logtime logger sos = compute_SOS(parent(Δ), Q)
+    info("Checking that sum of every column contains 0.0... ")
+    check = all([zero(T) in sum(view(Q, :, i)) for i in 1:size(Q, 2)])
+    info((check? "They do." : "FAILED!"))
+
+    @assert check
+
+    @time sos = compute_SOS(parent(Δ), Q)
     residue = Δ^2-λ*Δ - sos
-    info(logger, "ɛ(∑ξᵢ*ξᵢ) ∈ $(aug(residue))")
+    info("ɛ(∑ξᵢ*ξᵢ) ∈ $(aug(residue))")
     L1_norm = norm(residue,1)
-    info(logger, "‖Δ² - λΔ - ∑ξᵢ*ξᵢ‖₁ ∈ $(L1_norm)")
+    info("‖Δ² - λΔ - ∑ξᵢ*ξᵢ‖₁ ∈ $(L1_norm)")
 
     distance = λ - 2^(wlen-1)*L1_norm
-    info(logger, "The Augmentation-projected distance (to positive cone) ∈")
-    info(logger, "$(distance)")
-    info(logger, "")
+    info("The Augmentation-projected distance (to positive cone) ∈")
+    info("$(distance)")
+    info("")
 
     return distance.lo
 end

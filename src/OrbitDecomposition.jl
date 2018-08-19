@@ -128,51 +128,51 @@ function orthSVD{T}(M::AbstractMatrix{T})
     return fact[:U][:,1:M_rank]
 end
 
-function compute_orbit_data{T<:GroupElem}(logger, name::String, S::Vector{T}, autS::Group; radius=2)
+function compute_orbit_data{T<:GroupElem}(name::String, S::Vector{T}, autS::Group; radius=2)
     isdir(name) || mkdir(name)
 
-    info(logger, "Generating ball of radius $(2*radius)")
+    info("Generating ball of radius $(2*radius)")
 
     # TODO: Fix that by multiple dispatch?
     G = parent(first(S))
     Id = (isa(G, Ring) ? one(G) : G())
 
-    @logtime logger E_2R, sizes = Groups.generate_balls(S, Id, radius=2*radius);
-    info(logger, "Balls of sizes $sizes.")
-    info(logger, "Reverse dict")
-    @logtime logger E_rdict = GroupRings.reverse_dict(E_2R)
+    @time E_2R, sizes = Groups.generate_balls(S, Id, radius=2*radius);
+    info("Balls of sizes $sizes.")
+    info("Reverse dict")
+    @time E_rdict = GroupRings.reverse_dict(E_2R)
 
-    info(logger, "Product matrix")
-    @logtime logger pm = GroupRings.create_pm(E_2R, E_rdict, sizes[radius], twisted=true)
+    info("Product matrix")
+    @time pm = GroupRings.create_pm(E_2R, E_rdict, sizes[radius], twisted=true)
     RG = GroupRing(G, E_2R, E_rdict, pm)
     Δ = PropertyT.spLaplacian(RG, S)
     @assert GroupRings.aug(Δ) == 0
     save(filename(name, :Δ), "Δ", Δ.coeffs)
     save(filename(name, :pm), "pm", pm)
 
-    info(logger, "Decomposing E into orbits of $(autS)")
-    @logtime logger orbs = orbit_decomposition(autS, E_2R, E_rdict)
+    info("Decomposing E into orbits of $(autS)")
+    @time orbs = orbit_decomposition(autS, E_2R, E_rdict)
     @assert sum(length(o) for o in orbs) == length(E_2R)
-    info(logger, "E consists of $(length(orbs)) orbits!")
+    info("E consists of $(length(orbs)) orbits!")
     save(joinpath(name, "orbits.jld"), "orbits", orbs)
 
-    info(logger, "Action matrices")
-    @logtime logger reps = perm_reps(autS, E_2R[1:sizes[radius]], E_rdict)
+    info("Action matrices")
+    @time reps = perm_reps(autS, E_2R[1:sizes[radius]], E_rdict)
     save_preps(filename(name, :preps), reps)
     reps = matrix_reps(reps)
 
-    info(logger, "Projections")
-    @logtime logger autS_mps = Projections.rankOne_projections(GroupRing(autS));
+    info("Projections")
+    @time autS_mps = Projections.rankOne_projections(GroupRing(autS));
 
-    @logtime logger π_E_projections = [Cstar_repr(p, reps) for p in autS_mps]
+    @time π_E_projections = [Cstar_repr(p, reps) for p in autS_mps]
 
-    info(logger, "Uπs...")
-    @logtime logger Uπs = orthSVD.(π_E_projections)
+    info("Uπs...")
+    @time Uπs = orthSVD.(π_E_projections)
 
     multiplicities = size.(Uπs,2)
-    info(logger, "multiplicities = $multiplicities")
+    info("multiplicities = $multiplicities")
     dimensions = [Int(p[autS()]*Int(order(autS))) for p in autS_mps];
-    info(logger, "dimensions = $dimensions")
+    info("dimensions = $dimensions")
     @assert dot(multiplicities, dimensions) == sizes[radius]
 
     save(joinpath(name, "U_pis.jld"),

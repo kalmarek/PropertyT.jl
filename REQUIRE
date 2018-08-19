@@ -1,9 +1,8 @@
 julia
-JuMP 0.18.0
-SCS
-IntervalArithmetic
-JLD
-Memento
 AbstractAlgebra
 Groups
 GroupRings
+IntervalArithmetic
+JuMP 0.18.0
+JLD
+SCS
