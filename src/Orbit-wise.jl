@@ -116,41 +116,32 @@ function addconstraints!(m::JuMP.Model, data::OrbitData, l::Int=length(data.lapl
     println("")
 end
 
-function init_model(n, sizes)
-    m = JuMP.Model();
-    P = Vector{Array{JuMP.Variable,2}}(n)
+function init_model(m, sizes)
+    P = Vector{Array{JuMP.Variable,2}}(length(sizes))
 
     for (k,s) in enumerate(sizes)
         P[k] = JuMP.@variable(m, [i=1:s, j=1:s])
         JuMP.@SDconstraint(m, P[k] >= 0.0)
     end
 
-    JuMP.@variable(m, λ >= 0.0)
-    JuMP.@objective(m, Max, λ)
-    return m, P
+    return P
 end
 
-function create_SDP_problem(sett::Settings)
-    info("Loading orbit data....")
-    @time SDP_problem, orb_data = OrbitData(sett);
+function SOS_problem(X::GroupRingElem, orderunit::GroupRingElem, data::OrbitData; upper_bound=Inf)
+    m = JuMP.Model();
+    P = init_model(m, size.(data.Uπs,2))
 
-    if sett.upper_bound < Inf
-        λ = JuMP.getvariable(SDP_problem, :λ)
-        JuMP.@constraint(SDP_problem, λ <= sett.upper_bound)
+    λ = JuMP.@variable(m, λ)
+    if upper_bound < Inf
+        JuMP.@constraint(SDP_problem, λ <= upper_bound)
     end
 
-    t = length(orb_data.laplacian)
-    info("Adding $t constraints ... ")
-    @time addconstraints!(SDP_problem, orb_data)
+    info("Adding $(length(data.orbits)) constraints... ")
 
-    return SDP_problem, orb_data
-end
+    @time addconstraints!(m, X, orderunit, λ, P, data)
 
-function λandP(m::JuMP.Model, data::OrbitData, warmstart=true)
-    varλ = m[:λ]
-    varP = data.Ps
-    λ, Ps = PropertyT.λandP(data.name, m, varλ, varP, warmstart)
-    return λ, Ps
+    JuMP.@objective(m, Max, λ)
+    return m, λ, P
 end
 
 function λandP(m::JuMP.Model, data::OrbitData, sett::Settings)
