@@ -90,30 +90,20 @@ function constrLHS(m::JuMP.Model, cnstr, Us, Ust, dims, vars, eps=100*eps(1.0))
     return @expression(m, sum(vecdot(M[π], vars[π]) for π in 1:endof(Us)))
 end
 
-function addconstraints!(m::JuMP.Model, data::OrbitData, l::Int=length(data.laplacian); var::Symbol=:λ)
-    λ = m[var]
-    Ust = [U' for U in data.Us]
-    idx = [π for π in 1:endof(data.Us) if size(data.Us[π],2) != 0]
+function addconstraints!(m::JuMP.Model, X::GroupRingElem, orderunit::GroupRingElem, λ::JuMP.Variable, P, data::OrbitData)
 
-    for t in 1:l
-        if t % 100 == 0
-            print(t, ", ")
-        end
-        #   lhs = constrLHS(m, data, t)
-        lhs = constrLHS(m, data.cnstr[t], data.Us[idx], Ust[idx], data.dims[idx], data.Ps[idx])
+    orderunit_orb = orbit_spvector(orderunit.coeffs, data.orbits)
+    X_orb = orbit_spvector(X.coeffs, data.orbits)
+    Ust = [U' for U in data.Uπs]
+    n = size(parent(X).pm, 1)
 
-        d, d² = data.laplacian[t], data.laplacianSq[t]
-        # if lhs == zero(lhs)
-        #    if d == 0 && d² == 0
-        #        info("Detected empty constraint")
-        #        continue
-        #    else
-        #        warn("Adding unsatisfiable constraint!")
-        #    end
-        # end
-        JuMP.@constraint(m, lhs == d² - λ*d)
+    for t in 1:length(X_orb)
+        x, u = X_orb[t], orderunit_orb[t]
+        cnstrs = [constraint(parent(X).pm, o) for o in data.orbits[t]]
+        lhs = constrLHS(m, orbit_constraint(cnstrs,n), data.Uπs, Ust, data.dims, P)
+
+        JuMP.@constraint(m, lhs == x - λ*u)
     end
-    println("")
 end
 
 function init_model(m, sizes)
