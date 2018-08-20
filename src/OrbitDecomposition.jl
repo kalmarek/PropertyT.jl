@@ -96,8 +96,7 @@ function perm_reps(S::Vector, autS::Group, radius::Int)
     return perm_reps(autS, E)
 end
 
-function reconstruct_sol{T<:GroupElem, S<:perm}(preps::Dict{T, S},
-    Us::Vector, Ps::Vector, dims::Vector)
+function reconstruct_sol(preps::Dict{T, S}, Us::Vector, Ps::Vector, dims::Vector) where {T<:GroupElem, S<:perm}
 
     l = length(Us)
     transfP = [dims[π].*Us[π]*Ps[π]*Us[π]' for π in 1:l]
@@ -111,7 +110,11 @@ function reconstruct_sol{T<:GroupElem, S<:perm}(preps::Dict{T, S},
     end
 
     recP = 1/length(perms) .* sum(tmp)
-    recP[abs.(recP) .< eps(eltype(recP))] = zero(eltype(recP))
+    for i in eachindex(recP)
+        if abs(recP[i]) .< eps(eltype(recP))*100
+            recP[i] = zero(eltype(recP))
+        end
+    end
     return recP
 end
 
