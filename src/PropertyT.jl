@@ -144,19 +144,17 @@ function check_property_T(name::String, S, solver, upper_bound, tol, radius, war
     isapprox(eigvals(P), abs.(eigvals(P)), atol=tol) ||
         warn("The solution matrix doesn't seem to be positive definite!")
 
-    return interpret_results(name, S, radius, λ, P)
+    return interpret_results(name, Δ, radius,length(S), λ, P)
 end
 
-function interpret_results(name, S, radius, λ, P)
+function interpret_results(name::String, Δ::GroupRingElem, radius::Integer, length_S::Integer, λ::AbstractFloat, P)
 
-    RG = GroupRing(parent(first(S)), load(filename(name, :pm), "pm"))
-    Δ = GroupRingElem(load(filename(name, :Δ), "Δ")[:, 1], RG)
     @time Q = real(sqrtm(Symmetric(P)))
 
     sgap = distance_to_cone(Δ, λ, Q, wlen=2*radius)
 
     if sgap > 0
-        Kazhdan_κ = Kazhdan(sgap, length(S))
+        Kazhdan_κ = Kazhdan(sgap, length_S)
         if Kazhdan_κ > 0
             info("κ($name, S) ≥ $Kazhdan_κ: Group HAS property (T)!")
             return true
