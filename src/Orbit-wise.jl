@@ -85,22 +85,6 @@ end
 
 sparsify{T}(U::AbstractArray{T}, tol=eps(T); verbose=false) = sparsify!(deepcopy(U), tol, verbose=verbose)
 
-function transform(U::AbstractArray, V::AbstractArray; sparse=true)
-    if sparse
-        return sparsify!(U'*V*U)
-    else
-        return U'*V*U
-    end
-end
-
-A(data::OrbitData, π, t) = data.dims[π].*transform(data.Us[π], data.cnstr[t])
-
-function constrLHS(m::JuMP.Model, data::OrbitData, t)
-    l = endof(data.Us)
-    lhs = @expression(m, sum(vecdot(A(data, π, t), data.Ps[π]) for π in 1:l))
-    return lhs
-end
-
 function constrLHS(m::JuMP.Model, cnstr, Us, Ust, dims, vars, eps=100*eps(1.0))
     M = [PropertyT.sparsify!(dims[π].*Ust[π]*cnstr*Us[π], eps) for π in 1:endof(Us)]
     return @expression(m, sum(vecdot(M[π], vars[π]) for π in 1:endof(Us)))
