@@ -31,27 +31,25 @@ function spLaplacian(RG::GroupRing{R}, S, T::Type=Float64) where {R<:Ring}
     return result
 end
 
-function create_SDP_problem(Δ::GroupRingElem, matrix_constraints; upper_bound=Inf)
-    N = size(parent(Δ).pm, 1)
-    Δ² = Δ*Δ
-    @assert length(Δ.coeffs) == length(matrix_constraints)
+function SOS_problem(X::GroupRingElem, orderunit::GroupRingElem; upper_bound=Inf)
+    N = size(parent(X).pm, 1)
+    matrix_constraints = PropertyT.constraints(parent(X).pm)
     m = JuMP.Model();
+
     JuMP.@variable(m, P[1:N, 1:N])
     JuMP.@SDconstraint(m, P >= 0)
     JuMP.@constraint(m, sum(P[i] for i in eachindex(P)) == 0)
 
+    JuMP.@variable(m, λ)
     if upper_bound < Inf
-        JuMP.@variable(m, 0.0 <= λ <= upper_bound)
-    else
-        JuMP.@variable(m, λ >= 0)
+        JuMP.@constraint(m, λ <= upper_bound)
     end
 
-    for (pairs, δ², δ) in zip(matrix_constraints, Δ².coeffs, Δ.coeffs)
-        JuMP.@constraint(m, sum(P[i,j] for (i,j) in pairs) == δ² - λ*δ)
+    for (cnstr, x, u) in zip(matrix_constraints, X.coeffs, orderunit.coeffs)
+        JuMP.@constraint(m, sum(P[cnstr]) == x - λ*u)
     end
 
     JuMP.@objective(m, Max, λ)
-
     return m, λ, P
 end
 
