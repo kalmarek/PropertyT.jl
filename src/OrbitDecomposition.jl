@@ -129,43 +129,21 @@ function orthSVD{T}(M::AbstractMatrix{T})
     return fact[:U][:,1:M_rank]
 end
 
-function compute_orbit_data{T<:GroupElem}(name::String, S::Vector{T}, autS::Group; radius=2)
-    isdir(name) || mkdir(name)
-
-    info("Generating ball of radius $(2*radius)")
-
-    # TODO: Fix that by multiple dispatch?
-    G = parent(first(S))
-    Id = (isa(G, Ring) ? one(G) : G())
-
-    @time E_2R, sizes = Groups.generate_balls(S, Id, radius=2*radius);
-    info("Balls of sizes $sizes.")
-    info("Reverse dict")
-    @time E_rdict = GroupRings.reverse_dict(E_2R)
-
-    info("Product matrix")
-    @time pm = GroupRings.create_pm(E_2R, E_rdict, sizes[radius], twisted=true)
-    RG = GroupRing(G, E_2R, E_rdict, pm)
-    Δ = PropertyT.spLaplacian(RG, S)
-    @assert GroupRings.aug(Δ) == 0
-    save(filename(name, :Δ), "Δ", Δ.coeffs)
-    save(filename(name, :pm), "pm", pm)
+function compute_orbit_data(name::String, RG::GroupRing, autS::Group)
 
     info("Decomposing E into orbits of $(autS)")
-    @time orbs = orbit_decomposition(autS, E_2R, E_rdict)
-    @assert sum(length(o) for o in orbs) == length(E_2R)
+    @time orbs = orbit_decomposition(autS, RG.basis, RG.basis_dict)
+    @assert sum(length(o) for o in orbs) == length(RG.basis)
     info("E consists of $(length(orbs)) orbits!")
-    save(joinpath(name, "orbits.jld"), "orbits", orbs)
 
     info("Action matrices")
-    @time reps = perm_reps(autS, E_2R[1:sizes[radius]], E_rdict)
-    save_preps(filename(name, :preps), reps)
-    reps = matrix_reps(reps)
+    @time preps = perm_reps(autS, RG.basis[1:size(RG.pm,1)], RG.basis_dict)
+    mreps = matrix_reps(preps)
 
     info("Projections")
     @time autS_mps = Projections.rankOne_projections(GroupRing(autS));
 
-    @time π_E_projections = [Cstar_repr(p, reps) for p in autS_mps]
+    @time π_E_projections = [Cstar_repr(p, mreps) for p in autS_mps]
 
     info("Uπs...")
     @time Uπs = orthSVD.(π_E_projections)
@@ -174,10 +152,10 @@ function compute_orbit_data{T<:GroupElem}(name::String, S::Vector{T}, autS::Grou
     info("multiplicities = $multiplicities")
     dimensions = [Int(p[autS()]*Int(order(autS))) for p in autS_mps];
     info("dimensions = $dimensions")
-    @assert dot(multiplicities, dimensions) == sizes[radius]
+    @assert dot(multiplicities, dimensions) == size(RG.pm,1)
 
-    save(joinpath(name, "U_pis.jld"),
-    "Uπs", Uπs,
-    "dims", dimensions)
+    save(filename(name, :orbits), "orbits", orbs)
+    save_preps(filename(name, :preps), preps)
+    save(filename(name, :Uπs), "Uπs", Uπs, "dims", dimensions)
     return 0
 end

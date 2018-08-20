@@ -182,9 +182,19 @@ end
 
 function check_property_T(sett::Settings)
 
-    ex(s) = exists(filename(prepath(sett), s))
+    ex(s::Symbol) = exists(filename(prepath(sett), s))
 
-    files_exists = ex.([:pm, :Δ, :Uπs, :orb, :preps])
+    if ex(:pm) && ex(:Δ)
+        # cached
+        Δ = loadLaplacian(prepath(sett), parent(sett.S[1]))
+    else
+        # compute
+        Δ = computeLaplacian(sett.S, sett.radius)
+        save(filename(prepath(sett), :pm), "pm", parent(Δ).pm)
+        save(filename(prepath(sett), :Δ), "Δ", Δ.coeffs)
+    end
+
+    files_exist = ex.([:Uπs, :orbits, :preps])
 
     if !all(files_exists)
         compute_orbit_data(prepath(sett), sett.S, sett.autS, radius=sett.radius)
