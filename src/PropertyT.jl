@@ -44,10 +44,19 @@ function Laplacian(name::String, G::Group)
     return Δ
 end
 
-function Laplacian{T<:GroupElem}(S::Vector{T}, Id::T; radius::Int=2)
+function computeLaplacian(S::Vector{E}, radius) where E<:AbstractAlgebra.RingElem
+    R = parent(first(S))
+    return computeLaplacian(S, one(R), radius)
+end
 
+function computeLaplacian(S::Vector{E}, radius) where E<:AbstractAlgebra.GroupElem
+    G = parent(first(S))
+    return computeLaplacian(S, G(), radius)
+end
+
+function computeLaplacian(S, Id, radius)
     info("Generating metric ball of radius $radius...")
-    @time E_R, sizes = Groups.generate_balls(S, Id, radius=2*radius)
+    @time E_R, sizes = Groups.generate_balls(S, Id, radius=2radius)
     info("Generated balls of sizes $sizes.")
 
     info("Creating product matrix...")
