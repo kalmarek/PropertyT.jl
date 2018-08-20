@@ -1,13 +1,14 @@
 using JuMP
 import MathProgBase: AbstractMathProgSolver
 
-function constraints(pm, total_length=maximum(pm))
-    n = size(pm,1)
-    constraints = [Vector{Tuple{Int,Int}}() for _ in 1:total_length]
-    for j in 1:n
-        for i in 1:n
-            idx = pm[i,j]
-            push!(constraints[idx], (i,j))
+function constraints(pm::Matrix{I}, total_length=maximum(pm)) where {I<:Integer}
+    cnstrs = [Vector{I}() for _ in 1:total_length]
+    for i in eachindex(pm)
+        push!(cnstrs[pm[i]], i)
+    end
+    return cnstrs
+end
+
         end
     end
     return constraints
