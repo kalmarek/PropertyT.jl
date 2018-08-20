@@ -163,7 +163,7 @@ end
 
 function save_preps(fname::String, preps)
     autS = parent(first(keys(preps)))
-    JLD.save(fname, "perms_d", [preps[elt].d for elt in elements(autS)])
+    save(fname, "perms_d", [preps[elt].d for elt in elements(autS)])
 end
 
 function check_property_T(sett::Settings)

@@ -119,7 +119,8 @@ function reconstruct_sol(preps::Dict{T, S}, Us::Vector, Ps::Vector, dims::Vector
 end
 
 function Cstar_repr(x::GroupRingElem{T}, mreps::Dict) where {T}
-    return sum(x[i].*mreps[parent(x).basis[i]] for i in findn(x.coeffs))
+    nzeros = findn(x.coeffs)
+    return sum(x[i].*mreps[parent(x).basis[i]] for i in nzeros)
 end
 
 function orthSVD(M::AbstractMatrix{T}) where {T<:AbstractFloat}
