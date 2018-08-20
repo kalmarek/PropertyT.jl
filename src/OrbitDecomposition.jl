@@ -122,7 +122,7 @@ function Cstar_repr(x::GroupRingElem{T}, mreps::Dict) where {T}
     return sum(x[i].*mreps[parent(x).basis[i]] for i in findn(x.coeffs))
 end
 
-function orthSVD{T}(M::AbstractMatrix{T})
+function orthSVD(M::AbstractMatrix{T}) where {T<:AbstractFloat}
     M = full(M)
     fact = svdfact(M)
     M_rank = sum(fact[:S] .> maximum(size(M))*eps(T))
