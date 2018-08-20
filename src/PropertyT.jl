@@ -82,12 +82,6 @@ function loadλandP(name::String)
     return λ, P
 end
 
-
-    if warmstart && isfile(filename(name, :warm))
-        ws = load(filename(name, :warm), "warmstart")
-    else
-        ws = nothing
-    end
 function computeλandP(Δ::GroupRingElem, upper_bound::AbstractFloat, solver, ws=nothing; solverlog=tempname()*".log")
 
     function f()
@@ -101,14 +95,10 @@ function computeλandP(Δ::GroupRingElem, upper_bound::AbstractFloat, solver, ws
     λ, P, warmstart = redirect_stdout(f, solverlog)
     close(solverlog)
 
-    if λ > 0
-        save(filename(name, :λ), "λ", λ)
-        save(filename(name, :P), "P", P)
-        save(filename(name, :warm), "warmstart", warmstart)
-    else
-        throw(ErrorException("Solver did not produce a valid solution: λ = $λ"))
-    end
-    return λ, P
+function saveλandP(name, λ, P, ws)
+    save(filename(name, :λ), "λ", λ)
+    save(filename(name, :P), "P", P)
+    save(filename(name, :warm), "warmstart", ws)
 end
 
 Kazhdan(λ::Number,N::Integer) = sqrt(2*λ/N)
@@ -135,25 +125,18 @@ function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius,
     if !(warm) && files_exist
         λ, P = loadλandP(fullpath)
     else
-        info("Creating SDP problem...")
-        SDP_problem, varλ, varP = create_SDP_problem(Δ, constraints(parent(Δ).pm), upper_bound=upper_bound)
-        JuMP.setsolver(SDP_problem, solver)
-        info(Base.repr(SDP_problem))
-
-        if warm && isfile(filename(name, :warm))
-            ws = load(filename(name, :warm), "warmstart")
+        warmfile = filename(fullpath, :warm)
+        if warm && isfile(warmfile)
+            ws = load(warmfile, "warmstart")
         else
             ws = nothing
         end
 
-
-        if λ > 0
-            save(filename(name, :λ), "λ", λ)
-            save(filename(name, :P), "P", P)
-            save(filename(name, :warm), "warmstart", ws)
-        else
-            throw(ErrorException("Solver did not produce a valid solution: λ = $λ"))
         λ, P, ws = computeλandP(Δ, upper_bound, solver, ws,
+            solverlog=filename(fullpath, :solverlog))
+        saveλandP(fullpath, λ, P, ws)
+        if λ < 0
+            warn("Solver did not produce a valid solution!")
         end
     end
 
