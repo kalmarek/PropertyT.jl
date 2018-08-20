@@ -101,9 +101,7 @@ end
 
 Kazhdan(λ::Number,N::Integer) = sqrt(2*λ/N)
 
-function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius, warm::Bool=false)
-
-    isdir(name) || mkdir(name)
+function check_property_T(name::String, S, solver, upper_bound, tol, radius, warm::Bool=false)
 
     if exists(filename(name, :pm)) && exists(filename(name, :Δ))
         # cached
