@@ -17,17 +17,16 @@ filename(prefix, s::Symbol) = filename(prefix, Val{s})
 
 @eval begin
     for (s,n) in [
-        [:pm,   "pm.jld"],
-        [:Δ,    "delta.jld"],
-        [:λ,    "lambda.jld"],
-        [:P,    "SDPmatrix.jld"],
-        [:warm, "warmstart.jld"],
-        [:Uπs,  "U_pis.jld"],
-        [:orb,  "orbits.jld"],
-        [:preps,"preps.jld"],
-
-        [:fulllog,   "full_$(string(now())).log"],
-        [:solverlog,   "solver_$(string(now())).log"]
+        [:fulllog,     "full_$(string(now())).log"],
+        [:solverlog,   "solver_$(string(now())).log"],
+        [:pm,    "pm.jld"],
+        [:Δ,     "delta.jld"],
+        [:λ,     "lambda.jld"],
+        [:P,     "SDPmatrix.jld"],
+        [:warm,  "warmstart.jld"],
+        [:Uπs,   "U_pis.jld"],
+        [:orbits,"orbits.jld"],
+        [:preps, "preps.jld"],
         ]
 
         filename(prefix::String, ::Type{Val{$:(s)}}) = joinpath(prefix, :($n))
