@@ -55,7 +55,23 @@ function create_SDP_problem(Δ::GroupRingElem, matrix_constraints; upper_bound=I
     return m, λ, P
 end
 
-function solve_SDP(m, varλ, varP; warmstart=nothing)
+function solve_SDP(model::JuMP.Model, varλ, varP, ws=nothing; solverlog=tempname()*".log")
+
+    function f()
+        Base.Libc.flush_cstdio()
+        λ, P, ws = PropertyT.solve(model, varλ, varP, warmstart=ws)
+        Base.Libc.flush_cstdio()
+        return λ, P, ws
+    end
+
+    log = open(solverlog, "a+")
+    λ, P, ws = redirect_stdout(f, log)
+    close(log)
+
+    return λ, P, ws
+end
+
+function solve(m::JuMP.Model, varλ, varP; warmstart=nothing)
 
     traits = JuMP.ProblemTraits(m, relaxation=false)
 

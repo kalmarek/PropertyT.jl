@@ -83,17 +83,15 @@ function loadλandP(name::String)
 end
 
 function computeλandP(Δ::GroupRingElem, upper_bound::AbstractFloat, solver, ws=nothing; solverlog=tempname()*".log")
+    info("Creating SDP problem...")
+    SDP_problem, varλ, varP = SOS_problem(Δ^2, Δ, upper_bound=upper_bound)
+    JuMP.setsolver(SDP_problem, solver)
+    info(Base.repr(SDP_problem))
 
-    function f()
-        Base.Libc.flush_cstdio()
-        λ, P, w = solve_SDP(SDP, varλ, varP, warmstart=ws)
-        Base.Libc.flush_cstdio()
-        return λ, P, w
-    end
+    @time λ, P, ws = solve_SDP(SDP_problem, varλ, varP, ws, solverlog=solverlog)
 
-    solverlog = open(filename(name, :solverlog),"a+")
-    λ, P, warmstart = redirect_stdout(f, solverlog)
-    close(solverlog)
+    return λ, P, ws
+end
 
 function saveλandP(name, λ, P, ws)
     save(filename(name, :λ), "λ", λ)
