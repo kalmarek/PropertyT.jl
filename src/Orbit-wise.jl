@@ -215,5 +215,5 @@ function check_property_T(sett::Settings)
     isapprox(eigvals(P), abs.(eigvals(P)), atol=sett.tol) ||
         warn("The solution matrix doesn't seem to be positive definite!")
 
-    return interpret_results(sett.name, sett.S, sett.radius, λ, P)
+    return interpret_results(sett.name, Δ, sett.radius, length(sett.S), λ, P)
 end
