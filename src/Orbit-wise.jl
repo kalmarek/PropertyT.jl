@@ -182,22 +182,29 @@ function check_property_T(sett::Settings)
 
     files_exist = ex.([:Uπs, :orbits, :preps])
 
-    if !all(files_exists)
-        compute_orbit_data(prepath(sett), sett.S, sett.autS, radius=sett.radius)
+    if !all(files_exist)
+        compute_orbit_data(prepath(sett), parent(Δ), sett.autS)
     end
 
-    cond1 = exists(filename(fullpath(sett), :λ))
-    cond2 = exists(filename(fullpath(sett), :P))
+    files_exist = exists(filename(fullpath(sett), :λ)) &&
+        exists(filename(fullpath(sett), :P))
 
-    if !sett.warmstart && cond1 && cond2
-        λ, P = λandP(fullpath(sett))
+    if !sett.warmstart && files_exist
+        λ, P = loadλandP(fullpath(sett))
     else
-        info("Creating SDP problem...")
-        SDP_problem, orb_data = create_SDP_problem(sett)
-        JuMP.setsolver(SDP_problem, sett.solver)
-        info(Base.repr(SDP_problem))
+        warmfile = filename(fullpath(sett), :warm)
+        if sett.warmstart && exists(warmfile)
+            ws = load(warmfile, "warmstart")
+        else
+            ws = nothing
+        end
+        λ, P, ws = computeλandP(Δ, sett, ws,
+            solverlog=filename(fullpath(sett), :solverlog))
+        saveλandP(fullpath(sett), λ, P, ws)
 
-        λ, P = λandP(SDP_problem, orb_data, sett)
+        if λ < 0
+            warn("Solver did not produce a valid solution!")
+        end
     end
 
     info("λ = $λ")
