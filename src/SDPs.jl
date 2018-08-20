@@ -9,9 +9,14 @@ function constraints(pm::Matrix{I}, total_length=maximum(pm)) where {I<:Integer}
     return cnstrs
 end
 
+function constraint(pm::Matrix{I}, k) where {I<:Integer}
+    cnstr = Vector{I}()
+    for i in eachindex(pm)
+        if pm[i] == k
+            push!(cnstr, i)
         end
     end
-    return constraints
+    return cnstr
 end
 
 function spLaplacian(RG::GroupRing, S, T::Type=Float64)
