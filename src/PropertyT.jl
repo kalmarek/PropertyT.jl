@@ -34,8 +34,9 @@ filename(prefix, s::Symbol) = filename(prefix, Val{s})
     end
 end
 
-function Laplacian(name::String, G::Group)
+function loadLaplacian(name::String, G::Group)
     if exists(filename(name, :Δ)) && exists(filename(name, :pm))
+        info("Loading precomputed Δ...")
         RG = GroupRing(G, load(filename(name, :pm), "pm"))
         Δ = GroupRingElem(load(filename(name, :Δ), "Δ")[:, 1], RG)
     else
@@ -63,16 +64,16 @@ function computeLaplacian(S, Id, radius)
     @time pm = GroupRings.create_pm(E_R, GroupRings.reverse_dict(E_R), sizes[radius]; twisted=true)
 
     RG = GroupRing(parent(Id), E_R, pm)
-
     Δ = spLaplacian(RG, S)
     return Δ
 end
 
-function λandP(name::String)
+function loadλandP(name::String)
     λ_fname = filename(name, :λ)
     P_fname = filename(name, :P)
 
     if exists(λ_fname) && exists(P_fname)
+        info("Loading precomputed λ, P...")
         λ = load(λ_fname, "λ")
         P = load(P_fname, "P")
     else
@@ -81,13 +82,13 @@ function λandP(name::String)
     return λ, P
 end
 
-function λandP(name::String, SDP::JuMP.Model, varλ, varP, warmstart=true)
 
     if warmstart && isfile(filename(name, :warm))
         ws = load(filename(name, :warm), "warmstart")
     else
         ws = nothing
     end
+function computeλandP(Δ::GroupRingElem, upper_bound::AbstractFloat, solver, ws=nothing; solverlog=tempname()*".log")
 
     function f()
         Base.Libc.flush_cstdio()
@@ -118,11 +119,10 @@ function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius,
 
     if exists(filename(name, :pm)) && exists(filename(name, :Δ))
         # cached
-        info("Loading precomputed Δ...")
-        Δ = Laplacian(name, parent(S[1]))
+        Δ = loadLaplacian(name, parent(S[1]))
     else
         # compute
-        Δ = Laplacian(S, Id, radius=radius)
+        Δ = computeLaplacian(S, radius)
         save(filename(name, :pm), "pm", parent(Δ).pm)
         save(filename(name, :Δ), "Δ", Δ.coeffs)
     end
@@ -133,8 +133,7 @@ function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius,
     files_exist = exists(filename(fullpath, :λ)) && exists(filename(fullpath, :P))
 
     if !(warm) && files_exist
-        info("Loading precomputed λ, P...")
-        λ, P = λandP(fullpath)
+        λ, P = loadλandP(fullpath)
     else
         info("Creating SDP problem...")
         SDP_problem, varλ, varP = create_SDP_problem(Δ, constraints(parent(Δ).pm), upper_bound=upper_bound)
@@ -147,7 +146,6 @@ function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius,
             ws = nothing
         end
 
-        @time λ, P, ws = λandP(SDP_problem, varλ, varP, warmstart=ws, solverlog=filename(name, :solverlog))
 
         if λ > 0
             save(filename(name, :λ), "λ", λ)
@@ -155,6 +153,7 @@ function check_property_T(name::String, S, Id, solver, upper_bound, tol, radius,
             save(filename(name, :warm), "warmstart", ws)
         else
             throw(ErrorException("Solver did not produce a valid solution: λ = $λ"))
+        λ, P, ws = computeλandP(Δ, upper_bound, solver, ws,
         end
     end
 
