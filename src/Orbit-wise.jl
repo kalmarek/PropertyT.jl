@@ -21,44 +21,25 @@ suffix(s::Settings) = "$(s.upper_bound)"
 prepath(s::Settings) = prefix(s)
 fullpath(s::Settings) = joinpath(prefix(s), suffix(s))
 
-immutable OrbitData{T<:AbstractArray{Float64, 2}, LapType <:AbstractVector{Float64}}
-    name::String
-    Us::Vector{T}
-    Ps::Vector{Array{JuMP.Variable,2}}
-    cnstr::Vector{SparseMatrixCSC{Float64, Int}}
-    laplacian::LapType
-    laplacianSq::LapType
+struct OrbitData{T<:AbstractArray{Float64, 2}}
+    orbits::Vector{Vector{Int}}
+    Uπs::Vector{T}
     dims::Vector{Int}
 end
 
 function OrbitData(sett::Settings)
-    splap = load(filename(prepath(sett), :Δ), "Δ");
-    pm = load(filename(prepath(sett), :pm), "pm");
-    cnstr = PropertyT.constraints(pm);
-    splap² = similar(splap)
-    splap² = GroupRings.mul!(splap², splap, splap, pm);
-
+    info("Loading Uπs, dims, orbits...")
     Uπs = load(filename(prepath(sett), :Uπs), "Uπs")
     nzros = [i for i in 1:length(Uπs) if size(Uπs[i],2) !=0]
     Uπs = Uπs[nzros]
-    Uπs = map(x -> sparsify!(x, sett.tol, verbose=true), Uπs)
 
+    Uπs = map(x -> sparsify!(x, sett.tol/100, verbose=true), Uπs)
     #dimensions of the corresponding πs:
     dims = load(filename(prepath(sett), :Uπs), "dims")[nzros]
 
-    m, P = init_model(size(Uπs,1), [size(U,2) for U in Uπs]);
+    orbits = load(filename(prepath(sett), :orbits), "orbits");
 
-    orbits = load(filename(prepath(sett), :orb), "orbits");
-    n = size(Uπs[1],1)
-    orb_spcnstrm = [orbit_constraint(cnstr[collect(orb)], n) for orb in orbits]
-    orb_splap = orbit_spvector(splap, orbits)
-    orb_splap² = orbit_spvector(splap², orbits)
-
-    orbData = OrbitData(fullpath(sett), Uπs, P, orb_spcnstrm, orb_splap, orb_splap², dims);
-
-    # orbData = OrbitData(name, Uπs, P, orb_spcnstrm, splap, splap², dims);
-
-    return m, orbData
+    return OrbitData(orbits, Uπs, dims)
 end
 
 include("OrbitDecomposition.jl")
