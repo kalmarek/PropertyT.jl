@@ -123,7 +123,7 @@ function SOS_problem(X::GroupRingElem, orderunit::GroupRingElem, data::OrbitData
 
     λ = JuMP.@variable(m, λ)
     if upper_bound < Inf
-        JuMP.@constraint(SDP_problem, λ <= upper_bound)
+        JuMP.@constraint(m, λ <= upper_bound)
     end
 
     info("Adding $(length(data.orbits)) constraints... ")
