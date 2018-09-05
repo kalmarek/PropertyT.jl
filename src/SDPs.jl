@@ -95,8 +95,14 @@ function solve_logged(model::JuMP.Model, varλ::JuMP.Variable, varP, warmstart=n
 
     return λ, P, warmstart
 end
+
+###############################################################################
+#
+#  Copied from JuMP/src/solvers.jl:178
+#
+###############################################################################
+
 function fillfrominternal!(m::JuMP.Model, traits)
-    # Copied from JuMP/src/solvers.jl:178
 
     stat::Symbol = MathProgBase.status(m.internalModel)
 
