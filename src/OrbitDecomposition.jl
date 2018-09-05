@@ -39,14 +39,6 @@ function orbit_spvector(vect::AbstractVector, orbits)
     return orb_vector
 end
 
-function orbit_constraint(constraints::Vector{Vector{Int}}, n)
-    result = spzeros(n,n)
-    for cnstr in constraints
-        result[cnstr] += 1.0/length(constraints)
-    end
-    return result
-end
-
 ###############################################################################
 #
 #  Matrix-, Permutation- and C*-representations

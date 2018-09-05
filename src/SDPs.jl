@@ -7,14 +7,15 @@ function constraints(pm::Matrix{I}, total_length=maximum(pm)) where {I<:Integer}
     return cnstrs
 end
 
-function constraint(pm::Matrix{I}, k) where {I<:Integer}
-    cnstr = Vector{I}()
-    for i in eachindex(pm)
-        if pm[i] == k
-            push!(cnstr, i)
+function orbit_constraint!(result::SparseMatrixCSC, cnstrs, orbit; val=1.0/length(orbit))
+    result .= zero(eltype(result))
+    dropzeros!(result)
+    for constraint in cnstr_orbit
+        for idx in constraint
+            result[idx] = val
         end
     end
-    return cnstr
+    return result
 end
 
 
