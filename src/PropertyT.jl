@@ -34,48 +34,22 @@ mutable struct Settings{Gr<:Group, GEl<:GroupElem, Sol<:AbstractMathProgSolver}
 
     autS::Group
 
-
-function loadλandP(name::String)
-    λ_fname = filename(name, :λ)
-    P_fname = filename(name, :P)
     function Settings(name, G::Gr, S::Vector{GEl}, r::Int,
             sol::Sol, ub, tol, ws) where {Gr, GEl, Sol}
         return new{Gr, GEl, Sol}(name, G, S, r, sol, ub, tol, ws)
     end
 
-    if exists(λ_fname) && exists(P_fname)
-        info("Loading precomputed λ, P...")
-        λ = load(λ_fname, "λ")
-        P = load(P_fname, "P")
-    else
-        throw("You need to precompute $λ_fname and $P_fname to load it!")
     function Settings(name, G::Gr, S::Vector{GEl}, r::Int,
             sol::Sol, ub, tol, ws, autS) where {Gr, GEl, Sol}
         return new{Gr, GEl, Sol}(name, G, S, r, sol, ub, tol, ws, autS)
     end
-    return λ, P
 end
 
-function computeλandP(Δ::GroupRingElem, upper_bound::AbstractFloat, solver, ws=nothing; solverlog=tempname()*".log")
-    info("Creating SDP problem...")
-    SDP_problem, varλ, varP = SOS_problem(Δ^2, Δ, upper_bound=upper_bound)
-    JuMP.setsolver(SDP_problem, solver)
-    info(Base.repr(SDP_problem))
-
-    @time λ, P, ws = solve_SDP(SDP_problem, varλ, varP, ws, solverlog=solverlog)
-
-    return λ, P, ws
-end
 prefix(s::Settings) = s.name
 suffix(s::Settings) = "$(s.upper_bound)"
 prepath(s::Settings) = prefix(s)
 fullpath(s::Settings) = joinpath(prefix(s), suffix(s))
 
-function saveλandP(name, λ, P, ws)
-    save(filename(name, :λ), "λ", λ)
-    save(filename(name, :P), "P", P)
-    save(filename(name, :warm), "warmstart", ws)
-end
 exists(fname::String) = isfile(fname) || islink(fname)
 
 filename(prefix, s::Symbol) = filename(prefix, Val{s})

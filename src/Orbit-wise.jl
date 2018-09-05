@@ -117,24 +117,10 @@ function SOS_problem(X::GroupRingElem, orderunit::GroupRingElem, data::OrbitData
     return m, λ, P
 end
 
-function computeλandP(Δ::GroupRingElem, sett::Settings, ws=nothing; solverlog=tempname()*".log")
-    @time orbit_data = OrbitData(sett);
-    info("Creating SDP problem...")
 
-    SDP_problem, varλ, varP = SOS_problem(Δ^2, Δ, orbit_data, upper_bound=sett.upper_bound)
-    JuMP.setsolver(SDP_problem, sett.solver)
-    info(Base.repr(SDP_problem))
 
-    @time λ, P, ws = solve_SDP(SDP_problem, varλ, varP, ws, solverlog=solverlog)
-
-    fname = filename(fullpath(sett), :P)
-    save(joinpath(dirname(fname), "orig_"*basename(fname)), "origP", P)
-
-    info("Reconstructing P...")
     preps = load_preps(filename(prepath(sett), :preps), sett.autS)
-    @time recP = reconstruct_sol(preps, orbit_data.Uπs, P, orbit_data.dims)
 
-    return λ, recP, ws
 end
 
 function load_preps(fname::String, G::Group)
