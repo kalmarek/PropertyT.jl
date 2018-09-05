@@ -108,33 +108,4 @@ function orthSVD(M::AbstractMatrix{T}) where {T<:AbstractFloat}
     return fact[:U][:,1:M_rank]
 end
 
-function compute_orbit_data(name::String, RG::GroupRing, autS::Group)
-
-    info("Decomposing E into orbits of $(autS)")
-    @time orbs = orbit_decomposition(autS, RG.basis, RG.basis_dict)
-    @assert sum(length(o) for o in orbs) == length(RG.basis)
-    info("E consists of $(length(orbs)) orbits!")
-
-    info("Action matrices")
-    @time preps = perm_reps(autS, RG.basis[1:size(RG.pm,1)], RG.basis_dict)
-    mreps = matrix_reps(preps)
-
-    info("Projections")
-    @time autS_mps = Projections.rankOne_projections(GroupRing(autS));
-
-    @time π_E_projections = [Cstar_repr(p, mreps) for p in autS_mps]
-
-    info("Uπs...")
-    @time Uπs = orthSVD.(π_E_projections)
-
-    multiplicities = size.(Uπs,2)
-    info("multiplicities = $multiplicities")
-    dimensions = [Int(p[autS()]*Int(order(autS))) for p in autS_mps];
-    info("dimensions = $dimensions")
-    @assert dot(multiplicities, dimensions) == size(RG.pm,1)
-
-    save(filename(name, :orbits), "orbits", orbs)
-    save_preps(filename(name, :preps), preps)
-    save(filename(name, :Uπs), "Uπs", Uπs, "dims", dimensions)
-    return 0
 end
