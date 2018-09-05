@@ -27,46 +27,11 @@ end
 
 include("OrbitDecomposition.jl")
 
-dens(M::SparseMatrixCSC) = nnz(M)/length(M)
-dens(M::AbstractArray) = countnz(M)/length(M)
 
-function sparsify!{Tv,Ti}(M::SparseMatrixCSC{Tv,Ti}, eps=eps(Tv); verbose=false)
 
-    densM = dens(M)
-    for i in eachindex(M.nzval)
-        if abs(M.nzval[i]) < eps
-            M.nzval[i] = zero(Tv)
-        end
-    end
-    dropzeros!(M)
-
-    if verbose
-        info("Sparsified density:", rpad(densM, 20), " → ", rpad(dens(M), 20), " ($(nnz(M)) non-zeros)")
-    end
-
-    return M
 end
 
-function sparsify!{T}(M::AbstractArray{T}, eps=eps(T); verbose=false)
-    densM = dens(M)
-    if verbose
-        info("Sparsifying $(size(M))-matrix... ")
-    end
 
-    for n in eachindex(M)
-        if abs(M[n]) < eps
-            M[n] = zero(T)
-        end
-    end
-
-    if verbose
-        info("$(rpad(densM, 20)) → $(rpad(dens(M),20))), ($(countnz(M)) non-zeros)")
-    end
-
-    return sparse(M)
-end
-
-sparsify{T}(U::AbstractArray{T}, tol=eps(T); verbose=false) = sparsify!(deepcopy(U), tol, verbose=verbose)
 
 function constrLHS(m::JuMP.Model, cnstr, Us, Ust, dims, vars, eps=100*eps(1.0))
     M = [PropertyT.sparsify!(dims[π].*Ust[π]*cnstr*Us[π], eps) for π in 1:endof(Us)]
@@ -136,14 +101,49 @@ function save_preps(fname::String, preps)
 end
 
 
+###############################################################################
+#
+#  Sparsification
+#
+###############################################################################
 
+dens(M::SparseMatrixCSC) = nnz(M)/length(M)
+dens(M::AbstractArray) = countnz(M)/length(M)
 
+function sparsify!{Tv,Ti}(M::SparseMatrixCSC{Tv,Ti}, eps=eps(Tv); verbose=false)
 
+    densM = dens(M)
+    for i in eachindex(M.nzval)
+        if abs(M.nzval[i]) < eps
+            M.nzval[i] = zero(Tv)
+        end
+    end
+    dropzeros!(M)
+
+    if verbose
+        info("Sparsified density:", rpad(densM, 20), " → ", rpad(dens(M), 20), " ($(nnz(M)) non-zeros)")
     end
 
-
-    end
-
-
-
+    return M
 end
+
+function sparsify!{T}(M::AbstractArray{T}, eps=eps(T); verbose=false)
+    densM = dens(M)
+    if verbose
+        info("Sparsifying $(size(M))-matrix... ")
+    end
+
+    for n in eachindex(M)
+        if abs(M[n]) < eps
+            M[n] = zero(T)
+        end
+    end
+
+    if verbose
+        info("$(rpad(densM, 20)) → $(rpad(dens(M),20))), ($(countnz(M)) non-zeros)")
+    end
+
+    return sparse(M)
+end
+
+sparsify{T}(U::AbstractArray{T}, tol=eps(T); verbose=false) = sparsify!(deepcopy(U), tol, verbose=verbose)
