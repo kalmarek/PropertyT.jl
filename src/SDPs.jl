@@ -1,3 +1,8 @@
+###############################################################################
+#
+#  Constraints
+#
+###############################################################################
 
 function constraints(pm::Matrix{I}, total_length=maximum(pm)) where {I<:Integer}
     cnstrs = [Vector{I}() for _ in 1:total_length]
@@ -18,10 +23,14 @@ function orbit_constraint!(result::SparseMatrixCSC, cnstrs, orbit; val=1.0/lengt
     return result
 end
 
+###############################################################################
+#
+#  Naive SDP
+#
+###############################################################################
 
 function SOS_problem(X::GroupRingElem, orderunit::GroupRingElem; upper_bound=Inf)
     N = size(parent(X).pm, 1)
-    matrix_constraints = PropertyT.constraints(parent(X).pm)
     m = JuMP.Model();
 
     JuMP.@variable(m, P[1:N, 1:N])
@@ -33,8 +42,10 @@ function SOS_problem(X::GroupRingElem, orderunit::GroupRingElem; upper_bound=Inf
         JuMP.@constraint(m, λ <= upper_bound)
     end
 
-    for (cnstr, x, u) in zip(matrix_constraints, X.coeffs, orderunit.coeffs)
-        JuMP.@constraint(m, sum(P[cnstr]) == x - λ*u)
+    cnstrs = constraints(parent(X).pm)
+
+    for (constraint, x, u) in zip(cnstrs, X.coeffs, orderunit.coeffs)
+        JuMP.@constraint(m, sum(P[constraint]) == x - λ*u)
     end
 
     JuMP.@objective(m, Max, λ)
@@ -48,12 +59,12 @@ end
 ###############################################################################
 
 function SOS_problem(X::GroupRingElem, orderunit::GroupRingElem, data::OrbitData; upper_bound=Inf)
+    Ns = size.(data.Uπs, 2)
     m = JuMP.Model();
 
-    sizes = size.(data.Uπs, 2)
     P = Vector{Matrix{JuMP.Variable}}(length(sizes))
 
-    for (k,s) in enumerate(sizes)
+    for (k,s) in enumerate(Ns)
         P[k] = JuMP.@variable(m, [i=1:s, j=1:s])
         JuMP.@SDconstraint(m, P[k] >= 0.0)
     end
@@ -90,8 +101,8 @@ function addconstraints!(m::JuMP.Model,
 
     M = [Array{Float64}(n,n) for n in size.(UπsT,1)]
 
-    for t in 1:length(X_orb)
-        orbit_constraint!(orb_cnstr, cnstrs[data.orbits[t]])
+    for (t, orbit) in enumerate(data.orbits)
+        orbit_constraint!(orb_cnstr, cnstrs, orbit)
         constraintLHS!(M, orb_cnstr, data.Uπs, UπsT, data.dims)
 
         lhs = @expression(m, sum(vecdot(M[π], P[π]) for π in 1:endof(data.Uπs)))
@@ -104,7 +115,9 @@ function reconstruct(Ps::Vector{Matrix{F}}, data::OrbitData) where F
     return reconstruct(Ps, data.preps, data.Uπs, data.dims)
 end
 
-function reconstruct(Ps::Vector{M}, preps::Dict{GEl, P}, Uπs::Vector{U}, dims::Vector{Int}) where {M<:AbstractMatrix, GEl<:GroupElem, P<:perm, U<:AbstractMatrix}
+function reconstruct(Ps::Vector{M},
+    preps::Dict{GEl, P}, Uπs::Vector{U}, dims::Vector{Int}) where
+        {M<:AbstractMatrix, GEl<:GroupElem, P<:perm, U<:AbstractMatrix}
 
     l = length(Uπs)
     transfP = [dims[π].*Uπs[π]*Ps[π]*Uπs[π]' for π in 1:l]

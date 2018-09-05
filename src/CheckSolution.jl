@@ -32,15 +32,15 @@ function compute_SOS(RG::GroupRing, Q::AbstractArray)
 end
 
 function augIdproj(Q::AbstractArray{T,2}) where {T<:Real}
-    R = zeros(Interval{T}, size(Q))
+    result = zeros(Interval{T}, size(Q))
     l = size(Q, 2)
     Threads.@threads for j in 1:l
         col = sum(view(Q, :,j))/l
         for i in 1:size(Q, 1)
-            R[i,j] = @interval(Q[i,j] - col)
+            result[i,j] = @interval(Q[i,j] - col)
         end
     end
-    return R
+    return result
 end
 
 function distance_to_cone(Δ::GroupRingElem, λ, Q; wlen::Int=4)
