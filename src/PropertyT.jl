@@ -10,28 +10,7 @@ import AbstractAlgebra: Group, GroupElem, Ring, perm
 using JLD
 using JuMP
 
-exists(fname::String) = isfile(fname) || islink(fname)
-
-filename(prefix, s::Symbol) = filename(prefix, Val{s})
 import MathProgBase.SolverInterface.AbstractMathProgSolver
-
-@eval begin
-    for (s,n) in [
-        [:fulllog,     "full_$(string(now())).log"],
-        [:solverlog,   "solver_$(string(now())).log"],
-        [:pm,    "pm.jld"],
-        [:Δ,     "delta.jld"],
-        [:λ,     "lambda.jld"],
-        [:P,     "SDPmatrix.jld"],
-        [:warm,  "warmstart.jld"],
-        [:Uπs,   "U_pis.jld"],
-        [:orbits,"orbits.jld"],
-        [:preps, "preps.jld"],
-        ]
-
-        filename(prefix::String, ::Type{Val{$:(s)}}) = joinpath(prefix, :($n))
-    end
-end
 
 function loadLaplacian(name::String, G::Group)
     if exists(filename(name, :Δ)) && exists(filename(name, :pm))
@@ -137,7 +116,25 @@ function check_property_T(name::String, S, solver, upper_bound, tol, radius, war
         Δ = computeLaplacian(S, radius)
         save(filename(name, :pm), "pm", parent(Δ).pm)
         save(filename(name, :Δ), "Δ", Δ.coeffs)
+filename(prefix, s::Symbol) = filename(prefix, Val{s})
+
+@eval begin
+    for (s,n) in [
+        [:fulllog,     "full_$(string(now())).log"],
+        [:solverlog,   "solver_$(string(now())).log"],
+        [:pm,          "pm.jld"],
+        [:Δ,           "delta.jld"],
+        [:λ,           "lambda.jld"],
+        [:P,           "SDPmatrix.jld"],
+        [:warm,        "warmstart.jld"],
+        [:Uπs,         "U_pis.jld"],
+        [:orbits,      "orbits.jld"],
+        [:preps,       "preps.jld"],
+    ]
+
+        filename(prefix::String, ::Type{Val{$:(s)}}) = joinpath(prefix, :($n))
     end
+end
 
     fullpath = joinpath(name, string(upper_bound))
     isdir(fullpath) || mkdir(fullpath)
