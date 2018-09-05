@@ -142,8 +142,10 @@ end
 
 
 include("Laplacians.jl")
+include("Orbit-wise.jl")
+include("OrbitDecomposition.jl")
 include("SDPs.jl")
 include("CheckSolution.jl")
-include("Orbit-wise.jl")
+
 
 end # module Property(T)

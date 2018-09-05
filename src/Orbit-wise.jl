@@ -1,7 +1,4 @@
-using JuMP
-using SCS
-
-export Settings, OrbitData
+include("Projections.jl")
 
 ###############################################################################
 #

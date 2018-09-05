@@ -1,4 +1,3 @@
-using JuMP
 
 function constraints(pm::Matrix{I}, total_length=maximum(pm)) where {I<:Integer}
     cnstrs = [Vector{I}() for _ in 1:total_length]
