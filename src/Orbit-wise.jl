@@ -33,53 +33,18 @@ end
 
 
 
-function constrLHS(m::JuMP.Model, cnstr, Us, Ust, dims, vars, eps=100*eps(1.0))
-    M = [PropertyT.sparsify!(dims[π].*Ust[π]*cnstr*Us[π], eps) for π in 1:endof(Us)]
-    return @expression(m, sum(vecdot(M[π], vars[π]) for π in 1:endof(Us)))
+
+
+
+
 end
 
-function addconstraints!(m::JuMP.Model, X::GroupRingElem, orderunit::GroupRingElem, λ::JuMP.Variable, P, data::OrbitData)
 
-    orderunit_orb = orbit_spvector(orderunit.coeffs, data.orbits)
-    X_orb = orbit_spvector(X.coeffs, data.orbits)
-    Ust = [U' for U in data.Uπs]
-    n = size(parent(X).pm, 1)
 
-    for t in 1:length(X_orb)
-        x, u = X_orb[t], orderunit_orb[t]
-        cnstrs = [constraint(parent(X).pm, o) for o in data.orbits[t]]
-        lhs = constrLHS(m, orbit_constraint(cnstrs,n), data.Uπs, Ust, data.dims, P)
-
-        JuMP.@constraint(m, lhs == x - λ*u)
-    end
 end
 
-function init_model(m, sizes)
-    P = Vector{Array{JuMP.Variable,2}}(length(sizes))
 
-    for (k,s) in enumerate(sizes)
-        P[k] = JuMP.@variable(m, [i=1:s, j=1:s])
-        JuMP.@SDconstraint(m, P[k] >= 0.0)
-    end
 
-    return P
-end
-
-function SOS_problem(X::GroupRingElem, orderunit::GroupRingElem, data::OrbitData; upper_bound=Inf)
-    m = JuMP.Model();
-    P = init_model(m, size.(data.Uπs,2))
-
-    λ = JuMP.@variable(m, λ)
-    if upper_bound < Inf
-        JuMP.@constraint(m, λ <= upper_bound)
-    end
-
-    info("Adding $(length(data.orbits)) constraints... ")
-
-    @time addconstraints!(m, X, orderunit, λ, P, data)
-
-    JuMP.@objective(m, Max, λ)
-    return m, λ, P
 end
 
 

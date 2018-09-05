@@ -96,28 +96,6 @@ function perm_reps(S::Vector, autS::Group, radius::Int)
     return perm_reps(autS, E)
 end
 
-function reconstruct_sol(preps::Dict{T, S}, Us::Vector, Ps::Vector, dims::Vector) where {T<:GroupElem, S<:perm}
-
-    l = length(Us)
-    transfP = [dims[π].*Us[π]*Ps[π]*Us[π]' for π in 1:l]
-    tmp = [zeros(Float64, size(first(transfP))) for _ in 1:l]
-    perms = collect(keys(preps))
-
-    @inbounds Threads.@threads for π in 1:l
-        for p in perms
-            BLAS.axpy!(1.0, view(transfP[π], preps[p].d, preps[p].d), tmp[π])
-        end
-    end
-
-    recP = 1/length(perms) .* sum(tmp)
-    for i in eachindex(recP)
-        if abs(recP[i]) .< eps(eltype(recP))*100
-            recP[i] = zero(eltype(recP))
-        end
-    end
-    return recP
-end
-
 function Cstar_repr(x::GroupRingElem{T}, mreps::Dict) where {T}
     nzeros = findn(x.coeffs)
     return sum(x[i].*mreps[parent(x).basis[i]] for i in nzeros)

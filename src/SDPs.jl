@@ -41,10 +41,89 @@ function SOS_problem(X::GroupRingElem, orderunit::GroupRingElem; upper_bound=Inf
     return m, λ, P
 end
 
+###############################################################################
+#
+#  Symmetrized SDP
+#
+###############################################################################
 
+function SOS_problem(X::GroupRingElem, orderunit::GroupRingElem, data::OrbitData; upper_bound=Inf)
+    m = JuMP.Model();
+
+    sizes = size.(data.Uπs, 2)
+    P = Vector{Matrix{JuMP.Variable}}(length(sizes))
+
+    for (k,s) in enumerate(sizes)
+        P[k] = JuMP.@variable(m, [i=1:s, j=1:s])
+        JuMP.@SDconstraint(m, P[k] >= 0.0)
     end
 
+    λ = JuMP.@variable(m, λ)
+    if upper_bound < Inf
+        JuMP.@constraint(m, λ <= upper_bound)
+    end
 
+    info("Adding $(length(data.orbits)) constraints... ")
+
+    addconstraints!(m,P,λ,X,orderunit, data)
+
+    JuMP.@objective(m, Max, λ)
+    return m, λ, P
+end
+
+function constraintLHS!(M, cnstr, Us, Ust, dims, eps=1000*eps(eltype(first(M))))
+    for π in 1:endof(Us)
+        M[π] = PropertyT.sparsify!(dims[π].*Ust[π]*cnstr*Us[π], eps)
+    end
+end
+
+function addconstraints!(m::JuMP.Model,
+    P::Vector{Matrix{JuMP.Variable}}, λ::JuMP.Variable,
+    X::GroupRingElem, orderunit::GroupRingElem, data::OrbitData)
+
+    orderunit_orb = orbit_spvector(orderunit.coeffs, data.orbits)
+    X_orb = orbit_spvector(X.coeffs, data.orbits)
+    UπsT = [U' for U in data.Uπs]
+
+    cnstrs = constraints(parent(X).pm)
+    orb_cnstr = spzeros(Float64, size(parent(X).pm)...)
+
+    M = [Array{Float64}(n,n) for n in size.(UπsT,1)]
+
+    for t in 1:length(X_orb)
+        orbit_constraint!(orb_cnstr, cnstrs[data.orbits[t]])
+        constraintLHS!(M, orb_cnstr, data.Uπs, UπsT, data.dims)
+
+        lhs = @expression(m, sum(vecdot(M[π], P[π]) for π in 1:endof(data.Uπs)))
+        x, u = X_orb[t], orderunit_orb[t]
+        JuMP.@constraint(m, lhs == x - λ*u)
+    end
+end
+
+function reconstruct(Ps::Vector{Matrix{F}}, data::OrbitData) where F
+    return reconstruct(Ps, data.preps, data.Uπs, data.dims)
+end
+
+function reconstruct(Ps::Vector{M}, preps::Dict{GEl, P}, Uπs::Vector{U}, dims::Vector{Int}) where {M<:AbstractMatrix, GEl<:GroupElem, P<:perm, U<:AbstractMatrix}
+
+    l = length(Uπs)
+    transfP = [dims[π].*Uπs[π]*Ps[π]*Uπs[π]' for π in 1:l]
+    tmp = [zeros(Float64, size(first(transfP))) for _ in 1:l]
+    perms = collect(keys(preps))
+
+    Threads.@threads for π in 1:l
+        for p in perms
+            BLAS.axpy!(1.0, view(transfP[π], preps[p].d, preps[p].d), tmp[π])
+        end
+    end
+
+    recP = 1/length(perms) .* sum(tmp)
+    # for i in eachindex(recP)
+    #     if abs(recP[i]) .< eps(eltype(recP))*100
+    #         recP[i] = zero(eltype(recP))
+    #     end
+    # end
+    return recP
 end
 
 ###############################################################################
