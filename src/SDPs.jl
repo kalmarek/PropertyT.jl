@@ -181,6 +181,8 @@ function solve_logged(model::JuMP.Model, varλ::JuMP.Variable, varP, warmstart=n
         return λ, P, ws
     end
 
+    isdir(dirname(solverlog)) || mkpath(dirname(solverlog))
+
     log = open(solverlog, "a+")
     λ, P, warmstart = redirect_stdout(f, log)
     close(log)
