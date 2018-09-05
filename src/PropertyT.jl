@@ -78,8 +78,6 @@ function saveλandP(name, λ, P, ws)
 end
 exists(fname::String) = isfile(fname) || islink(fname)
 
-Kazhdan(λ::Number,N::Integer) = sqrt(2*λ/N)
-
 filename(prefix, s::Symbol) = filename(prefix, Val{s})
 
 @eval begin
@@ -153,20 +151,18 @@ for T in [:Naive, :Symmetrize]
     end
 end
 
-function interpret_results(name::String, Δ::GroupRingElem, radius::Integer, length_S::Integer, λ::AbstractFloat, P)
+Kazhdan(λ::Number, N::Integer) = sqrt(2*λ/N)
 
-    @time Q = real(sqrtm(Symmetric(P)))
-
-    sgap = distance_to_cone(Δ, λ, Q, wlen=2*radius)
+function interpret_results(sett::Settings, sgap::Number)
 
     if sgap > 0
-        Kazhdan_κ = Kazhdan(sgap, length_S)
+        Kazhdan_κ = Kazhdan(sgap, length(sett.S))
         if Kazhdan_κ > 0
-            info("κ($name, S) ≥ $Kazhdan_κ: Group HAS property (T)!")
+            info("κ($(sett.name), S) ≥ $Kazhdan_κ: Group HAS property (T)!")
             return true
         end
     end
-    info("λ($name, S) ≥ $sgap < 0: Tells us nothing about property (T)")
+    info("λ($(sett.name), S) ≥ $sgap < 0: Tells us nothing about property (T)")
     return false
 end
 
