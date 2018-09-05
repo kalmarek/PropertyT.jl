@@ -15,7 +15,7 @@ end
 function orbit_constraint!(result::SparseMatrixCSC, cnstrs, orbit; val=1.0/length(orbit))
     result .= zero(eltype(result))
     dropzeros!(result)
-    for constraint in cnstr_orbit
+    for constraint in cnstrs[orbit]
         for idx in constraint
             result[idx] = val
         end
@@ -62,7 +62,7 @@ function SOS_problem(X::GroupRingElem, orderunit::GroupRingElem, data::OrbitData
     Ns = size.(data.Uπs, 2)
     m = JuMP.Model();
 
-    P = Vector{Matrix{JuMP.Variable}}(length(sizes))
+    P = Vector{Matrix{JuMP.Variable}}(length(Ns))
 
     for (k,s) in enumerate(Ns)
         P[k] = JuMP.@variable(m, [i=1:s, j=1:s])
@@ -76,7 +76,7 @@ function SOS_problem(X::GroupRingElem, orderunit::GroupRingElem, data::OrbitData
 
     info("Adding $(length(data.orbits)) constraints... ")
 
-    addconstraints!(m,P,λ,X,orderunit, data)
+    @time addconstraints!(m,P,λ,X,orderunit, data)
 
     JuMP.@objective(m, Max, λ)
     return m, λ, P
