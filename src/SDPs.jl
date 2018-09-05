@@ -1,5 +1,4 @@
 using JuMP
-import MathProgBase: AbstractMathProgSolver
 
 function constraints(pm::Matrix{I}, total_length=maximum(pm)) where {I<:Integer}
     cnstrs = [Vector{I}() for _ in 1:total_length]
@@ -42,30 +41,28 @@ function SOS_problem(X::GroupRingElem, orderunit::GroupRingElem; upper_bound=Inf
     return m, λ, P
 end
 
-function solve_SDP(model::JuMP.Model, varλ, varP, ws=nothing; solverlog=tempname()*".log")
 
-    function f()
-        Base.Libc.flush_cstdio()
-        λ, P, ws = PropertyT.solve(model, varλ, varP, warmstart=ws)
-        Base.Libc.flush_cstdio()
-        return λ, P, ws
     end
 
-    log = open(solverlog, "a+")
-    λ, P, ws = redirect_stdout(f, log)
-    close(log)
 
-    return λ, P, ws
 end
 
-function solve(m::JuMP.Model, varλ, varP; warmstart=nothing)
+###############################################################################
+#
+#  Low-level solve
+#
+###############################################################################
+using MathProgBase
+
+function solve(m::JuMP.Model, varλ::JuMP.Variable, varP; warmstart=nothing)
 
     traits = JuMP.ProblemTraits(m, relaxation=false)
 
     JuMP.build(m, traits=traits)
     if warmstart != nothing
         p_sol, d_sol, s = warmstart
-        MathProgBase.SolverInterface.setwarmstart!(m.internalModel, p_sol; dual_sol = d_sol, slack=s);
+        MathProgBase.SolverInterface.setwarmstart!(m.internalModel, p_sol;
+            dual_sol=d_sol, slack=s);
     end
 
     MathProgBase.optimize!(m.internalModel)
@@ -83,6 +80,21 @@ function solve(m::JuMP.Model, varλ, varP; warmstart=nothing)
     return λ, P, warmstart
 end
 
+function solve_logged(model::JuMP.Model, varλ::JuMP.Variable, varP, warmstart=nothing; solverlog::String=tempname()*".log")
+
+    function f()
+        Base.Libc.flush_cstdio()
+        λ, P, ws = PropertyT.solve(model, varλ, varP, warmstart=warmstart)
+        Base.Libc.flush_cstdio()
+        return λ, P, ws
+    end
+
+    log = open(solverlog, "a+")
+    λ, P, warmstart = redirect_stdout(f, log)
+    close(log)
+
+    return λ, P, warmstart
+end
 function fillfrominternal!(m::JuMP.Model, traits)
     # Copied from JuMP/src/solvers.jl:178
 
