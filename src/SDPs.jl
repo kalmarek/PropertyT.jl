@@ -19,23 +19,6 @@ function constraint(pm::Matrix{I}, k) where {I<:Integer}
     return cnstr
 end
 
-function spLaplacian(RG::GroupRing, S, T::Type=Float64)
-    result = RG(T)
-    result[RG.group()] = T(length(S))
-    for s in S
-        result[s] -= one(T)
-    end
-    return result
-end
-
-function spLaplacian(RG::GroupRing{R}, S, T::Type=Float64) where {R<:Ring}
-    result = RG(T)
-    result[one(RG.group)] = T(length(S))
-    for s in S
-        result[s] -= one(T)
-    end
-    return result
-end
 
 function SOS_problem(X::GroupRingElem, orderunit::GroupRingElem; upper_bound=Inf)
     N = size(parent(X).pm, 1)
