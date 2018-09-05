@@ -149,54 +149,15 @@ function save_preps(fname::String, preps)
     save(fname, "perms_d", [preps[elt].d for elt in elements(autS)])
 end
 
-function check_property_T(sett::Settings)
 
-    ex(s::Symbol) = exists(filename(prepath(sett), s))
 
-    if ex(:pm) && ex(:Δ)
-        # cached
-        Δ = loadLaplacian(prepath(sett), parent(sett.S[1]))
-    else
-        # compute
-        Δ = computeLaplacian(sett.S, sett.radius)
-        save(filename(prepath(sett), :pm), "pm", parent(Δ).pm)
-        save(filename(prepath(sett), :Δ), "Δ", Δ.coeffs)
+
+
     end
 
-    files_exist = ex.([:Uπs, :orbits, :preps])
 
-    if !all(files_exist)
-        compute_orbit_data(prepath(sett), parent(Δ), sett.autS)
     end
 
-    files_exist = exists(filename(fullpath(sett), :λ)) &&
-        exists(filename(fullpath(sett), :P))
 
-    if !sett.warmstart && files_exist
-        λ, P = loadλandP(fullpath(sett))
-    else
-        warmfile = filename(fullpath(sett), :warm)
-        if sett.warmstart && exists(warmfile)
-            ws = load(warmfile, "warmstart")
-        else
-            ws = nothing
-        end
-        λ, P, ws = computeλandP(Δ, sett, ws,
-            solverlog=filename(fullpath(sett), :solverlog))
-        saveλandP(fullpath(sett), λ, P, ws)
 
-        if λ < 0
-            warn("Solver did not produce a valid solution!")
-        end
-    end
-
-    info("λ = $λ")
-    info("sum(P) = $(sum(P))")
-    info("maximum(P) = $(maximum(P))")
-    info("minimum(P) = $(minimum(P))")
-
-    isapprox(eigvals(P), abs.(eigvals(P)), atol=sett.tol) ||
-        warn("The solution matrix doesn't seem to be positive definite!")
-
-    return interpret_results(sett.name, Δ, sett.radius, length(sett.S), λ, P)
 end

@@ -18,6 +18,8 @@ import MathProgBase.SolverInterface.AbstractMathProgSolver
 #
 ###############################################################################
 
+struct Symmetrize end
+struct Naive end
 
 mutable struct Settings{Gr<:Group, GEl<:GroupElem, Sol<:AbstractMathProgSolver}
     name::String
@@ -78,16 +80,6 @@ exists(fname::String) = isfile(fname) || islink(fname)
 
 Kazhdan(λ::Number,N::Integer) = sqrt(2*λ/N)
 
-function check_property_T(name::String, S, solver, upper_bound, tol, radius, warm::Bool=false)
-
-    if exists(filename(name, :pm)) && exists(filename(name, :Δ))
-        # cached
-        Δ = loadLaplacian(name, parent(S[1]))
-    else
-        # compute
-        Δ = computeLaplacian(S, radius)
-        save(filename(name, :pm), "pm", parent(Δ).pm)
-        save(filename(name, :Δ), "Δ", Δ.coeffs)
 filename(prefix, s::Symbol) = filename(prefix, Val{s})
 
 @eval begin
@@ -108,38 +100,57 @@ filename(prefix, s::Symbol) = filename(prefix, Val{s})
     end
 end
 
-    fullpath = joinpath(name, string(upper_bound))
-    isdir(fullpath) || mkdir(fullpath)
+for T in [:Naive, :Symmetrize]
+    @eval begin
+        function check_property_T(::Type{$T}, sett::Settings)
 
-    files_exist = exists(filename(fullpath, :λ)) && exists(filename(fullpath, :P))
+            if exists(filename(prepath(sett),:pm)) &&
+                exists(filename(prepath(sett),:Δ))
+                # cached
+                Δ = loadLaplacian(prepath(sett), parent(sett.S[1]))
+            else
+                # compute
+                Δ = computeLaplacian(sett.S, sett.radius)
+                save(filename(prepath(sett), :pm), "pm", parent(Δ).pm)
+                save(filename(prepath(sett), :Δ), "Δ", Δ.coeffs)
+            end
 
-    if !(warm) && files_exist
-        λ, P = loadλandP(fullpath)
-    else
-        warmfile = filename(fullpath, :warm)
-        if warm && isfile(warmfile)
-            ws = load(warmfile, "warmstart")
-        else
-            ws = nothing
-        end
+            files_exist = exists(filename(fullpath(sett), :λ)) &&
+                exists(filename(fullpath(sett), :P))
 
-        λ, P, ws = computeλandP(Δ, upper_bound, solver, ws,
-            solverlog=filename(fullpath, :solverlog))
-        saveλandP(fullpath, λ, P, ws)
-        if λ < 0
-            warn("Solver did not produce a valid solution!")
+            if !sett.warmstart && files_exist
+                λ, P = loadλandP(fullpath(sett))
+            else
+                warmfile = filename(fullpath(sett), :warm)
+                if sett.warmstart && exists(warmfile)
+                    ws = load(warmfile, "warmstart")
+                else
+                    ws = nothing
+                end
+
+                λ, P, ws = computeλandP($T, Δ, sett,
+                    solverlog=filename(fullpath(sett), :solverlog))
+                saveλandP(fullpath(sett), λ, P, ws)
+
+                if λ < 0
+                    warn("Solver did not produce a valid solution!")
+                end
+            end
+
+            info("λ = $λ")
+            info("sum(P) = $(sum(P))")
+            info("maximum(P) = $(maximum(P))")
+            info("minimum(P) = $(minimum(P))")
+
+            isapprox(eigvals(P), abs.(eigvals(P)), atol=sett.tol) ||
+                warn("The solution matrix doesn't seem to be positive definite!")
+
+            @time Q = real(sqrtm((P+P')/2))
+            sgap = distance_to_cone(Δ, λ, Q, wlen=2*sett.radius)
+
+            return interpret_results(sett, sgap)
         end
     end
-
-    info("λ = $λ")
-    info("sum(P) = $(sum(P))")
-    info("maximum(P) = $(maximum(P))")
-    info("minimum(P) = $(minimum(P))")
-
-    isapprox(eigvals(P), abs.(eigvals(P)), atol=tol) ||
-        warn("The solution matrix doesn't seem to be positive definite!")
-
-    return interpret_results(name, Δ, radius,length(S), λ, P)
 end
 
 function interpret_results(name::String, Δ::GroupRingElem, radius::Integer, length_S::Integer, λ::AbstractFloat, P)
