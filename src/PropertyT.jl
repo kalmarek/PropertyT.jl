@@ -9,11 +9,11 @@ import AbstractAlgebra: Group, GroupElem, Ring, perm
 
 using JLD
 using JuMP
-using MathProgBase
 
 exists(fname::String) = isfile(fname) || islink(fname)
 
 filename(prefix, s::Symbol) = filename(prefix, Val{s})
+import MathProgBase.SolverInterface.AbstractMathProgSolver
 
 @eval begin
     for (s,n) in [
@@ -43,6 +43,11 @@ function loadLaplacian(name::String, G::Group)
     end
     return Δ
 end
+###############################################################################
+#
+#  Settings and filenames
+#
+###############################################################################
 
 function computeLaplacian(S::Vector{E}, radius) where E<:AbstractAlgebra.RingElem
     R = parent(first(S))
@@ -53,14 +58,24 @@ function computeLaplacian(S::Vector{E}, radius) where E<:AbstractAlgebra.GroupEl
     G = parent(first(S))
     return computeLaplacian(S, G(), radius)
 end
+mutable struct Settings{Gr<:Group, GEl<:GroupElem, Sol<:AbstractMathProgSolver}
+    name::String
+    G::Gr
+    S::Vector{GEl}
+    radius::Int
 
 function computeLaplacian(S, Id, radius)
     info("Generating metric ball of radius $radius...")
     @time E_R, sizes = Groups.generate_balls(S, Id, radius=2radius)
     info("Generated balls of sizes $sizes.")
+    solver::Sol
+    upper_bound::Float64
+    tol::Float64
+    warmstart::Bool
 
     info("Creating product matrix...")
     @time pm = GroupRings.create_pm(E_R, GroupRings.reverse_dict(E_R), sizes[radius]; twisted=true)
+    autS::Group
 
     RG = GroupRing(parent(Id), E_R, pm)
     Δ = spLaplacian(RG, S)
@@ -70,6 +85,10 @@ end
 function loadλandP(name::String)
     λ_fname = filename(name, :λ)
     P_fname = filename(name, :P)
+    function Settings(name, G::Gr, S::Vector{GEl}, r::Int,
+            sol::Sol, ub, tol, ws) where {Gr, GEl, Sol}
+        return new{Gr, GEl, Sol}(name, G, S, r, sol, ub, tol, ws)
+    end
 
     if exists(λ_fname) && exists(P_fname)
         info("Loading precomputed λ, P...")
@@ -77,6 +96,9 @@ function loadλandP(name::String)
         P = load(P_fname, "P")
     else
         throw("You need to precompute $λ_fname and $P_fname to load it!")
+    function Settings(name, G::Gr, S::Vector{GEl}, r::Int,
+            sol::Sol, ub, tol, ws, autS) where {Gr, GEl, Sol}
+        return new{Gr, GEl, Sol}(name, G, S, r, sol, ub, tol, ws, autS)
     end
     return λ, P
 end
@@ -91,12 +113,17 @@ function computeλandP(Δ::GroupRingElem, upper_bound::AbstractFloat, solver, ws
 
     return λ, P, ws
 end
+prefix(s::Settings) = s.name
+suffix(s::Settings) = "$(s.upper_bound)"
+prepath(s::Settings) = prefix(s)
+fullpath(s::Settings) = joinpath(prefix(s), suffix(s))
 
 function saveλandP(name, λ, P, ws)
     save(filename(name, :λ), "λ", λ)
     save(filename(name, :P), "P", P)
     save(filename(name, :warm), "warmstart", ws)
 end
+exists(fname::String) = isfile(fname) || islink(fname)
 
 Kazhdan(λ::Number,N::Integer) = sqrt(2*λ/N)
 

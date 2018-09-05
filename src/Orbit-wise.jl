@@ -3,23 +3,6 @@ using SCS
 
 export Settings, OrbitData
 
-immutable Settings{T<:AbstractMathProgSolver}
-    name::String
-    N::Int
-    G::Group
-    S::Vector
-    autS::Group
-    radius::Int
-    solver::T
-    upper_bound::Float64
-    tol::Float64
-    warmstart::Bool
-end
-
-prefix(s::Settings) = s.name
-suffix(s::Settings) = "$(s.upper_bound)"
-prepath(s::Settings) = prefix(s)
-fullpath(s::Settings) = joinpath(prefix(s), suffix(s))
 
 struct OrbitData{T<:AbstractArray{Float64, 2}}
     orbits::Vector{Vector{Int}}
