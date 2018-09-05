@@ -12,54 +12,26 @@ using JuMP
 
 import MathProgBase.SolverInterface.AbstractMathProgSolver
 
-function loadLaplacian(name::String, G::Group)
-    if exists(filename(name, :Δ)) && exists(filename(name, :pm))
-        info("Loading precomputed Δ...")
-        RG = GroupRing(G, load(filename(name, :pm), "pm"))
-        Δ = GroupRingElem(load(filename(name, :Δ), "Δ")[:, 1], RG)
-    else
-        throw("You need to precompute $(filename(name, :pm)) and $(filename(name, :Δ)) to load it!")
-    end
-    return Δ
-end
 ###############################################################################
 #
 #  Settings and filenames
 #
 ###############################################################################
 
-function computeLaplacian(S::Vector{E}, radius) where E<:AbstractAlgebra.RingElem
-    R = parent(first(S))
-    return computeLaplacian(S, one(R), radius)
-end
 
-function computeLaplacian(S::Vector{E}, radius) where E<:AbstractAlgebra.GroupElem
-    G = parent(first(S))
-    return computeLaplacian(S, G(), radius)
-end
 mutable struct Settings{Gr<:Group, GEl<:GroupElem, Sol<:AbstractMathProgSolver}
     name::String
     G::Gr
     S::Vector{GEl}
     radius::Int
 
-function computeLaplacian(S, Id, radius)
-    info("Generating metric ball of radius $radius...")
-    @time E_R, sizes = Groups.generate_balls(S, Id, radius=2radius)
-    info("Generated balls of sizes $sizes.")
     solver::Sol
     upper_bound::Float64
     tol::Float64
     warmstart::Bool
 
-    info("Creating product matrix...")
-    @time pm = GroupRings.create_pm(E_R, GroupRings.reverse_dict(E_R), sizes[radius]; twisted=true)
     autS::Group
 
-    RG = GroupRing(parent(Id), E_R, pm)
-    Δ = spLaplacian(RG, S)
-    return Δ
-end
 
 function loadλandP(name::String)
     λ_fname = filename(name, :λ)
@@ -187,6 +159,8 @@ function interpret_results(name::String, Δ::GroupRingElem, radius::Integer, len
     return false
 end
 
+
+include("Laplacians.jl")
 include("SDPs.jl")
 include("CheckSolution.jl")
 include("Orbit-wise.jl")
