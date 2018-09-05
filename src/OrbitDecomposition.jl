@@ -72,13 +72,6 @@ function matrix_repr(x::GroupRingElem, mreps::Dict)
     return sum(x[i].*mreps[parent(x).basis[i]] for i in nzeros)
 end
 
-function orthSVD(M::AbstractMatrix{T}) where {T<:AbstractFloat}
-    M = full(M)
-    fact = svdfact(M)
-    M_rank = sum(fact[:S] .> maximum(size(M))*eps(T))
-    return fact[:U][:,1:M_rank]
-end
-
 function matrix_reps(preps::Dict{T,perm{I}}) where {T<:GroupElem, I<:Integer}
     kk = collect(keys(preps))
     mreps = Vector{SparseMatrixCSC{Float64, Int}}(length(kk))

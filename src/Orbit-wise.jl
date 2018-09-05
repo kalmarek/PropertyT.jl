@@ -107,6 +107,12 @@ function save_preps(fname::String, preps)
     save(fname, "perms_d", [preps[elt].d for elt in elements(autS)])
 end
 
+function orthSVD(M::AbstractMatrix{T}) where {T<:AbstractFloat}
+    M = full(M)
+    fact = svdfact(M)
+    M_rank = sum(fact[:S] .> maximum(size(M))*eps(T))
+    return fact[:U][:,1:M_rank]
+end
 
 ###############################################################################
 #
