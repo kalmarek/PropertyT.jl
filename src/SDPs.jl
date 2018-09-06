@@ -146,7 +146,7 @@ end
 ###############################################################################
 using MathProgBase
 
-function solve(m::JuMP.Model, varλ::JuMP.Variable, varP; warmstart=nothing)
+function solve(m::JuMP.Model, varλ::JuMP.Variable, varP, warmstart=nothing)
 
     traits = JuMP.ProblemTraits(m, relaxation=false)
 
@@ -172,11 +172,11 @@ function solve(m::JuMP.Model, varλ::JuMP.Variable, varP; warmstart=nothing)
     return λ, P, warmstart
 end
 
-function solve_logged(model::JuMP.Model, varλ::JuMP.Variable, varP, warmstart=nothing; solverlog::String=tempname()*".log")
+function solve(solverlog::String, model::JuMP.Model, varλ::JuMP.Variable, varP, warmstart=nothing)
 
     function f()
         Base.Libc.flush_cstdio()
-        λ, P, ws = PropertyT.solve(model, varλ, varP, warmstart=warmstart)
+        λ, P, ws = PropertyT.solve(model, varλ, varP, warmstart)
         Base.Libc.flush_cstdio()
         return λ, P, ws
     end

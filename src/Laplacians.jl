@@ -68,7 +68,7 @@ function computeλandP(::Type{Naive}, Δ::GroupRingElem, sett::Settings, ws=noth
     JuMP.setsolver(SDP_problem, sett.solver)
     info(Base.repr(SDP_problem))
 
-    @time λ, P, ws = solve_logged(SDP_problem, varλ, varP, ws, solverlog=solverlog)
+    @time λ, P, ws = PropertyT.solve(solverlog, SDP_problem, varλ, varP, ws)
 
     return λ, P, ws
 end
@@ -93,7 +93,7 @@ function computeλandP(::Type{Symmetrize}, Δ::GroupRingElem, sett::Settings, ws
     JuMP.setsolver(SDP_problem, sett.solver)
     info(Base.repr(SDP_problem))
 
-    @time λ, P, ws = solve_logged(SDP_problem, varλ, varP, ws, solverlog=solverlog)
+    @time λ, P, ws = PropertyT.solve(solverlog, SDP_problem, varλ, varP, ws)
 
     fname = filename(fullpath(sett), :P)
     save(joinpath(dirname(fname), "orig_"*basename(fname)), "origP", P)
