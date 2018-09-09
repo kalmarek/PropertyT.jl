@@ -140,8 +140,8 @@ function interpret_results(sett::Settings, sgap::Number)
     return false
 end
 
-
-include("Laplacians.jl")
+include("laplacians.jl")
+include("RGprojections.jl")
 include("orbitdata.jl")
 include("sos_sdps.jl")
 include("CheckSolution.jl")
