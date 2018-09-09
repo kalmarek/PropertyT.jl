@@ -142,7 +142,6 @@ end
 
 
 include("Laplacians.jl")
-include("OrbitDecomposition.jl")
 include("orbitdata.jl")
 include("sos_sdps.jl")
 include("CheckSolution.jl")

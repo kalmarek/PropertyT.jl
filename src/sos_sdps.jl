@@ -23,6 +23,19 @@ function orbit_constraint!(result::SparseMatrixCSC, cnstrs, orbit; val=1.0/lengt
     return result
 end
 
+function orbit_spvector(vect::AbstractVector, orbits)
+    orb_vector = spzeros(length(orbits))
+
+    for (i,o) in enumerate(orbits)
+        k = vect[collect(o)]
+        val = k[1]
+        @assert all(k .== val)
+        orb_vector[i] = val
+    end
+
+    return orb_vector
+end
+
 ###############################################################################
 #
 #  Naive SDP
