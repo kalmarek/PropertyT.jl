@@ -62,7 +62,8 @@ end
 #
 ###############################################################################
 
-function computeλandP(::Type{Naive}, Δ::GroupRingElem, sett::Settings, ws=nothing; solverlog=tempname()*".log")
+function computeλandP(sett::Settings{Naive},
+    Δ::GroupRingElem, ws=nothing; solverlog=tempname()*".log")
     info("Creating SDP problem...")
     SDP_problem, varλ, varP = SOS_problem(Δ^2, Δ, upper_bound=sett.upper_bound)
     JuMP.setsolver(SDP_problem, sett.solver)
@@ -73,7 +74,8 @@ function computeλandP(::Type{Naive}, Δ::GroupRingElem, sett::Settings, ws=noth
     return λ, P, ws
 end
 
-function computeλandP(::Type{Symmetrize}, Δ::GroupRingElem, sett::Settings, ws=nothing; solverlog=tempname()*".log")
+function computeλandP(sett::Settings{Symmetrize},
+    Δ::GroupRingElem, ws=nothing; solverlog=tempname()*".log")
     pdir = prepath(sett)
 
     files_exist = exists(filename(pdir,:Uπs)) && exists(filename(pdir,:orbits)) && exists(filename(pdir,:preps))
