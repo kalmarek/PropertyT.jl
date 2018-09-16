@@ -11,47 +11,26 @@ struct OrbitData{T<:AbstractArray{Float64, 2}, GEl<:GroupElem, P<:perm}
     dims::Vector{Int}
 end
 
-function OrbitData(RG::GroupRing, autS::Group)
-    orbs = orbit_decomposition(autS, RG.basis, RG.basis_dict)
-    @assert sum(length(o) for o in orbs) == length(RG.basis)
-
-    autS_mps = Projections.rankOne_projections(GroupRing(autS))
-
-    preps = perm_reps(autS, RG.basis[1:size(RG.pm,1)], RG.basis_dict)
-    mreps = matrix_reps(preps)
-
-    Uπs = [orthSVD(matrix_repr(p, mreps)) for p in autS_mps]
-
-    multiplicities = size.(Uπs,2)
-    dimensions = [Int(p[autS()]*Int(order(autS))) for p in autS_mps]
-    @assert dot(multiplicities, dimensions) == size(RG.pm,1)
-
-    nzros = [i for i in 1:length(Uπs) if size(Uπs[i],2) !=0]
-
-    return OrbitData(orbs, preps, Uπs[nzros], dims[nzros])
-end
-
-function compute_OrbitData(RG::GroupRing, autS::Group)
-
-    info("Decomposing E into orbits of $(autS)")
+function OrbitData(RG::GroupRing, autS::Group, verbose=true)
+    verbose && info("Decomposing basis of RG into orbits of $(autS)")
     @time orbs = orbit_decomposition(autS, RG.basis, RG.basis_dict)
     @assert sum(length(o) for o in orbs) == length(RG.basis)
-    info("E consists of $(length(orbs)) orbits!")
+    verbose && info("The action has $(length(orbs)) orbits")
 
-    info("Action matrices")
+    verbose && info("Projections in the Group Ring of AutS")
+    @time autS_mps = Projections.rankOne_projections(GroupRing(autS))
+
+    verbose && info("AutS-action matrix representatives")
     @time preps = perm_reps(autS, RG.basis[1:size(RG.pm,1)], RG.basis_dict)
-    mreps = matrix_reps(preps)
+    @time mreps = matrix_reps(preps)
 
-    info("Projections")
-    @time autS_mps = Projections.rankOne_projections(GroupRing(autS));
-
-    info("Uπs...")
+    verbose && info("Projection matrices Uπs")
     @time Uπs = [orthSVD(matrix_repr(p, mreps)) for p in autS_mps]
 
     multiplicities = size.(Uπs,2)
-    info("multiplicities = $multiplicities")
-    dimensions = [Int(p[autS()]*Int(order(autS))) for p in autS_mps];
-    info("dimensions = $dimensions")
+    verbose && info("multiplicities = $multiplicities")
+    dimensions = [Int(p[autS()]*Int(order(autS))) for p in autS_mps]
+    verbose && info("dimensions = $dimensions")
     @assert dot(multiplicities, dimensions) == size(RG.pm,1)
 
     return OrbitData(orbs, preps, Uπs, dimensions)
