@@ -68,23 +68,23 @@ end
 #
 ###############################################################################
 
-function computeλandP(sett::Settings{Naive},
-    Δ::GroupRingElem, ws=nothing; solverlog=tempname()*".log")
+function computeλandP(sett::Settings{Naive}, Δ::GroupRingElem;
+    solverlog=tempname()*".log")
+
     info("Creating SDP problem...")
     SDP_problem, varλ, varP = SOS_problem(Δ^2, Δ, upper_bound=sett.upper_bound)
     JuMP.setsolver(SDP_problem, sett.solver)
     info(Base.repr(SDP_problem))
 
+    ws = warmstart(sett)
     @time λ, P, ws = PropertyT.solve(solverlog, SDP_problem, varλ, varP, ws)
+    save(filename(sett, :warmstart), "warmstart", ws)
 
-    return λ, P, ws
+    return λ, P
 end
 
-function computeλandP(sett::Settings{Symmetrize},
-    Δ::GroupRingElem, ws=nothing; solverlog=tempname()*".log")
-    pdir = prepath(sett)
-
-    files_exist = exists(filename(pdir,:Uπs)) && exists(filename(pdir,:orbits)) && exists(filename(pdir,:preps))
+function computeλandP(sett::Settings{Symmetrize}, Δ::GroupRingElem;
+    solverlog=tempname()*".log")
 
     if isfile(filename(sett, :OrbitData))
         orbit_data = load(filename(sett, :OrbitData), "OrbitData")
@@ -101,33 +101,21 @@ function computeλandP(sett::Settings{Symmetrize},
     JuMP.setsolver(SDP_problem, sett.solver)
     info(Base.repr(SDP_problem))
 
-    @time λ, P, ws = PropertyT.solve(solverlog, SDP_problem, varλ, varP, ws)
-
-    fname = filename(fullpath(sett), :P)
-    save(joinpath(dirname(fname), "orig_"*basename(fname)), "origP", P)
+    ws = warmstart(sett)
+    @time λ, Ps, ws = PropertyT.solve(solverlog, SDP_problem, varλ, varP, ws)
+    save(filename(sett, :warmstart), "warmstart", ws, "Ps", Ps, "λ", λ)
 
     info("Reconstructing P...")
-    @time recP = reconstruct(P, orbit_data)
+    @time P = reconstruct(Ps, orbit_data)
 
-    return λ, recP, ws
-end
-
-function saveλandP(name, λ, P, ws)
-    save(filename(name, :λ), "λ", λ)
-    save(filename(name, :P), "P", P)
-    save(filename(name, :warm), "warmstart", ws)
-end
-
-function loadλandP(name::String)
-    λ_fname = filename(name, :λ)
-    P_fname = filename(name, :P)
-
-    if exists(λ_fname) && exists(P_fname)
-        info("Loading precomputed λ, P...")
-        λ = load(λ_fname, "λ")
-        P = load(P_fname, "P")
-    else
-        throw("You need to precompute $λ_fname and $P_fname to load it!")
-    end
     return λ, P
+end
+
+function warmstart(sett::Settings)
+    if sett.warmstart && isfile(filename(sett, :warmstart))
+        ws = load(filename(sett, :warmstart), "warmstart")
+    else
+        ws = nothing
+    end
+    return ws
 end
