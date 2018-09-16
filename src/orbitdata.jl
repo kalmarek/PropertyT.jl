@@ -46,44 +46,6 @@ function decimate(od::OrbitData)
     return OrbitData(od.orbits, od.preps, full.(Us), dims);
 end
 
-function save_OrbitData(sett::Settings, data::OrbitData)
-    save_preps(filename(prepath(sett), :preps), data.preps)
-
-    save(filename(prepath(sett), :orbits),
-        "orbits", data.orbits)
-
-    save(filename(prepath(sett), :Uπs),
-        "Uπs", data.Uπs,
-        "dims", data.dims)
-end
-
-function load_OrbitData(sett::Settings)
-    info("Loading Uπs, dims, orbits...")
-    Uπs = load(filename(prepath(sett), :Uπs), "Uπs")
-    nzros = [i for i in 1:length(Uπs) if size(Uπs[i],2) !=0]
-
-    Uπs = map(x -> sparsify!(x, sett.tol/100, verbose=true), Uπs)
-    #dimensions of the corresponding πs:
-    dims = load(filename(prepath(sett), :Uπs), "dims")
-
-    orbits = load(filename(prepath(sett), :orbits), "orbits")
-    preps = load_preps(filename(prepath(sett), :preps), sett.autS)
-
-    return OrbitData(orbits, preps, Uπs, dims)
-end
-
-function load_preps(fname::String, G::Group)
-    lded_preps = load(fname, "perms_d")
-    permG = PermutationGroup(length(first(lded_preps)))
-    @assert length(lded_preps) == order(G)
-    return Dict(k=>permG(v) for (k,v) in zip(elements(G), lded_preps))
-end
-
-function save_preps(fname::String, preps)
-    autS = parent(first(keys(preps)))
-    save(fname, "perms_d", [preps[elt].d for elt in elements(autS)])
-end
-
 function orthSVD(M::AbstractMatrix{T}) where {T<:AbstractFloat}
     M = full(M)
     fact = svdfact(M)

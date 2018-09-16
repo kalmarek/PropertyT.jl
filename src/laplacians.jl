@@ -86,12 +86,12 @@ function computeλandP(sett::Settings{Symmetrize},
 
     files_exist = exists(filename(pdir,:Uπs)) && exists(filename(pdir,:orbits)) && exists(filename(pdir,:preps))
 
-    if files_exist
-        orbit_data = load_OrbitData(sett)
+    if isfile(filename(sett, :OrbitData))
+        orbit_data = load(filename(sett, :OrbitData), "OrbitData")
     else
         isdefined(parent(Δ), :basis) || throw("You need to define basis of Group Ring to compute orbit decomposition!")
-        orbit_data = compute_OrbitData(parent(Δ), sett.autS)
-        save_OrbitData(sett, orbit_data)
+        orbit_data = OrbitData(parent(Δ), sett.autS)
+        save(filename(sett, :OrbitData), "OrbitData", orbit_data)
     end
     orbit_data = decimate(orbit_data)
 
