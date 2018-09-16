@@ -21,11 +21,11 @@ import MathProgBase.SolverInterface.AbstractMathProgSolver
 struct Symmetrize end
 struct Naive end
 
-struct Settings{T} where T<:Union{Symmetrize, Naive}
+struct Settings{T, GEl<:GroupElem}
     name::String
 
     G::Group
-    S::Vector{GroupElem}
+    S::Vector{GEl}
     radius::Int
 
     solver::AbstractMathProgSolver
@@ -37,17 +37,17 @@ struct Settings{T} where T<:Union{Symmetrize, Naive}
 
     function Settings(name::String,
         G::Group, S::Vector{GEl}, r::Int,
-        sol::Sol, ub, tol, ws) where
-        {GEl<:GroupElem, Sol<:AbstractMathProgSolver}
-        return new{Naive}(name, G, S, r, sol, ub, tol, ws)
+        sol::Sol, ub, tol, ws) where {GEl<:GroupElem, Sol<:AbstractMathProgSolver}
+        return new{Naive, GEl}(name, G, S, r, sol, ub, tol, ws)
     end
 
     function Settings(name::String,
         G::Group, S::Vector{GEl}, r::Int,
-        sol::Sol, ub, tol, ws, autS) where {Gr, GEl, Sol}
-        return new{Symmetrize}(name, G, S, r, sol, ub, tol, ws, autS)
+        sol::Sol, ub, tol, ws, autS) where {GEl<:GroupElem, Sol<:AbstractMathProgSolver}
+        return new{Symmetrize, GEl}(name, G, S, r, sol, ub, tol, ws, autS)
     end
 end
+
 
 prefix(s::Settings{Naive}) = s.name
 prefix(s::Settings{Symmetrize}) = "o"*s.name
@@ -77,10 +77,12 @@ filename(prefix, s::Symbol) = filename(prefix, Val{s})
     end
 end
 
-function check_property_T(sett::Settings{$T})
 
-    if exists(filename(prepath(sett),:pm)) &&
-        exists(filename(prepath(sett),:Δ))
+function check_property_T(sett::Settings)
+    fp = PropertyT.fullpath(sett)
+    isdir(fp) || mkpath(fp)
+
+    if isfile(filename(sett,:Δ))
         # cached
         Δ = loadLaplacian(prepath(sett), parent(sett.S[1]))
     else
