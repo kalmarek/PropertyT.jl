@@ -55,28 +55,22 @@ suffix(s::Settings) = "$(s.upper_bound)"
 prepath(s::Settings) = prefix(s)
 fullpath(s::Settings) = joinpath(prefix(s), suffix(s))
 
-exists(fname::String) = isfile(fname) || islink(fname)
+filename(sett::Settings, s::Symbol) = filename(sett, Val{s})
 
-filename(prefix, s::Symbol) = filename(prefix, Val{s})
+filename(sett::Settings, ::Type{Val{:fulllog}}) =
+    joinpath(fullpath(sett), "full_$(string(now())).log")
+filename(sett::Settings, ::Type{Val{:solverlog}}) =
+    joinpath(fullpath(sett), "solver_$(string(now())).log")
 
-@eval begin
-    for (s,n) in [
-        [:fulllog,     "full_$(string(now())).log"],
-        [:solverlog,   "solver_$(string(now())).log"],
-        [:pm,          "pm.jld"],
-        [:Δ,           "delta.jld"],
-        [:λ,           "lambda.jld"],
-        [:P,           "SDPmatrix.jld"],
-        [:warm,        "warmstart.jld"],
-        [:Uπs,         "U_pis.jld"],
-        [:orbits,      "orbits.jld"],
-        [:preps,       "preps.jld"],
-    ]
+filename(sett::Settings, ::Type{Val{:Δ}}) =
+    joinpath(prepath(sett), "delta.jld")
+filename(sett::Settings, ::Type{Val{:OrbitData}}) =
+    joinpath(prepath(sett), "OrbitData.jld")
 
-        filename(prefix::String, ::Type{Val{$:(s)}}) = joinpath(prefix, :($n))
-    end
-end
-
+filename(sett::Settings, ::Type{Val{:warmstart}}) =
+    joinpath(fullpath(sett), "warmstart.jld")
+filename(sett::Settings, ::Type{Val{:solution}}) =
+    joinpath(fullpath(sett), "solution.jld")
 
 function check_property_T(sett::Settings)
     fp = PropertyT.fullpath(sett)
@@ -84,30 +78,20 @@ function check_property_T(sett::Settings)
 
     if isfile(filename(sett,:Δ))
         # cached
-        Δ = loadLaplacian(prepath(sett), parent(sett.S[1]))
+        Δ = loadLaplacian(filename(sett,:Δ), sett.G)
     else
         # compute
-        Δ = computeLaplacian(sett.S, sett.radius)
-        save(filename(prepath(sett), :pm), "pm", parent(Δ).pm)
-        save(filename(prepath(sett), :Δ), "Δ", Δ.coeffs)
+        Δ = Laplacian(sett.S, sett.radius)
+        saveLaplacian(filename(sett, :Δ), Δ)
     end
 
-    files_exist = exists(filename(fullpath(sett), :λ)) &&
-        exists(filename(fullpath(sett), :P))
-
-    if !sett.warmstart && files_exist
-        λ, P = loadλandP(fullpath(sett))
+    if !sett.warmstart && isfile(filename(sett, :solution))
+        λ, P = load(filename(sett, :solution), "λ", "P")
     else
-        warmfile = filename(fullpath(sett), :warm)
-        if sett.warmstart && exists(warmfile)
-            ws = load(warmfile, "warmstart")
-        else
-            ws = nothing
-        end
+        λ, P = computeλandP(sett, Δ,
+            solverlog=filename(sett, :solverlog))
 
-        λ, P, ws = computeλandP(sett, Δ,
-            solverlog=filename(fullpath(sett), :solverlog))
-        saveλandP(fullpath(sett), λ, P, ws)
+        save(filename(sett, :solution), "λ", λ, "P", P)
 
         if λ < 0
             warn("Solver did not produce a valid solution!")
