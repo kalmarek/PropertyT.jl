@@ -22,18 +22,18 @@ function spLaplacian(RG::GroupRing{R}, S, T::Type=Float64) where {R<:Ring}
     return result
 end
 
-function computeLaplacian(S::Vector{E}, radius) where E<:AbstractAlgebra.RingElem
+function Laplacian(S::Vector{E}, radius) where E<:AbstractAlgebra.RingElem
     R = parent(first(S))
-    return computeLaplacian(S, one(R), radius)
+    return Laplacian(S, one(R), radius)
 end
 
-function computeLaplacian(S::Vector{E}, radius) where E<:AbstractAlgebra.GroupElem
+function Laplacian(S::Vector{E}, radius) where E<:AbstractAlgebra.GroupElem
     G = parent(first(S))
-    return computeLaplacian(S, G(), radius)
+    return Laplacian(S, G(), radius)
 end
 
-function computeLaplacian(S, Id, radius)
-    info("Generating metric ball of radius $radius...")
+function Laplacian(S, Id, radius)
+    info("Generating metric ball of radius $(2radius)...")
     @time E_R, sizes = Groups.generate_balls(S, Id, radius=2radius)
     info("Generated balls of sizes $sizes.")
 
