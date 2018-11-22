@@ -3,26 +3,11 @@ using IntervalArithmetic
 IntervalArithmetic.setrounding(Interval, :tight)
 IntervalArithmetic.setformat(sigfigs=12)
 
-function groupring_square(pm, vect::AbstractVector)
-    zzz = zeros(eltype(vect), maximum(pm))
-    return GroupRings.mul!(zzz, vect, vect, pm)
-end
-
-function compute_SOS(pm::Array{I,2}, Q::AbstractArray) where I<:Integer
-
-    # result = zeros(eltype(Q), maximum(pm))
-    # r = similar(result)
-    # for i in 1:size(Q,2)
-    #    print(" $i")
-    #    result += GroupRings.mul!(r, view(Q,:,i), view(Q,:,i), pm)
-    # end
-
-    @everywhere groupring_square = PropertyT.groupring_square
-
-    result = @parallel (+) for i in 1:size(Q,2)
-        groupring_square(pm, Q[:,i])
+function compute_SOS(pm::Array{I,2}, Q) where I<:Integer
+    result = zeros(eltype(Q), maximum(pm));
+    for i in 1:size(Q,2)
+        GroupRings.fmac!(result, view(Q,:,i), view(Q,:,i), pm)
     end
-
     return result
 end
 
