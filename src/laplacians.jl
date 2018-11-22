@@ -77,7 +77,7 @@ function computeλandP(sett::Settings{Naive}, Δ::GroupRingElem;
     info(Base.repr(SDP_problem))
 
     ws = warmstart(sett)
-    @time λ, P, ws = PropertyT.solve(solverlog, SDP_problem, varλ, varP, ws)
+    @time status, (λ, P, ws) = PropertyT.solve(solverlog, SDP_problem, varλ, varP, ws)
     save(filename(sett, :warmstart), "warmstart", ws)
 
     return λ, P
@@ -102,7 +102,7 @@ function computeλandP(sett::Settings{Symmetrize}, Δ::GroupRingElem;
     info(Base.repr(SDP_problem))
 
     ws = warmstart(sett)
-    @time λ, Ps, ws = PropertyT.solve(solverlog, SDP_problem, varλ, varP, ws)
+    @time status, (λ, Ps, ws) = PropertyT.solve(solverlog, SDP_problem, varλ, varP, ws)
     save(filename(sett, :warmstart), "warmstart", ws, "Ps", Ps, "λ", λ)
 
     info("Reconstructing P...")

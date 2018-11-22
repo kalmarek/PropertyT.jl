@@ -179,6 +179,7 @@ function solve(m::JuMP.Model, varλ::JuMP.Variable, varP, warmstart=nothing)
     end
 
     MathProgBase.optimize!(m.internalModel)
+    status = MathProgBase.status(m.internalModel)
 
     λ = MathProgBase.getobjval(m.internalModel)
 
@@ -190,14 +191,14 @@ function solve(m::JuMP.Model, varλ::JuMP.Variable, varP, warmstart=nothing)
     P = JuMP.getvalue(varP)
     λ = JuMP.getvalue(varλ)
 
-    return λ, P, warmstart
+    return status, (λ, P, warmstart)
 end
 
 function solve(solverlog::String, model::JuMP.Model, varλ::JuMP.Variable, varP, warmstart=nothing)
 
     function f()
         Base.Libc.flush_cstdio()
-        λ, P, ws = PropertyT.solve(model, varλ, varP, warmstart)
+        status, (λ, P, ws) = PropertyT.solve(model, varλ, varP, warmstart)
         Base.Libc.flush_cstdio()
         return λ, P, ws
     end
@@ -208,7 +209,7 @@ function solve(solverlog::String, model::JuMP.Model, varλ::JuMP.Variable, varP,
     λ, P, warmstart = redirect_stdout(f, log)
     close(log)
 
-    return λ, P, warmstart
+    return status, (λ, P, warmstart)
 end
 
 ###############################################################################
