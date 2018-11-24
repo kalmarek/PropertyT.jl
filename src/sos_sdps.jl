@@ -141,7 +141,7 @@ function reconstruct(Ps::Vector{M},
         tmp[π] = perm_avg(tmp[π], transfP[π], values(preps))
     end
 
-    @time recP = sum(tmp)./length(preps)
+    recP = sum(tmp)./length(preps)
 
     return recP
 end
