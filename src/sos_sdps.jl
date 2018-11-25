@@ -196,18 +196,14 @@ end
 
 function solve(solverlog::String, model::JuMP.Model, varλ::JuMP.Variable, varP, warmstart=nothing)
 
-    function f()
-        Base.Libc.flush_cstdio()
-        status, (λ, P, ws) = PropertyT.solve(model, varλ, varP, warmstart)
-        Base.Libc.flush_cstdio()
-        return λ, P, ws
-    end
-
     isdir(dirname(solverlog)) || mkpath(dirname(solverlog))
 
-    log = open(solverlog, "a+")
-    λ, P, warmstart = redirect_stdout(f, log)
-    close(log)
+    status, (λ, P, ws) = open(solverlog, "a+") do logfile
+        Base.Libc.flush_cstdio()
+        redirect_stdout(logfile) do
+            PropertyT.solve(model, varλ, varP, warmstart)
+        end
+    end
 
     return status, (λ, P, warmstart)
 end
