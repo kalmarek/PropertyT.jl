@@ -201,7 +201,9 @@ function solve(solverlog::String, model::JuMP.Model, varλ::JuMP.Variable, varP,
     status, (λ, P, warmstart) = open(solverlog, "a+") do logfile
         Base.Libc.flush_cstdio()
         redirect_stdout(logfile) do
-            PropertyT.solve(model, varλ, varP, warmstart)
+            status, (λ, P, warmstart) = PropertyT.solve(model, varλ, varP, warmstart)
+            Base.Libc.flush_cstdio()
+            status, (λ, P, warmstart)
         end
     end
 
