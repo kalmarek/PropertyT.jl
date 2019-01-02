@@ -198,7 +198,7 @@ function solve(solverlog::String, model::JuMP.Model, varλ::JuMP.Variable, varP,
 
     isdir(dirname(solverlog)) || mkpath(dirname(solverlog))
 
-    status, (λ, P, ws) = open(solverlog, "a+") do logfile
+    status, (λ, P, warmstart) = open(solverlog, "a+") do logfile
         Base.Libc.flush_cstdio()
         redirect_stdout(logfile) do
             PropertyT.solve(model, varλ, varP, warmstart)
