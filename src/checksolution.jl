@@ -16,7 +16,19 @@ function compute_SOS(RG::GroupRing, Q::AbstractArray)
     return GroupRingElem(result, RG)
 end
 
-function augIdproj(Q::AbstractArray{T,2}) where {T<:Real}
+function augIdproj(Q::AbstractMatrix{T}) where {T<:Real}
+    result = zeros(size(Q))
+    l = size(Q, 2)
+    Threads.@threads for j in 1:l
+        col = sum(view(Q, :,j))/l
+        for i in 1:size(Q, 1)
+            result[i,j] = Q[i,j] - col
+        end
+    end
+    return result
+end
+
+function augIdproj(::Interval, Q::AbstractMatrix{T}) where {T<:Real}
     result = zeros(Interval{T}, size(Q))
     l = size(Q, 2)
     Threads.@threads for j in 1:l
@@ -25,8 +37,6 @@ function augIdproj(Q::AbstractArray{T,2}) where {T<:Real}
             result[i,j] = @interval(Q[i,j] - col)
         end
     end
-    return result
-end
-
-    end
+    check = all([zero(T) in sum(view(result, :, i)) for i in 1:size(result, 2)])
+    return result, check
 end
