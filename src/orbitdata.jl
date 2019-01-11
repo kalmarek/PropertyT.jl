@@ -165,3 +165,102 @@ function matrix_reps(preps::Dict{T,perm{I}}) where {T<:GroupElem, I<:Integer}
     end
     return Dict(kk[i] => mreps[i] for i in 1:length(kk))
 end
+
+###############################################################################
+#
+#  actions
+#
+###############################################################################
+
+function (p::perm)(A::GroupRingElem)
+    RG = parent(A)
+    result = zero(RG, eltype(A.coeffs))
+    
+    for (idx, c) in enumerate(A.coeffs)
+        if c!= zero(eltype(A.coeffs))
+            result[p(RG.basis[idx])] = c
+        end
+    end
+    return result
+end
+
+###############################################################################
+#
+#  Action of WreathProductElems on Nemo.MatElem
+#
+###############################################################################
+
+function matrix_emb(n::DirectPowerGroupElem, p::perm)
+    Id = parent(n.elts[1])()
+    elt = Diagonal([(-1)^(el == Id ? 0 : 1) for el in n.elts])
+    return elt[:, p.d]
+end
+
+function (g::WreathProductElem)(A::MatElem)
+    g_inv = inv(g)
+    G = matrix_emb(g.n, g_inv.p)
+    G_inv = matrix_emb(g_inv.n, g.p)
+    M = parent(A)
+    return M(G)*A*M(G_inv)
+end
+
+import Base.*
+
+@doc doc"""
+    *(x::AbstractAlgebra.MatElem, P::Generic.perm)
+> Apply the pemutation $P$ to the rows of the matrix $x$ and return the result.
+"""
+function *(x::AbstractAlgebra.MatElem, P::Generic.perm)
+   z = similar(x)
+   m = rows(x)
+   n = cols(x)
+   for i = 1:m
+      for j = 1:n
+         z[i, j] = x[i,P[j]]
+      end
+   end
+   return z
+end
+
+function (p::perm)(A::MatElem)
+    length(p.d) == A.r == A.c || throw("Can't act via $p on matrix of size ($(A.r), $(A.c))")
+    return p*A*inv(p)
+end
+
+###############################################################################
+#
+#  Action of WreathProductElems on AutGroupElem
+#
+###############################################################################
+
+function AutFG_emb(A::AutGroup, g::WreathProductElem)
+    isa(A.objectGroup, FreeGroup) || throw("Not an Aut(Fₙ)")
+    parent(g).P.n == length(A.objectGroup.gens) || throw("No natural embedding of $(parent(g)) into $A")
+    elt = A()
+    Id = parent(g.n.elts[1])()
+    flips = Groups.AutSymbol[Groups.flip_autsymbol(i) for i in 1:length(g.p.d) if g.n.elts[i] != Id]
+    Groups.r_multiply!(elt, flips, reduced=false)
+    Groups.r_multiply!(elt, [Groups.perm_autsymbol(g.p)])
+    return elt
+end
+
+function AutFG_emb(A::AutGroup, p::perm)
+    isa(A.objectGroup, FreeGroup) || throw("Not an Aut(Fₙ)")
+    parent(p).n == length(A.objectGroup.gens) || throw("No natural embedding of $(parent(p)) into $A")
+    return A(Groups.perm_autsymbol(p))
+end
+
+function (g::WreathProductElem)(a::Groups.Automorphism)
+    A = parent(a)
+    g = AutFG_emb(A,g)
+    res = A()
+    Groups.r_multiply!(res, g.symbols, reduced=false)
+    Groups.r_multiply!(res, a.symbols, reduced=false)
+    Groups.r_multiply!(res, [inv(s) for s in reverse!(g.symbols)])
+    return res
+end
+
+function (p::perm)(a::Groups.Automorphism)
+    g = AutFG_emb(parent(a),p)
+    return g*a*inv(g)
+end
