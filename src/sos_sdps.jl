@@ -75,7 +75,7 @@ function SOS_problem(X::GroupRingElem, orderunit::GroupRingElem, data::OrbitData
     Ns = size.(data.Uπs, 2)
     m = JuMP.Model();
 
-    P = Vector{Matrix{JuMP.Variable}}(length(Ns))
+    P = Vector{Matrix{JuMP.Variable}}(undef, length(Ns))
 
     for (k,s) in enumerate(Ns)
         P[k] = JuMP.@variable(m, [i=1:s, j=1:s])
@@ -87,7 +87,7 @@ function SOS_problem(X::GroupRingElem, orderunit::GroupRingElem, data::OrbitData
         JuMP.@constraint(m, λ <= upper_bound)
     end
 
-    info("Adding $(length(data.orbits)) constraints... ")
+    @info("Adding $(length(data.orbits)) constraints... ")
 
     @time addconstraints!(m,P,λ,X,orderunit, data)
 
@@ -96,7 +96,7 @@ function SOS_problem(X::GroupRingElem, orderunit::GroupRingElem, data::OrbitData
 end
 
 function constraintLHS!(M, cnstr, Us, Ust, dims, eps=1000*eps(eltype(first(M))))
-    for π in 1:endof(Us)
+    for π in eachindex(Us)
         M[π] = PropertyT.sparsify!(dims[π].*Ust[π]*cnstr*Us[π], eps)
     end
 end
@@ -112,13 +112,13 @@ function addconstraints!(m::JuMP.Model,
     cnstrs = constraints(parent(X).pm)
     orb_cnstr = spzeros(Float64, size(parent(X).pm)...)
 
-    M = [Array{Float64}(n,n) for n in size.(UπsT,1)]
+    M = [Array{Float64}(undef, n,n) for n in size.(UπsT,1)]
 
     for (t, orbit) in enumerate(data.orbits)
         orbit_constraint!(orb_cnstr, cnstrs, orbit)
         constraintLHS!(M, orb_cnstr, data.Uπs, UπsT, data.dims)
 
-        lhs = @expression(m, sum(vecdot(M[π], P[π]) for π in 1:endof(data.Uπs)))
+        lhs = @expression(m, sum(dot(M[π], P[π]) for π in eachindex(data.Uπs)))
         x, u = X_orb[t], orderunit_orb[t]
         JuMP.@constraint(m, lhs == x - λ*u)
     end
@@ -198,8 +198,8 @@ function solve(solverlog::String, model::JuMP.Model, varλ::JuMP.Variable, varP,
 
     isdir(dirname(solverlog)) || mkpath(dirname(solverlog))
 
+    Base.flush(Base.stdout)
     status, (λ, P, warmstart) = open(solverlog, "a+") do logfile
-        Base.Libc.flush_cstdio()
         redirect_stdout(logfile) do
             status, (λ, P, warmstart) = PropertyT.solve(model, varλ, varP, warmstart)
             Base.Libc.flush_cstdio()
@@ -224,7 +224,7 @@ function fillfrominternal!(m::JuMP.Model, traits)
     m.objBound = NaN
     m.objVal = NaN
     m.colVal = fill(NaN, numCols)
-    m.linconstrDuals = Array{Float64}(0)
+    m.linconstrDuals = Array{Float64}(undef, 0)
 
     discrete = (traits.int || traits.sos)
 
@@ -262,7 +262,7 @@ function fillfrominternal!(m::JuMP.Model, traits)
                     @assert length(infray) == numRows
                     infray
                 catch
-                    suppress_warnings || warn("Infeasibility ray (Farkas proof) not available")
+                    @warn("Infeasibility ray (Farkas proof) not available")
                     fill(NaN, numRows)
                 end
             elseif stat == :Unbounded
@@ -271,7 +271,7 @@ function fillfrominternal!(m::JuMP.Model, traits)
                     @assert length(unbdray) == numCols
                     unbdray
                 catch
-                    suppress_warnings || warn("Unbounded ray not available")
+                    @warn("Unbounded ray not available")
                     fill(NaN, numCols)
                 end
             end
@@ -292,7 +292,10 @@ function fillfrominternal!(m::JuMP.Model, traits)
             # Do a separate try since getobjval could work while getobjbound does not and vice versa
             objBound = MathProgBase.getobjbound(m.internalModel) + m.obj.aff.constant
             m.objBound = objBound
+        catch
+            @warn("objBound could not be obtained")
         end
+    
         try
             objVal = MathProgBase.getobjval(m.internalModel) + m.obj.aff.constant
             colVal = MathProgBase.getsolution(m.internalModel)[1:numCols]
@@ -304,7 +307,14 @@ function fillfrominternal!(m::JuMP.Model, traits)
             # Don't corrupt the answers if one of the above two calls fails
             m.objVal = objVal
             m.colVal = colVal
+        catch
+            @warn("objVal/colVal could not be obtained")
         end
+    end
+    
+    if traits.conic && m.objSense == :Max
+        m.objBound = -1 * (m.objBound - m.obj.aff.constant) + m.obj.aff.constant
+        m.objVal = -1 * (m.objVal - m.obj.aff.constant) + m.obj.aff.constant
     end
 
     return stat

@@ -12,25 +12,25 @@ struct OrbitData{T<:AbstractArray{Float64, 2}, GEl<:GroupElem, P<:perm}
 end
 
 function OrbitData(RG::GroupRing, autS::Group, verbose=true)
-    verbose && info("Decomposing basis of RG into orbits of $(autS)")
+    verbose && @info("Decomposing basis of RG into orbits of $(autS)")
     @time orbs = orbit_decomposition(autS, RG.basis, RG.basis_dict)
     @assert sum(length(o) for o in orbs) == length(RG.basis)
-    verbose && info("The action has $(length(orbs)) orbits")
+    verbose && @info("The action has $(length(orbs)) orbits")
 
-    verbose && info("Projections in the Group Ring of AutS")
     @time autS_mps = Projections.rankOne_projections(GroupRing(autS))
+    verbose && @info("Projections in the Group Ring of AutS = $autS")
 
-    verbose && info("AutS-action matrix representatives")
+    verbose && @info("AutS-action matrix representatives")
     @time preps = perm_reps(autS, RG.basis[1:size(RG.pm,1)], RG.basis_dict)
     @time mreps = matrix_reps(preps)
 
-    verbose && info("Projection matrices Uπs")
+    verbose && @info("Projection matrices Uπs")
     @time Uπs = [orthSVD(matrix_repr(p, mreps)) for p in autS_mps]
 
     multiplicities = size.(Uπs,2)
-    verbose && info("multiplicities = $multiplicities")
+    verbose && @info("multiplicities = $multiplicities")
     dimensions = [Int(p[autS()]*Int(order(autS))) for p in autS_mps]
-    verbose && info("dimensions = $dimensions")
+    verbose && @info("dimensions = $dimensions")
     @assert dot(multiplicities, dimensions) == size(RG.pm,1)
 
     return OrbitData(orbs, preps, Uπs, dimensions)
@@ -43,32 +43,32 @@ function decimate(od::OrbitData)
     #dimensions of the corresponding πs:
     dims = od.dims[nzros]
 
-    return OrbitData(od.orbits, od.preps, full.(Us), dims);
+    return OrbitData(od.orbits, od.preps, Array{Float64}.(Us), dims);
 end
 
 function orthSVD(M::AbstractMatrix{T}) where {T<:AbstractFloat}
-    M = full(M)
-    fact = svdfact(M)
-    M_rank = sum(fact[:S] .> maximum(size(M))*eps(T))
-    return fact[:U][:,1:M_rank]
+    M = Matrix(M)
+    fact = svd(M)
+    M_rank = sum(fact.S .> maximum(size(M))*eps(T))
+    return fact.U[:,1:M_rank]
 end
 
 function orbit_decomposition(G::Group, E::Vector, rdict=GroupRings.reverse_dict(E))
 
     elts = collect(elements(G))
 
-    tovisit = trues(E);
+    tovisit = trues(size(E));
     orbits = Vector{Vector{Int}}()
 
     orbit = zeros(Int, length(elts))
 
-    for i in 1:endof(E)
+    for i in eachindex(E)
         if tovisit[i]
             g = E[i]
-            Threads.@threads for j in 1:length(elts)
+            Threads.@threads for j in eachindex(elts)
                 orbit[j] = rdict[elts[j](g)]
             end
-            tovisit[orbit] = false
+            tovisit[orbit] .= false
             push!(orbits, unique(orbit))
         end
     end
@@ -82,9 +82,9 @@ end
 ###############################################################################
 
 dens(M::SparseMatrixCSC) = nnz(M)/length(M)
-dens(M::AbstractArray) = countnz(M)/length(M)
+dens(M::AbstractArray) = count(!iszero, M)/length(M)
 
-function sparsify!{Tv,Ti}(M::SparseMatrixCSC{Tv,Ti}, eps=eps(Tv); verbose=false)
+function sparsify!(M::SparseMatrixCSC{Tv,Ti}, eps=eps(Tv); verbose=false) where {Tv,Ti}
 
     densM = dens(M)
     for i in eachindex(M.nzval)
@@ -95,16 +95,16 @@ function sparsify!{Tv,Ti}(M::SparseMatrixCSC{Tv,Ti}, eps=eps(Tv); verbose=false)
     dropzeros!(M)
 
     if verbose
-        info("Sparsified density:", rpad(densM, 20), " → ", rpad(dens(M), 20), " ($(nnz(M)) non-zeros)")
+        @info("Sparsified density:", rpad(densM, 20), " → ", rpad(dens(M), 20), " ($(nnz(M)) non-zeros)")
     end
 
     return M
 end
 
-function sparsify!{T}(M::AbstractArray{T}, eps=eps(T); verbose=false)
+function sparsify!(M::AbstractArray{T}, eps=eps(T); verbose=false) where T
     densM = dens(M)
     if verbose
-        info("Sparsifying $(size(M))-matrix... ")
+        @info("Sparsifying $(size(M))-matrix... ")
     end
 
     for n in eachindex(M)
@@ -114,13 +114,15 @@ function sparsify!{T}(M::AbstractArray{T}, eps=eps(T); verbose=false)
     end
 
     if verbose
-        info("$(rpad(densM, 20)) → $(rpad(dens(M),20))), ($(countnz(M)) non-zeros)")
+        @info("$(rpad(densM, 20)) → $(rpad(dens(M),20))), ($(count(!iszero, M)) non-zeros)")
     end
 
     return sparse(M)
 end
 
-sparsify{T}(U::AbstractArray{T}, tol=eps(T); verbose=false) = sparsify!(deepcopy(U), tol, verbose=verbose)
+function sparsify(U::AbstractArray{T}, tol=eps(T); verbose=false) where T
+    return sparsify!(deepcopy(U), tol, verbose=verbose)
+end
 
 ###############################################################################
 #
@@ -129,7 +131,7 @@ sparsify{T}(U::AbstractArray{T}, tol=eps(T); verbose=false) = sparsify!(deepcopy
 ###############################################################################
 
 function perm_repr(g::GroupElem, E::Vector, E_dict)
-    p = Vector{Int}(length(E))
+    p = Vector{Int}(undef, length(E))
     for (i,elt) in enumerate(E)
         p[i] = E_dict[g(elt)]
     end
@@ -139,7 +141,7 @@ end
 function perm_reps(G::Group, E::Vector, E_rdict=GroupRings.reverse_dict(E))
     elts = collect(elements(G))
     l = length(elts)
-    preps = Vector{perm}(l)
+    preps = Vector{perm}(undef, l)
 
     permG = PermutationGroup(length(E))
 
@@ -151,13 +153,13 @@ function perm_reps(G::Group, E::Vector, E_rdict=GroupRings.reverse_dict(E))
 end
 
 function matrix_repr(x::GroupRingElem, mreps::Dict)
-    nzeros = findn(x.coeffs)
+    nzeros = findall(!iszero, x.coeffs)
     return sum(x[i].*mreps[parent(x).basis[i]] for i in nzeros)
 end
 
 function matrix_reps(preps::Dict{T,perm{I}}) where {T<:GroupElem, I<:Integer}
     kk = collect(keys(preps))
-    mreps = Vector{SparseMatrixCSC{Float64, Int}}(length(kk))
+    mreps = Vector{SparseMatrixCSC{Float64, Int}}(undef, length(kk))
     Threads.@threads for i in 1:length(kk)
         mreps[i] = AbstractAlgebra.matrix_repr(preps[kk[i]])
     end

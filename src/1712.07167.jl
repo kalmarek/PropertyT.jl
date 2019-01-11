@@ -1,3 +1,5 @@
+using Printf
+
 ###############################################################################
 #
 #  Settings and filenames
@@ -84,14 +86,15 @@ end
 function computeλandP(sett::Naive, Δ::GroupRingElem;
     solverlog=tempname()*".log")
 
-    info("Creating SDP problem...")
-    info(Base.repr(SDP_problem))
+    @info("Creating SDP problem...")
     SDP_problem, varλ, varP = SOS_problem(Δ^2, Δ, upper_bound=sett.upper_bound)
     JuMP.setsolver(SDP_problem, sett.solver)
+    @info(Base.repr(SDP_problem))
 
     ws = warmstart(sett)
     @time status, (λ, P, ws) = PropertyT.solve(solverlog, SDP_problem, varλ, varP, ws)
-    @show status
+    @info("Solver's status: $status")
+    
     save(filename(sett, :warmstart), "warmstart", ws, "P", P, "λ", λ)
 
     return λ, P
@@ -108,17 +111,17 @@ function computeλandP(sett::Symmetrized, Δ::GroupRingElem;
     orbit_data = load(filename(sett, :OrbitData), "OrbitData")
     orbit_data = decimate(orbit_data)
 
-    info("Creating SDP problem...")
+    @info("Creating SDP problem...")
 
-    info(Base.repr(SDP_problem))
     SDP_problem, varλ, varP = SOS_problem(Δ^2, Δ, orbit_data, upper_bound=sett.upper_bound)
     JuMP.setsolver(SDP_problem, sett.solver)
+    @info(Base.repr(SDP_problem))
 
     ws = warmstart(sett)
     @time status, (λ, Ps, ws) = PropertyT.solve(solverlog, SDP_problem, varλ, varP, ws)
-    @show status
+    @info("Solver's status: $status")
+    
     save(filename(sett, :warmstart), "warmstart", ws, "Ps", Ps, "λ", λ)
-
     info("Reconstructing P...")
     @time P = reconstruct(Ps, orbit_data)
 
@@ -146,7 +149,6 @@ function distance_to_positive_cone(Δ::GroupRingElem, λ, Q; R::Int=2)
 
     @info("Floating point distance (to positive cone) ≈")
     @info("$(@sprintf("%.10f", distance))")
-    @info("")
 
     if distance ≤ 0
         return distance
@@ -154,15 +156,14 @@ function distance_to_positive_cone(Δ::GroupRingElem, λ, Q; R::Int=2)
 
     @info("------------------------------------------------------------")
     @info("Checking in interval arithmetic...")
-    @info("λ ∈ $λ")
-
     λ = @interval(λ)
+    @info("λ ∈ $λ")
     eoi = Δ^2 - λ*Δ
     
     @info("Projecting columns of Q to the augmentation ideal...")
     @time Q, check = augIdproj(Interval, Q)
     @info("Checking that sum of every column contains 0.0... ")
-    @info((check? "They do." : "FAILED!"))
+    @info((check ? "They do." : "FAILED!"))
     check || @warn("The following numbers are meaningless!")
 
     @time residual = eoi - compute_SOS(parent(eoi), Q)
@@ -174,7 +175,7 @@ function distance_to_positive_cone(Δ::GroupRingElem, λ, Q; R::Int=2)
     
     @info("Interval distance (to positive cone) ∈")
     @info("$(distance)")
-    @info("")
+    @info("------------------------------------------------------------")
 
     return distance.lo
 end
@@ -192,11 +193,11 @@ function interpret_results(sett::Settings, sgap::Number)
     if sgap > 0
         Kazhdan_κ = Kazhdan(sgap, length(sett.S))
         if Kazhdan_κ > 0
-            info("κ($(sett.name), S) ≥ $Kazhdan_κ: Group HAS property (T)!")
+            @info("κ($(sett.name), S) ≥ $Kazhdan_κ: Group HAS property (T)!")
             return true
         end
     end
-    info("λ($(sett.name), S) ≥ $sgap < 0: Tells us nothing about property (T)")
+    @info("λ($(sett.name), S) ≥ $sgap < 0: Tells us nothing about property (T)")
     return false
 end
 
@@ -222,20 +223,20 @@ function check_property_T(sett::Settings)
         save(filename(sett, :solution), "λ", λ, "P", P)
 
         if λ < 0
-            warn("Solver did not produce a valid solution!")
+            @warn("Solver did not produce a valid solution!")
         end
     end
 
-    info("λ = $λ")
-    info("sum(P) = $(sum(P))")
-    info("maximum(P) = $(maximum(P))")
-    info("minimum(P) = $(minimum(P))")
+    @info("λ = $λ")
+    @info("sum(P) = $(sum(P))")
+    @info("maximum(P) = $(maximum(P))")
+    @info("minimum(P) = $(minimum(P))")
 
     isapprox(eigvals(P), abs.(eigvals(P))) ||
         @warn("The solution matrix doesn't seem to be positive definite!")
 
-    @time Q = real(sqrtm((P+P')/2))
-    sgap = distance_to_positive_cone(Δ, λ, Q, wlen=2*sett.radius)
+    @time Q = real(sqrt( (P.+ P')./2 ))
+    sgap = distance_to_positive_cone(Δ, λ, Q, R=2*sett.radius)
 
     return interpret_results(sett, sgap)
 end

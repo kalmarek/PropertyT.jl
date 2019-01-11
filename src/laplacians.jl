@@ -33,12 +33,12 @@ function Laplacian(S::Vector{E}, radius) where E<:AbstractAlgebra.GroupElem
 end
 
 function Laplacian(S, Id, radius)
-    info("Generating metric ball of radius $(2radius)...")
+    @info("Generating metric ball of radius $(2radius)...")
     @time E_R, sizes = Groups.generate_balls(S, Id, radius=2radius)
-    info("Generated balls of sizes $sizes.")
+    @info("Generated balls of sizes $sizes.")
 
-    info("Creating product matrix...")
     @time pm = GroupRings.create_pm(E_R, GroupRings.reverse_dict(E_R), sizes[radius]; twisted=true)
+    @info("Creating product matrix...")
 
     RG = GroupRing(parent(Id), E_R, pm)
     Δ = spLaplacian(RG, S)
@@ -52,7 +52,7 @@ end
 
 function loadGRElem(fname::String, G::Group)
     if isfile(fname)
-        info("Loading precomputed Δ...")
+        @info("Loading precomputed Δ...")
         coeffs, pm = load(fname, "coeffs", "pm")
         RG = GroupRing(G, pm)
         Δ = GroupRingElem(coeffs, RG)
