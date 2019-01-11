@@ -45,19 +45,24 @@ function Laplacian(S, Id, radius)
     return Δ
 end
 
-function saveGRElem(filename::String, g::GroupRingElem)
+function saveGRElem(fname::String, g::GroupRingElem)
     RG = parent(g)
-    JLD.save(filename, "coeffs", g.coeffs, "pm", RG.pm, "G", RG.group)
+    JLD.save(fname, "coeffs", g.coeffs, "pm", RG.pm, "G", RG.group)
+end
+
+function loadGRElem(fname::String, RG::GroupRing)
+    coeffs = load(fname, "coeffs")
+    return GroupRingElem(coeffs, RG)
 end
 
 function loadGRElem(fname::String, G::Group)
-    if isfile(fname)
-        @info("Loading precomputed Δ...")
-        coeffs, pm = load(fname, "coeffs", "pm")
-        RG = GroupRing(G, pm)
-        Δ = GroupRingElem(coeffs, RG)
-    else
-        throw(ErrorException("You need to precompute $fname first!"))
-    end
-    return Δ
+    pm = load(fname, "pm")
+    RG = GroupRing(G, pm)
+    return loadGRElem(fname, RG) 
+end
+
+function loadGRElem(fname::String)
+    pm, G = load(fname, "pm", "G")
+    RG = GroupRing(G, pm)
+    return loadGRElem(fname, RG)
 end

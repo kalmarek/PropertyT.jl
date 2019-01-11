@@ -207,11 +207,12 @@ function check_property_T(sett::Settings)
 
     if isfile(filename(sett,:Δ))
         # cached
-        Δ = loadLaplacian(filename(sett,:Δ), sett.G)
+        @info("Loading precomputed Δ...")
+        Δ = loadGRElem(filename(sett,:Δ), sett.G)
     else
         # compute
         Δ = Laplacian(sett.S, sett.radius)
-        saveLaplacian(filename(sett, :Δ), Δ)
+        saveGRElem(filename(sett, :Δ), Δ)
     end
 
     if !sett.warmstart && isfile(filename(sett, :solution))
