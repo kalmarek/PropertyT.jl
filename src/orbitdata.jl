@@ -17,8 +17,8 @@ function OrbitData(RG::GroupRing, autS::Group, verbose=true)
     @assert sum(length(o) for o in orbs) == length(RG.basis)
     verbose && @info("The action has $(length(orbs)) orbits")
 
-    @time autS_mps = Projections.rankOne_projections(GroupRing(autS))
     verbose && @info("Projections in the Group Ring of AutS = $autS")
+    @time autS_mps = Projections.rankOne_projections(GroupRing(autS, collect(autS)))
 
     verbose && @info("AutS-action matrix representatives")
     @time preps = perm_reps(autS, RG.basis[1:size(RG.pm,1)], RG.basis_dict)
@@ -55,7 +55,7 @@ end
 
 function orbit_decomposition(G::Group, E::Vector, rdict=GroupRings.reverse_dict(E))
 
-    elts = collect(elements(G))
+    elts = collect(G)
 
     tovisit = trues(size(E));
     orbits = Vector{Vector{Int}}()
@@ -139,7 +139,7 @@ function perm_repr(g::GroupElem, E::Vector, E_dict)
 end
 
 function perm_reps(G::Group, E::Vector, E_rdict=GroupRings.reverse_dict(E))
-    elts = collect(elements(G))
+    elts = collect(G)
     l = length(elts)
     preps = Vector{perm}(undef, l)
 

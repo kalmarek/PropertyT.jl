@@ -23,7 +23,7 @@ struct DirectProdCharacter{N, T<:AbstractCharacter} <: AbstractCharacter
     chars::NTuple{N, T}
 end
 
-function (chi::DirectProdCharacter)(g::DirectProductGroupElem)
+function (chi::DirectProdCharacter)(g::DirectPowerGroupElem)
     res = 1
     for (χ, elt) in zip(chi.chars, g.elts)
         res *= χ(elt)
@@ -57,8 +57,8 @@ end
 
 characters(G::Generic.PermGroup) = (PermCharacter(p) for p in AllParts(G.n))
 
-function characters(G::DirectProductGroup)
-    nfold_chars = Iterators.repeated(characters(G.group), G.n)
+function characters(G::DirectPowerGroup{N}) where N
+    nfold_chars = Iterators.repeated(characters(G.group), N)
     return (DirectProdCharacter(idx) for idx in Iterators.product(nfold_chars...))
 end
 
@@ -164,17 +164,19 @@ function rankOne_projections(RBn::GroupRing{G}, T::Type=Rational{Int}) where {G<
     Bn = RBn.group
     N = Bn.P.n
     # projections as elements of the group rings RSₙ
-    Sn_rankOnePr = [rankOne_projections(GroupRing(PermutationGroup(i))) for i in typeof(N)(1):N]
+    Sn_rankOnePr = [rankOne_projections(
+            GroupRing(PermGroup(i), collect(PermGroup(i))))
+        for i in typeof(N)(1):N]
 
     # embedding into group ring of BN
-    RN = GroupRing(Bn.N)
+    RN = GroupRing(Bn.N, collect(Bn.N))
 
     sign, id = collect(characters(Bn.N.group))
     # Bn.N = (Z/2Z)ⁿ characters corresponding to the first k coordinates:
     BnN_orbits = Dict(i => orbit_selector(N, i, sign, id) for i in 0:N)
 
     Q = Dict(i => RBn(g -> Bn(g), central_projection(RN, BnN_orbits[i], T)) for i in 0:N)
-    Q = Dict(key => full(val) for (key, val) in Q)
+    Q = Dict(key => GroupRings.dense(val) for (key, val) in Q)
 
     all_projs = [Q[0]*RBn(g->Bn(g), p) for p in Sn_rankOnePr[N]]
 

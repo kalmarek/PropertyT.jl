@@ -28,7 +28,7 @@ function augIdproj(Q::AbstractMatrix{T}) where {T<:Real}
     return result
 end
 
-function augIdproj(::Interval, Q::AbstractMatrix{T}) where {T<:Real}
+function augIdproj(::Type{Interval}, Q::AbstractMatrix{T}) where {T<:Real}
     result = zeros(Interval{T}, size(Q))
     l = size(Q, 2)
     Threads.@threads for j in 1:l

@@ -13,7 +13,7 @@ function spLaplacian(RG::GroupRing, S, T::Type=Float64)
     return result
 end
 
-function spLaplacian(RG::GroupRing{R}, S, T::Type=Float64) where {R<:Ring}
+function spLaplacian(RG::GroupRing, S::Vector{REl}, T::Type=Float64) where {REl<:AbstractAlgebra.ModuleElem}
     result = RG(T)
     result[one(RG.group)] = T(length(S))
     for s in S
@@ -22,7 +22,7 @@ function spLaplacian(RG::GroupRing{R}, S, T::Type=Float64) where {R<:Ring}
     return result
 end
 
-function Laplacian(S::Vector{E}, radius) where E<:AbstractAlgebra.RingElem
+function Laplacian(S::Vector{E}, radius) where E<:AbstractAlgebra.ModuleElem
     R = parent(first(S))
     return Laplacian(S, one(R), radius)
 end
@@ -37,10 +37,11 @@ function Laplacian(S, Id, radius)
     @time E_R, sizes = Groups.generate_balls(S, Id, radius=2radius)
     @info("Generated balls of sizes $sizes.")
 
-    @time pm = GroupRings.create_pm(E_R, GroupRings.reverse_dict(E_R), sizes[radius]; twisted=true)
     @info("Creating product matrix...")
+    rdict = GroupRings.reverse_dict(E_R)
+    @time pm = GroupRings.create_pm(E_R, rdict, sizes[radius]; twisted=true)
 
-    RG = GroupRing(parent(Id), E_R, pm)
+    RG = GroupRing(parent(Id), E_R, rdict, pm)
     Δ = spLaplacian(RG, S)
     return Δ
 end
