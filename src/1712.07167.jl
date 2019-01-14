@@ -32,16 +32,14 @@ struct Symmetrized{El} <: Settings
 end
 
 function Settings(name::String,
-    G::Group, S::Vector{GEl},
-    radius::Integer, upper_bound::Float64,
-    solver::Solver, warmstart=true) where {GEl<:GroupElem, Solver<:AbstractMathProgSolver}
+    G::Group, S::Vector{<:GroupElem},solver::Solver;
+    radius::Integer=2, upper_bound::Float64=1.0, warmstart=true) where {Solver<:AbstractMathProgSolver}
     return Naive(name, G, S, radius, upper_bound, solver, warmstart)
 end
 
 function Settings(name::String,
-    G::Group, S::Vector{GEl}, autS::Group,
-    radius::Integer, upper_bound::Float64,
-    solver::Solver, warmstart=true) where {GEl<:GroupElem, Solver<:AbstractMathProgSolver}
+    G::Group, S::Vector{<:GroupElem}, autS::Group, solver::Solver;
+    radius::Integer=2, upper_bound::Float64=1.0, warmstart=true) where {Solver<:AbstractMathProgSolver}
     return Symmetrized(name, G, S, autS, radius, upper_bound, solver, warmstart)
 end
 
