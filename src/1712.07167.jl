@@ -138,6 +138,7 @@ function distance_to_positive_cone(Δ::GroupRingElem, λ, Q; R::Int=2)
     @info("λ = $λ")
     eoi = Δ^2-λ*Δ
     
+    @info("Computing sum of squares decomposition...")
     @time residual = eoi - compute_SOS(parent(eoi), augIdproj(Q))
     @info("ɛ(Δ² - λΔ - ∑ξᵢ*ξᵢ) ≈ $(@sprintf("%.10f", aug(residual)))")
     L1_norm = norm(residual,1)
@@ -163,7 +164,8 @@ function distance_to_positive_cone(Δ::GroupRingElem, λ, Q; R::Int=2)
     @info("Checking that sum of every column contains 0.0... ")
     @info((check ? "They do." : "FAILED!"))
     check || @warn("The following numbers are meaningless!")
-
+    
+    @info("Computing sum of squares decomposition...")
     @time residual = eoi - compute_SOS(parent(eoi), Q)
     @info("ɛ(Δ² - λΔ - ∑ξᵢ*ξᵢ) ∈ $(aug(residual))")
     L1_norm = norm(residual,1)

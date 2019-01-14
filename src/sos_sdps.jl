@@ -136,8 +136,7 @@ function reconstruct(Ps::Vector{M},
     transfP = [dims[π].*Uπs[π]*Ps[π]*Uπs[π]' for π in 1:lU]
     tmp = [zeros(Float64, size(first(transfP))) for _ in 1:lU]
     
-    
-    @time Threads.@threads for π in 1:lU
+    Threads.@threads for π in 1:lU
         tmp[π] = perm_avg(tmp[π], transfP[π], values(preps))
     end
 
