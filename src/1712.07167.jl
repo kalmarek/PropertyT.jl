@@ -235,7 +235,7 @@ function check_property_T(sett::Settings)
         @warn("The solution matrix doesn't seem to be positive definite!")
 
     @time Q = real(sqrt( (P.+ P')./2 ))
-    sgap = distance_to_positive_cone(Δ, λ, Q, R=2*sett.radius)
+    sgap = distance_to_positive_cone(Δ, λ, Q, R=sett.radius)
 
     return interpret_results(sett, sgap)
 end
