@@ -10,10 +10,10 @@ using Dates
 using Groups
 using GroupRings
 
-import AbstractAlgebra: Group, GroupElem, Ring, perm
-
 using JLD
 using JuMP
+
+import AbstractAlgebra: Group, Ring, perm
 
 import MathProgBase.SolverInterface.AbstractMathProgSolver
 
