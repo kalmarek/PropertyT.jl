@@ -1,6 +1,6 @@
+using Test
 using AbstractAlgebra, Nemo, Groups, SCS
 using PropertyT
-using Test
 
 # write your own tests here
 
