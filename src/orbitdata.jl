@@ -107,17 +107,22 @@ function sparsify!(M::AbstractArray{T}, eps=eps(T); verbose=false) where T
         @info("Sparsifying $(size(M))-matrix... ")
     end
 
-    for n in eachindex(M)
-        if abs(M[n]) < eps
-            M[n] = zero(T)
-        end
-    end
+    clamp_small!(M, eps)
 
     if verbose
         @info("$(rpad(densM, 20)) → $(rpad(dens(M),20))), ($(count(!iszero, M)) non-zeros)")
     end
 
     return sparse(M)
+end
+
+function clamp_small!(M::AbstractArray{T}, eps=eps(T)) where T
+    for n in eachindex(M)
+        if abs(M[n]) < eps
+            M[n] = zero(T)
+        end
+    end
+    return M
 end
 
 function sparsify(U::AbstractArray{T}, tol=eps(T); verbose=false) where T

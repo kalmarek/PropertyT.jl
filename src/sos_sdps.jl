@@ -96,8 +96,8 @@ function SOS_problem(X::GroupRingElem, orderunit::GroupRingElem, data::OrbitData
 end
 
 function constraintLHS!(M, cnstr, Us, Ust, dims, eps=1000*eps(eltype(first(M))))
-    for π in eachindex(Us)
-        M[π] = PropertyT.sparsify!(dims[π].*Ust[π]*cnstr*Us[π], eps)
+    for π in 1:endof(Us)
+        M[π] = dims[π].*PropertyT.clamp_small!(Ust[π]*cnstr*Us[π], eps)
     end
 end
 
