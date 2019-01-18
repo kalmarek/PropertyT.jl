@@ -1,3 +1,7 @@
 *.jl.cov
 *.jl.*.cov
 *.jl.mem
+test/SL*
+test/oSL*
+test/SAut*
+test/oSAut*
