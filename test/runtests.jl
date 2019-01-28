@@ -1,4 +1,5 @@
 using AbstractAlgebra, Nemo, Groups, SCS
+using SparseArrays
 using JLD
 using PropertyT
 using Test
