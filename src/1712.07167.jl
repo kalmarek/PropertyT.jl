@@ -153,7 +153,7 @@ function distance_to_positive_cone(Δ::GroupRingElem, λ, Q; R::Int=2)
         return distance
     end
 
-    @info("------------------------------------------------------------")
+    @info("-"^76)
     @info("Checking in interval arithmetic...")
     λ = @interval(λ)
     @info("λ ∈ $λ")
@@ -175,7 +175,7 @@ function distance_to_positive_cone(Δ::GroupRingElem, λ, Q; R::Int=2)
     
     @info("Interval distance (to positive cone) ∈")
     @info("$(distance)")
-    @info("------------------------------------------------------------")
+    @info("-"^76)
 
     return distance.lo
 end
@@ -204,12 +204,12 @@ end
 function check_property_T(sett::Settings)
     fp = PropertyT.fullpath(sett)
     isdir(fp) || mkpath(fp)
-    @info("\#"^76)
-    @info("Running tests for $(sett.name):"
+    @info("="^76)
+    @info("Running tests for $(sett.name):")
     @info("Upper bound for λ: $(sett.upper_bound), on radius $(sett.radius).")
     @info("Solver is $(sett.solver)")
     @info("Warmstart: $(sett.warmstart)")
-    @info("\#"^76)
+    @info("="^76)
 
     if isfile(filename(sett,:Δ))
         # cached
