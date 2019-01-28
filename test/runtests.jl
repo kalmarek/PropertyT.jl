@@ -10,7 +10,6 @@ function Groups.gens(M::MatSpace)
     E(i,j) = begin g = M(1); g[i,j] = 1; g end
     S = [E(i,j) for (i,j) in indexing(N)]
     S = [S; transpose.(S)]
-    S = [S; inv.(S)]
     return S
 end
 
@@ -20,34 +19,36 @@ solver(iters; accel=1) =
 @testset "1703.09680 Examples" begin
 
     @testset "SL(2,Z)" begin
-        rm("SL(2,Z)", recursive=true, force=true)
         N = 2
         G = MatrixSpace(Nemo.ZZ, N,N)
         S = Groups.gens(G)
+        S = [S; inv.(S)]
 
+        rm("SL($N,Z)", recursive=true, force=true)
         sett = PropertyT.Settings("SL($N,Z)", G, S, solver(20000, accel=20); upper_bound=0.1)
         
         @test PropertyT.check_property_T(sett) == false
     end
 
     @testset "SL(3,Z)" begin
-        rm("SL(3,Z)", recursive=true, force=true)
         N = 3
         G = MatrixSpace(Nemo.ZZ, N,N)
         S = Groups.gens(G)
-
+        S = [S; inv.(S)]
+        
+        rm("SL($N,Z)", recursive=true, force=true)
         sett = PropertyT.Settings("SL($N,Z)", G, S, solver(1000, accel=20); upper_bound=0.1)
         
         @test PropertyT.check_property_T(sett) == true
     end
     
     @testset "SAut(F₂)" begin
-        rm("SAut(F2)", recursive=true, force=true)
         N = 2
         G = SAut(FreeGroup(N))
         S = Groups.gens(G)
         S = [S; inv.(S)]
-
+        
+        rm("SAut(F$N)", recursive=true, force=true)
         sett = PropertyT.Settings("SAut(F$N)", G, S, solver(20000);
         upper_bound=0.15, warmstart=false)
         
@@ -55,15 +56,16 @@ solver(iters; accel=1) =
     end
 end
 
-@testset "17.12.07167 Examples" begin
+@testset "1712.07167 Examples" begin
 
     @testset "oSL(3,Z)" begin
-        rm("oSL(3,Z)", recursive=true, force=true)
         N = 3
         G = MatrixSpace(Nemo.ZZ, N,N)
         S = Groups.gens(G)
+        S = [S; inv.(S)]
         autS = WreathProduct(PermGroup(2), PermGroup(N))
         
+        rm("oSL($N,Z)", recursive=true, force=true)
         sett = PropertyT.Settings("SL($N,Z)", G, S, autS, solver(2000, accel=20);
         upper_bound=0.27, warmstart=false)
        
@@ -76,15 +78,37 @@ end
         
         @test PropertyT.check_property_T(sett) == true
     end
+    
+    @testset "oSL(4,Z)" begin
+        N = 4
+        G = MatrixSpace(Nemo.ZZ, N,N)
+        S = Groups.gens(G)
+        S = [S; inv.(S)]
+        autS = WreathProduct(PermGroup(2), PermGroup(N))
+        
+        rm("oSL($N,Z)", recursive=true, force=true)
+        sett = PropertyT.Settings("SL($N,Z)", G, S, autS, solver(5000, accel=10);
+        upper_bound=1.3, warmstart=false)
+        
+        @test PropertyT.check_property_T(sett) == false
+        #second run just checks the obtained solution
+        @test PropertyT.check_property_T(sett) == false 
 
-    @testset "SAut(F₂)" begin
-        rm("oSAut(F3)", recursive=true, force=true)
+        sett = PropertyT.Settings("SL($N,Z)", G, S, autS, solver(20000, accel=10);
+        upper_bound=1.3, warmstart=true)
+        
+        @test PropertyT.check_property_T(sett) == true
+    end
+
+    @testset "SAut(F₃)" begin
         N = 3
         G = SAut(FreeGroup(N))
         S = Groups.gens(G)
         S = [S; inv.(S)]
         autS = WreathProduct(PermGroup(2), PermGroup(N))
-
+        
+        rm("oSAut(F$N)", recursive=true, force=true)
+        
         sett = PropertyT.Settings("SAut(F$N)", G, S, autS, solver(10000);
         upper_bound=0.15, warmstart=false)
         

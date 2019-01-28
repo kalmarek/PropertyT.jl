@@ -204,6 +204,12 @@ end
 function check_property_T(sett::Settings)
     fp = PropertyT.fullpath(sett)
     isdir(fp) || mkpath(fp)
+    @info("\#"^76)
+    @info("Running tests for $(sett.name):"
+    @info("Upper bound for λ: $(sett.upper_bound), on radius $(sett.radius).")
+    @info("Solver is $(sett.solver)")
+    @info("Warmstart: $(sett.warmstart)")
+    @info("\#"^76)
 
     if isfile(filename(sett,:Δ))
         # cached
