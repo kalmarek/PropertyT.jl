@@ -154,9 +154,14 @@ function rankOne_projections(RG::GroupRing{G}, T::Type=Rational{Int}) where G<:G
     return min_projs
 end
 
+function ifelsetuple(a,b, k, n)
+    x = [repeat([a], k); repeat([b], n-k)]
+    return tuple(x...)
+end
+
 function orbit_selector(n::Integer, k::Integer,
         chi::AbstractCharacter, psi::AbstractCharacter)
-    return Projections.DirectProdCharacter(ntuple(i -> (i <= k ? chi : psi), n))
+    return Projections.DirectProdCharacter(ifelsetuple(chi, psi, k, n))
 end
 
 function rankOne_projections(RBn::GroupRing{G}, T::Type=Rational{Int}) where {G<:WreathProduct}
