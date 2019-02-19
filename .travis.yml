@@ -15,7 +15,7 @@ matrix:
 
 ## uncomment the following lines to override the default test
 script:
-  - julia -e 'using Pkg;
+  - julia -e 'using Pkg; 
   Pkg.add(PackageSpec(url="https://github.com/kalmarek/Groups.jl", rev="enh/julia-v0.7"));
   Pkg.add(PackageSpec(url="https://github.com/kalmarek/GroupRings.jl", rev="enh/julia-v0.7"));
   Pkg.clone(pwd());
