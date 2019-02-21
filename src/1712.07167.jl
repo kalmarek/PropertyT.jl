@@ -15,7 +15,7 @@ struct Naive{El} <: Settings
     radius::Int
     upper_bound::Float64
     
-    solver::AbstractMathProgSolver
+    solver::JuMP.OptimizerFactory
     warmstart::Bool
 end
 
@@ -27,19 +27,19 @@ struct Symmetrized{El} <: Settings
     radius::Int
     upper_bound::Float64
         
-    solver::AbstractMathProgSolver
+    solver::JuMP.OptimizerFactory
     warmstart::Bool
 end
 
 function Settings(name::String,
-    G::Group, S::Vector{<:GroupElem},solver::Solver;
-    radius::Integer=2, upper_bound::Float64=1.0, warmstart=true) where {Solver<:AbstractMathProgSolver}
+    G::Group, S::Vector{<:GroupElem}, solver::JuMP.OptimizerFactory;
+    radius::Integer=2, upper_bound::Float64=1.0, warmstart=true)
     return Naive(name, G, S, radius, upper_bound, solver, warmstart)
 end
 
 function Settings(name::String,
-    G::Group, S::Vector{<:GroupElem}, autS::Group, solver::Solver;
-    radius::Integer=2, upper_bound::Float64=1.0, warmstart=true) where {Solver<:AbstractMathProgSolver}
+    G::Group, S::Vector{<:GroupElem}, autS::Group, solver::JuMP.OptimizerFactory;
+    radius::Integer=2, upper_bound::Float64=1.0, warmstart=true)
     return Symmetrized(name, G, S, autS, radius, upper_bound, solver, warmstart)
 end
 
@@ -85,15 +85,18 @@ function computeλandP(sett::Naive, Δ::GroupRingElem;
     solverlog=tempname()*".log")
 
     @info("Creating SDP problem...")
-    SDP_problem, varλ, varP = SOS_problem(Δ^2, Δ, upper_bound=sett.upper_bound)
-    JuMP.setsolver(SDP_problem, sett.solver)
+    SDP_problem = SOS_problem(Δ^2, Δ, upper_bound=sett.upper_bound)
     @info(Base.repr(SDP_problem))
 
     ws = warmstart(sett)
-    @time status, (λ, P, ws) = PropertyT.solve(solverlog, SDP_problem, varλ, varP, ws)
+    @time status, ws = PropertyT.solve(solverlog, SDP_problem, sett.solver, ws)
     @info("Solver's status: $status")
     
-    save(filename(sett, :warmstart), "warmstart", ws, "P", P, "λ", λ)
+    P = value.(SDP_problem[:P])
+    λ = value(SDP_problem[:λ])
+    
+    save(filename(sett, :warmstart), 
+    "warmstart", (ws.primal, ws.dual, ws.slack), "P", P, "λ", λ)
 
     return λ, P
 end
@@ -110,16 +113,20 @@ function computeλandP(sett::Symmetrized, Δ::GroupRingElem;
     orbit_data = decimate(orbit_data)
 
     @info("Creating SDP problem...")
-
-    SDP_problem, varλ, varP = SOS_problem(Δ^2, Δ, orbit_data, upper_bound=sett.upper_bound)
-    JuMP.setsolver(SDP_problem, sett.solver)
+    SDP_problem, varP = SOS_problem(Δ^2, Δ, orbit_data, upper_bound=sett.upper_bound)
     @info(Base.repr(SDP_problem))
 
     ws = warmstart(sett)
-    @time status, (λ, Ps, ws) = PropertyT.solve(solverlog, SDP_problem, varλ, varP, ws)
+    @time status, ws = PropertyT.solve(solverlog, SDP_problem, sett.solver, ws)
     @info("Solver's status: $status")
     
-    save(filename(sett, :warmstart), "warmstart", ws, "Ps", Ps, "λ", λ)
+    
+    λ = value(SDP_problem[:λ])
+    Ps = [value.(P) for P in varP]
+    
+    save(filename(sett, :warmstart), 
+    "warmstart", (ws.primal, ws.dual, ws.slack), "Ps", Ps, "λ", λ)
+    
     @info("Reconstructing P...")
     @time P = reconstruct(Ps, orbit_data)
 
