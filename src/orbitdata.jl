@@ -108,14 +108,10 @@ end
 
 function sparsify!(M::AbstractArray{T}, eps=eps(T); verbose=false) where T
     densM = dens(M)
-    if verbose
-        @info("Sparsifying $(size(M))-matrix... ")
-    end
-
     clamp_small!(M, eps)
 
     if verbose
-        @info("$(rpad(densM, 20)) → $(rpad(dens(M),20))), ($(count(!iszero, M)) non-zeros)")
+        @info("Sparsifying $(size(M))-matrix... \n $(rpad(densM, 20)) → $(rpad(dens(M),20))), ($(count(!iszero, M)) non-zeros)")
     end
 
     return sparse(M)
