@@ -140,49 +140,57 @@ end
 ###############################################################################
 
 function distance_to_positive_cone(Δ::GroupRingElem, λ, Q; R::Int=2)
-    @info("------------------------------------------------------------")
-    @info("Checking in floating-point arithmetic...")
-    @info("λ = $λ")
+    separator = "-"^76
+    info_strs = [separator,
+        "Checking in floating-point arithmetic...",
+        "λ = $λ"]
+    @info(join(info_strs, "\n"))
     eoi = Δ^2-λ*Δ
     
     @info("Computing sum of squares decomposition...")
     @time residual = eoi - compute_SOS(parent(eoi), augIdproj(Q))
-    @info("ɛ(Δ² - λΔ - ∑ξᵢ*ξᵢ) ≈ $(@sprintf("%.10f", aug(residual)))")
+
     L1_norm = norm(residual,1)
-    @info("‖Δ² - λΔ - ∑ξᵢ*ξᵢ‖₁ ≈ $(@sprintf("%.10f", L1_norm))")
-
     distance = λ - 2.0^(2ceil(log2(R)))*L1_norm
-
-    @info("Floating point distance (to positive cone) ≈")
-    @info("$(@sprintf("%.10f", distance))")
+    
+    info_strs = ["Numerical metrics:",
+        "ɛ(Δ² - λΔ - ∑ξᵢ*ξᵢ) ≈ $(@sprintf("%.10f", aug(residual)))",
+        "‖Δ² - λΔ - ∑ξᵢ*ξᵢ‖₁ ≈ $(@sprintf("%.10f", L1_norm))",
+        "Floating point distance (to positive cone) ≈",
+        "$(@sprintf("%.10f", distance))"]
+    @info(join(info_strs, "\n"))
 
     if distance ≤ 0
         return distance
     end
 
-    @info("-"^76)
-    @info("Checking in interval arithmetic...")
     λ = @interval(λ)
-    @info("λ ∈ $λ")
+    info_strs = [separator,
+        "Checking in interval arithmetic...",
+        "λ ∈ $λ"]
+    @info(join(info_strs, "\n"))
     eoi = Δ^2 - λ*Δ
     
     @info("Projecting columns of Q to the augmentation ideal...")
     @time Q, check = augIdproj(Interval, Q)
-    @info("Checking that sum of every column contains 0.0... ")
-    @info((check ? "They do." : "FAILED!"))
+    info_strs = ["Checking that sum of every column contains 0.0...",
+        (check ? "DONE!" : "FAILED!")]
+    @info(join(info_strs, "\n"))
     check || @warn("The following numbers are meaningless!")
     
     @info("Computing sum of squares decomposition...")
     @time residual = eoi - compute_SOS(parent(eoi), Q)
-    @info("ɛ(Δ² - λΔ - ∑ξᵢ*ξᵢ) ∈ $(aug(residual))")
+    
     L1_norm = norm(residual,1)
-    @info("‖Δ² - λΔ - ∑ξᵢ*ξᵢ‖₁ ∈ $(L1_norm)")
-
     distance = λ - 2.0^(2ceil(log2(R)))*L1_norm
     
-    @info("Interval distance (to positive cone) ∈")
-    @info("$(distance)")
-    @info("-"^76)
+    info_strs = ["Numerical metrics:",
+        "ɛ(Δ² - λΔ - ∑ξᵢ*ξᵢ) ∈ $(aug(residual))",
+        "‖Δ² - λΔ - ∑ξᵢ*ξᵢ‖₁ ∈ $(L1_norm)",
+        "Interval distance (to positive cone) ∈",
+        "$(distance)",
+        separator]
+    @info(join(info_strs, "\n"))
 
     return distance.lo
 end
@@ -195,8 +203,27 @@ end
 
 Kazhdan(λ::Number, N::Integer) = sqrt(2*λ/N)
 
-function interpret_results(sett::Settings, sgap::Number)
+function check_property_T(sett::Settings)
+    print_summary(sett)
+    certified_sgap = spectral_gap(sett)
+    return interpret_results(sett, certified_sgap)
+end
 
+function print_summary(sett::Settings)
+    separator = "="^76
+    info_strs = [separator,
+    "Running tests for $(sett.name):",
+    "Upper bound for λ: $(sett.upper_bound), on radius $(sett.radius).",
+    "Warmstart: $(sett.warmstart)",
+    "Results will be stored in ./$(PropertyT.prepath(sett))",
+    "Solver: $(typeof(sett.solver()))",
+    "Solvers options: "]
+    append!(info_strs, [rpad("   $k", 30)* "→ \t$v" for (k,v) in sett.solver().options])
+    push!(info_strs, separator)
+    @info(join(info_strs, "\n"))
+end
+
+function interpret_results(sett::Settings, sgap::Number)
     if sgap > 0
         Kazhdan_κ = Kazhdan(sgap, length(sett.S))
         if Kazhdan_κ > 0
@@ -204,19 +231,18 @@ function interpret_results(sett::Settings, sgap::Number)
             return true
         end
     end
-    @info("λ($(sett.name), S) ≥ $sgap < 0: Tells us nothing about property (T)")
+    info_strs = ["The certified lower bound on the spectral gap is negative:",
+        "λ($(sett.name), S) ≥ 0.0 > $sgap",
+        "This tells us nothing about property (T)"]
+    @info(join(info_strs, "\n"))
     return false
 end
 
-function check_property_T(sett::Settings)
+function spectral_gap(sett::Settings)
     fp = PropertyT.fullpath(sett)
     isdir(fp) || mkpath(fp)
-    @info("="^76)
-    @info("Running tests for $(sett.name):")
-    @info("Upper bound for λ: $(sett.upper_bound), on radius $(sett.radius).")
-    @info("Solver is $(sett.solver)")
-    @info("Warmstart: $(sett.warmstart)")
-    @info("="^76)
+    
+
 
     if isfile(filename(sett,:Δ))
         # cached
@@ -240,17 +266,18 @@ function check_property_T(sett::Settings)
             @warn("Solver did not produce a valid solution!")
         end
     end
-
-    @info("λ = $λ")
-    @info("sum(P) = $(sum(P))")
-    @info("maximum(P) = $(maximum(P))")
-    @info("minimum(P) = $(minimum(P))")
+    
+    info_strs = ["λ = $λ",
+        "sum(P) = $(sum(P))",
+        "maximum(P) = $(maximum(P))",
+        "minimum(P) = $(minimum(P))"]
+    @info(join(info_strs, "\n"))
 
     isapprox(eigvals(P), abs.(eigvals(P))) ||
         @warn("The solution matrix doesn't seem to be positive definite!")
 
     @time Q = real(sqrt( (P.+ P')./2 ))
-    sgap = distance_to_positive_cone(Δ, λ, Q, R=sett.radius)
-
-    return interpret_results(sett, sgap)
+    certified_sgap = distance_to_positive_cone(Δ, λ, Q, R=sett.radius)
+    
+    return certified_sgap
 end

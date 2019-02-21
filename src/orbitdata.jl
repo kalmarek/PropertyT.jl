@@ -17,20 +17,25 @@ function OrbitData(RG::GroupRing, autS::Group, verbose=true)
     @assert sum(length(o) for o in orbs) == length(RG.basis)
     verbose && @info("The action has $(length(orbs)) orbits")
 
-    verbose && @info("Projections in the Group Ring of AutS = $autS")
+    verbose && @info("Finding projections in the Group Ring of $(autS)")
     @time autS_mps = Projections.rankOne_projections(GroupRing(autS, collect(autS)))
 
-    verbose && @info("AutS-action matrix representatives")
+    verbose && @info("Finding AutS-action matrix representation")
     @time preps = perm_reps(autS, RG.basis[1:size(RG.pm,1)], RG.basis_dict)
     @time mreps = matrix_reps(preps)
 
-    verbose && @info("Projection matrices Uπs")
+    verbose && @info("Computing the projection matrices Uπs")
     @time Uπs = [orthSVD(matrix_repr(p, mreps)) for p in autS_mps]
 
     multiplicities = size.(Uπs,2)
-    verbose && @info("multiplicities = $multiplicities")
     dimensions = [Int(p[autS()]*Int(order(autS))) for p in autS_mps]
-    verbose && @info("dimensions = $dimensions")
+    if verbose
+        info_strs = ["",
+        lpad("multiplicities", 14) * "  =" * join(lpad.(multiplicities, 4), ""),
+        lpad("dimensions", 14) * "  =" * join(lpad.(dimensions, 4), "")
+        ]
+        @info(join(info_strs, "\n"))
+    end
     @assert dot(multiplicities, dimensions) == size(RG.pm,1)
 
     return OrbitData(orbs, preps, Uπs, dimensions)
