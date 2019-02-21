@@ -3,6 +3,6 @@ AbstractAlgebra
 Groups
 GroupRings
 IntervalArithmetic
-JuMP 0.18.0
+JuMP
 JLD
 SCS
