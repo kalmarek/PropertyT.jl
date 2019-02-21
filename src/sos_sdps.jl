@@ -172,157 +172,37 @@ end
 #  Low-level solve
 #
 ###############################################################################
-using MathProgBase
 
-function solve(m::JuMP.Model, varλ::JuMP.Variable, varP, warmstart=nothing)
 
-    traits = JuMP.ProblemTraits(m, relaxation=false)
-
-    JuMP.build(m, traits=traits)
+function solve(m::JuMP.Model, with_optimizer::JuMP.OptimizerFactory, warmstart=nothing)
+    
+    set_optimizer(m, with_optimizer)
+    MOIU.attach_optimizer(m)
+    
     if warmstart != nothing
         p_sol, d_sol, s = warmstart
         MathProgBase.SolverInterface.setwarmstart!(m.internalModel, p_sol;
             dual_sol=d_sol, slack=s);
     end
 
-    MathProgBase.optimize!(m.internalModel)
-    status = MathProgBase.status(m.internalModel)
-
-    λ = MathProgBase.getobjval(m.internalModel)
-
-    warmstart = (m.internalModel.primal_sol, m.internalModel.dual_sol,
-          m.internalModel.slack)
-
-    fillfrominternal!(m, traits)
-
-    P = JuMP.getvalue(varP)
-    λ = JuMP.getvalue(varλ)
+    optimize!(m)
+    status = termination_status(m)
 
     return status, (λ, P, warmstart)
 end
 
-function solve(solverlog::String, model::JuMP.Model, varλ::JuMP.Variable, varP, warmstart=nothing)
+function solve(solverlog::String, m::JuMP.Model, with_optimizer::JuMP.OptimizerFactory, warmstart=nothing)
 
     isdir(dirname(solverlog)) || mkpath(dirname(solverlog))
 
     Base.flush(Base.stdout)
-    status, (λ, P, warmstart) = open(solverlog, "a+") do logfile
+    status, warmstart = open(solverlog, "a+") do logfile
         redirect_stdout(logfile) do
-            status, (λ, P, warmstart) = PropertyT.solve(model, varλ, varP, warmstart)
+            status, warmstart = PropertyT.solve(m, with_optimizer, warmstart)
             Base.Libc.flush_cstdio()
-            status, (λ, P, warmstart)
+            status, warmstart
         end
     end
 
-    return status, (λ, P, warmstart)
-end
-
-###############################################################################
-#
-#  Copied from JuMP/src/solvers.jl:178
-#
-###############################################################################
-
-function fillfrominternal!(m::JuMP.Model, traits)
-
-    stat::Symbol = MathProgBase.status(m.internalModel)
-
-    numRows, numCols = length(m.linconstr), m.numCols
-    m.objBound = NaN
-    m.objVal = NaN
-    m.colVal = fill(NaN, numCols)
-    m.linconstrDuals = Array{Float64}(undef, 0)
-
-    discrete = (traits.int || traits.sos)
-
-    if stat == :Optimal
-        # If we think dual information might be available, try to get it
-        # If not, return an array of the correct length
-        if discrete
-            m.redCosts = fill(NaN, numCols)
-            m.linconstrDuals = fill(NaN, numRows)
-        else
-            if !traits.conic
-                m.redCosts = try
-                    MathProgBase.getreducedcosts(m.internalModel)[1:numCols]
-                catch
-                    fill(NaN, numCols)
-                end
-
-                m.linconstrDuals = try
-                    MathProgBase.getconstrduals(m.internalModel)[1:numRows]
-                catch
-                    fill(NaN, numRows)
-                end
-            elseif !traits.qp && !traits.qc
-                JuMP.fillConicDuals(m)
-            end
-        end
-    else
-        # Problem was not solved to optimality, attempt to extract useful
-        # information anyway
-
-        if traits.lin
-            if stat == :Infeasible
-                m.linconstrDuals = try
-                    infray = MathProgBase.getinfeasibilityray(m.internalModel)
-                    @assert length(infray) == numRows
-                    infray
-                catch
-                    @warn("Infeasibility ray (Farkas proof) not available")
-                    fill(NaN, numRows)
-                end
-            elseif stat == :Unbounded
-                m.colVal = try
-                    unbdray = MathProgBase.getunboundedray(m.internalModel)
-                    @assert length(unbdray) == numCols
-                    unbdray
-                catch
-                    @warn("Unbounded ray not available")
-                    fill(NaN, numCols)
-                end
-            end
-        end
-        # conic duals (currently, SOC and SDP only)
-        if !discrete && traits.conic && !traits.qp && !traits.qc
-            if stat == :Infeasible
-                JuMP.fillConicDuals(m)
-            end
-        end
-    end
-
-    # If the problem was solved, or if it terminated prematurely, try
-    # to extract a solution anyway. This commonly occurs when a time
-    # limit or tolerance is set (:UserLimit)
-    if !(stat == :Infeasible || stat == :Unbounded)
-        try
-            # Do a separate try since getobjval could work while getobjbound does not and vice versa
-            objBound = MathProgBase.getobjbound(m.internalModel) + m.obj.aff.constant
-            m.objBound = objBound
-        catch
-            @warn("objBound could not be obtained")
-        end
-    
-        try
-            objVal = MathProgBase.getobjval(m.internalModel) + m.obj.aff.constant
-            colVal = MathProgBase.getsolution(m.internalModel)[1:numCols]
-            # Rescale off-diagonal terms of SDP variables
-            if traits.sdp
-                offdiagvars = JuMP.offdiagsdpvars(m)
-                colVal[offdiagvars] /= sqrt(2)
-            end
-            # Don't corrupt the answers if one of the above two calls fails
-            m.objVal = objVal
-            m.colVal = colVal
-        catch
-            @warn("objVal/colVal could not be obtained")
-        end
-    end
-    
-    if traits.conic && m.objSense == :Max
-        m.objBound = -1 * (m.objBound - m.obj.aff.constant) + m.obj.aff.constant
-        m.objVal = -1 * (m.objVal - m.obj.aff.constant) + m.obj.aff.constant
-    end
-
-    return stat
+    return status, warmstart
 end
