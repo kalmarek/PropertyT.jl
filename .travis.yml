@@ -5,6 +5,7 @@ os:
   - osx
 julia:
   - 1.0
+  - 1.1
   - nightly
 notifications:
   email: true
@@ -13,14 +14,15 @@ matrix:
   allow_failures:
     - julia: nightly
 
+before_script:
+  - julia -e 'using Pkg; Pkg.build();'
+  - julia -e 'using Pkg;
+    Pkg.add(PackageSpec(name="MbedTLS", version="0.6.6"));
+    Pkg.pin(PackageSpec(name="MbedTLS", version="0.6.6"));'
+
 ## uncomment the following lines to override the default test
 script:
-  - julia -e 'using Pkg;
-  Pkg.add(PackageSpec(url="https://github.com/kalmarek/Groups.jl", rev="enh/julia-v0.7"));
-  Pkg.add(PackageSpec(url="https://github.com/kalmarek/GroupRings.jl", rev="enh/julia-v0.7"));
-  Pkg.clone(pwd());
-  Pkg.build("PropertyT"); 
-  Pkg.test("PropertyT"; coverage=true)'
+  # - julia -e 'using Pkg; Pkg.build(); Pkg.test(coverage=true);'
 
 codecov: true
 
