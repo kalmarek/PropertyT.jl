@@ -42,27 +42,29 @@ end
 #
 ###############################################################################
 
-function SOS_problem(X::GroupRingElem, orderunit::GroupRingElem; upper_bound=Inf)
+function SOS_problem(X::GroupRingElem, orderunit::GroupRingElem; upper_bound::Float64=Inf)
     N = size(parent(X).pm, 1)
     m = JuMP.Model();
 
     JuMP.@variable(m, P[1:N, 1:N])
-    JuMP.@SDconstraint(m, P >= 0)
+    JuMP.@constraint(m, P in PSDCone())
     JuMP.@constraint(m, sum(P[i] for i in eachindex(P)) == 0)
 
-    JuMP.@variable(m, λ)
     if upper_bound < Inf
-        JuMP.@constraint(m, λ <= upper_bound)
+        λ = JuMP.@variable(m, λ <= upper_bound)
+    else
+        λ = JuMP.@variable(m, λ)
     end
-
+    
     cnstrs = constraints(parent(X).pm)
 
     for (constraint, x, u) in zip(cnstrs, X.coeffs, orderunit.coeffs)
         JuMP.@constraint(m, sum(P[constraint]) == x - λ*u)
     end
-
+    
     JuMP.@objective(m, Max, λ)
-    return m, λ, P
+    
+    return m
 end
 
 ###############################################################################
@@ -71,28 +73,29 @@ end
 #
 ###############################################################################
 
-function SOS_problem(X::GroupRingElem, orderunit::GroupRingElem, data::OrbitData; upper_bound=Inf)
+function SOS_problem(X::GroupRingElem, orderunit::GroupRingElem, data::OrbitData; upper_bound::Float64=Inf)
     Ns = size.(data.Uπs, 2)
     m = JuMP.Model();
 
-    P = Vector{Matrix{JuMP.Variable}}(undef, length(Ns))
+    Ps = Vector{Matrix{JuMP.VariableRef}}(undef, length(Ns))
 
     for (k,s) in enumerate(Ns)
-        P[k] = JuMP.@variable(m, [i=1:s, j=1:s])
-        JuMP.@SDconstraint(m, P[k] >= 0.0)
+        Ps[k] = JuMP.@variable(m, [1:s, 1:s])
+        JuMP.@constraint(m, Ps[k] in PSDCone())
     end
 
-    λ = JuMP.@variable(m, λ)
     if upper_bound < Inf
-        JuMP.@constraint(m, λ <= upper_bound)
+        λ = JuMP.@variable(m, λ <= upper_bound)
+    else
+        λ = JuMP.@variable(m, λ)
     end
-
+    
     @info("Adding $(length(data.orbits)) constraints... ")
-
-    @time addconstraints!(m,P,λ,X,orderunit, data)
+    @time addconstraints!(m, Ps, X, orderunit, data)
 
     JuMP.@objective(m, Max, λ)
-    return m, λ, P
+        
+    return m, Ps
 end
 
 function constraintLHS!(M, cnstr, Us, Ust, dims, eps=1000*eps(eltype(first(M))))
@@ -102,7 +105,7 @@ function constraintLHS!(M, cnstr, Us, Ust, dims, eps=1000*eps(eltype(first(M))))
 end
 
 function addconstraints!(m::JuMP.Model,
-    P::Vector{Matrix{JuMP.Variable}}, λ::JuMP.Variable,
+    P::Vector{Matrix{JuMP.VariableRef}},
     X::GroupRingElem, orderunit::GroupRingElem, data::OrbitData)
 
     orderunit_orb = orbit_spvector(orderunit.coeffs, data.orbits)
@@ -113,15 +116,20 @@ function addconstraints!(m::JuMP.Model,
     orb_cnstr = spzeros(Float64, size(parent(X).pm)...)
 
     M = [Array{Float64}(undef, n,n) for n in size.(UπsT,1)]
+    
+    λ = m[:λ]
 
     for (t, orbit) in enumerate(data.orbits)
         orbit_constraint!(orb_cnstr, cnstrs, orbit)
         constraintLHS!(M, orb_cnstr, data.Uπs, UπsT, data.dims)
-
-        lhs = @expression(m, sum(dot(M[π], P[π]) for π in eachindex(data.Uπs)))
+        
         x, u = X_orb[t], orderunit_orb[t]
-        JuMP.@constraint(m, lhs == x - λ*u)
+        
+        @constraints m begin
+            x - λ*u == sum(dot(M[π], P[π]) for π in eachindex(data.Uπs))
+        end
     end
+    return m
 end
 
 function reconstruct(Ps::Vector{Matrix{F}}, data::OrbitData) where F
