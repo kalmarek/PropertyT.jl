@@ -173,22 +173,38 @@ end
 #
 ###############################################################################
 
+function warmstart_scs!(m::JuMP.Model, warmstart)
+    solver_name(m) == "SCS" || throw("warmstarting defined only for SCS!")
+    primal, dual, slack = warmstart
+    m.moi_backend.optimizer.model.optimizer.sol.primal = primal
+    m.moi_backend.optimizer.model.optimizer.sol.dual = dual
+    m.moi_backend.optimizer.model.optimizer.sol.slack = slack
+    return m
+end
 
+function getwarmstart_scs(m::JuMP.Model)
+    solver_name(m) == "SCS" || return (primal=Float64[], dual=Float64[], slack=Float64[])
+    warmstart = (
+        primal = m.moi_backend.optimizer.model.optimizer.sol.primal,
+        dual = m.moi_backend.optimizer.model.optimizer.sol.dual,
+        slack = m.moi_backend.optimizer.model.optimizer.sol.slack
+        )
+    return warmstart
+end
+    
 function solve(m::JuMP.Model, with_optimizer::JuMP.OptimizerFactory, warmstart=nothing)
     
     set_optimizer(m, with_optimizer)
     MOIU.attach_optimizer(m)
     
     if warmstart != nothing
-        p_sol, d_sol, s = warmstart
-        MathProgBase.SolverInterface.setwarmstart!(m.internalModel, p_sol;
-            dual_sol=d_sol, slack=s);
+        warmstart_scs!(m, warmstart)
     end
 
     optimize!(m)
     status = termination_status(m)
 
-    return status, (λ, P, warmstart)
+    return status, getwarmstart_scs(m)
 end
 
 function solve(solverlog::String, m::JuMP.Model, with_optimizer::JuMP.OptimizerFactory, warmstart=nothing)
