@@ -33,11 +33,11 @@ function Laplacian(S::Vector{E}, radius) where E<:AbstractAlgebra.GroupElem
 end
 
 function Laplacian(S, Id, radius)
-    @info("Generating metric ball of radius $(2radius)...")
+    @info "Generating metric ball of radius" radius=2radius
     @time E_R, sizes = Groups.generate_balls(S, Id, radius=2radius)
-    @info("Generated balls of sizes $sizes.")
+    @info "Generated balls:" sizes
 
-    @info("Creating product matrix...")
+    @info "Creating product matrix..."
     rdict = GroupRings.reverse_dict(E_R)
     @time pm = GroupRings.create_pm(E_R, rdict, sizes[radius]; twisted=true)
 

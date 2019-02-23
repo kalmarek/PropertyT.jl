@@ -84,13 +84,13 @@ end
 function computeλandP(sett::Naive, Δ::GroupRingElem;
     solverlog=tempname()*".log")
 
-    @info("Creating SDP problem...")
+    @info "Creating SDP problem..."
     SDP_problem = SOS_problem(Δ^2, Δ, upper_bound=sett.upper_bound)
     @info(Base.repr(SDP_problem))
 
     ws = warmstart(sett)
     @time status, ws = PropertyT.solve(solverlog, SDP_problem, sett.solver, ws)
-    @info("Solver's status: $status")
+    @info "Optimization has finished:" status
     
     P = value.(SDP_problem[:P])
     λ = value(SDP_problem[:λ])
@@ -112,14 +112,13 @@ function computeλandP(sett::Symmetrized, Δ::GroupRingElem;
     orbit_data = load(filename(sett, :OrbitData), "OrbitData")
     orbit_data = decimate(orbit_data)
 
-    @info("Creating SDP problem...")
+    @info "Creating SDP problem..."
     SDP_problem, varP = SOS_problem(Δ^2, Δ, orbit_data, upper_bound=sett.upper_bound)
     @info(Base.repr(SDP_problem))
 
     ws = warmstart(sett)
     @time status, ws = PropertyT.solve(solverlog, SDP_problem, sett.solver, ws)
-    @info("Solver's status: $status")
-    
+    @info "Optimization has finished:" status
     
     λ = value(SDP_problem[:λ])
     Ps = [value.(P) for P in varP]
@@ -127,7 +126,7 @@ function computeλandP(sett::Symmetrized, Δ::GroupRingElem;
     save(filename(sett, :warmstart), 
     "warmstart", (ws.primal, ws.dual, ws.slack), "Ps", Ps, "λ", λ)
     
-    @info("Reconstructing P...")
+    @info "Reconstructing P..."
     @time P = reconstruct(Ps, orbit_data)
 
     return λ, P
@@ -141,10 +140,7 @@ end
 
 function distance_to_positive_cone(Δ::GroupRingElem, λ, Q; R::Int=2)
     separator = "-"^76
-    info_strs = [separator,
-        "Checking in floating-point arithmetic...",
-        "λ = $λ"]
-    @info(join(info_strs, "\n"))
+    @info "$separator\nChecking in floating-point arithmetic..." λ
     eoi = Δ^2-λ*Δ
     
     @info("Computing sum of squares decomposition...")
@@ -153,12 +149,11 @@ function distance_to_positive_cone(Δ::GroupRingElem, λ, Q; R::Int=2)
     L1_norm = norm(residual,1)
     distance = λ - 2.0^(2ceil(log2(R)))*L1_norm
     
-    info_strs = ["Numerical metrics:",
-        "ɛ(Δ² - λΔ - ∑ξᵢ*ξᵢ) ≈ $(@sprintf("%.10f", aug(residual)))",
-        "‖Δ² - λΔ - ∑ξᵢ*ξᵢ‖₁ ≈ $(@sprintf("%.10f", L1_norm))",
-        "Floating point distance (to positive cone) ≈",
-        "$(@sprintf("%.10f", distance))"]
-    @info(join(info_strs, "\n"))
+    info_strs = ["Numerical metrics of the obtained SOS:",
+        "ɛ(Δ² - λΔ - ∑ξᵢ*ξᵢ) ≈ $(aug(residual))",
+        "‖Δ² - λΔ - ∑ξᵢ*ξᵢ‖₁ ≈ $(L1_norm)",
+        "Floating point distance (to positive cone) ≈"]
+    @info join(info_strs, "\n") distance
 
     if distance ≤ 0
         return distance
@@ -173,9 +168,8 @@ function distance_to_positive_cone(Δ::GroupRingElem, λ, Q; R::Int=2)
     
     @info("Projecting columns of Q to the augmentation ideal...")
     @time Q, check = augIdproj(Interval, Q)
-    info_strs = ["Checking that sum of every column contains 0.0...",
-        (check ? "DONE!" : "FAILED!")]
-    @info(join(info_strs, "\n"))
+    result = (check ? "Correct." : "FAILED!")
+    @info "Checking that sum of every column contains 0.0..." result
     check || @warn("The following numbers are meaningless!")
     
     @info("Computing sum of squares decomposition...")
@@ -184,13 +178,11 @@ function distance_to_positive_cone(Δ::GroupRingElem, λ, Q; R::Int=2)
     L1_norm = norm(residual,1)
     distance = λ - 2.0^(2ceil(log2(R)))*L1_norm
     
-    info_strs = ["Numerical metrics:",
+    info_strs = ["Numerical metrics of the obtained SOS:",
         "ɛ(Δ² - λΔ - ∑ξᵢ*ξᵢ) ∈ $(aug(residual))",
         "‖Δ² - λΔ - ∑ξᵢ*ξᵢ‖₁ ∈ $(L1_norm)",
-        "Interval distance (to positive cone) ∈",
-        "$(distance)",
-        separator]
-    @info(join(info_strs, "\n"))
+        "Interval distance (to positive cone) ∈"]
+    @info join(info_strs, "\n") distance
 
     return distance.lo
 end
@@ -220,21 +212,21 @@ function print_summary(sett::Settings)
     "Solvers options: "]
     append!(info_strs, [rpad("   $k", 30)* "→ \t$v" for (k,v) in sett.solver().options])
     push!(info_strs, separator)
-    @info(join(info_strs, "\n"))
+    @info join(info_strs, "\n")
 end
 
 function interpret_results(sett::Settings, sgap::Number)
     if sgap > 0
         Kazhdan_κ = Kazhdan(sgap, length(sett.S))
         if Kazhdan_κ > 0
-            @info("κ($(sett.name), S) ≥ $Kazhdan_κ: Group HAS property (T)!")
+            @info "κ($(sett.name), S) ≥ $Kazhdan_κ: Group HAS property (T)!"
             return true
         end
     end
     info_strs = ["The certified lower bound on the spectral gap is negative:",
         "λ($(sett.name), S) ≥ 0.0 > $sgap",
         "This tells us nothing about property (T)"]
-    @info(join(info_strs, "\n"))
+    @info join(info_strs, "\n")
     return false
 end
 
@@ -242,11 +234,9 @@ function spectral_gap(sett::Settings)
     fp = PropertyT.fullpath(sett)
     isdir(fp) || mkpath(fp)
     
-
-
     if isfile(filename(sett,:Δ))
         # cached
-        @info("Loading precomputed Δ...")
+        @info "Loading precomputed Δ..."
         Δ = loadGRElem(filename(sett,:Δ), sett.G)
     else
         # compute
@@ -263,20 +253,20 @@ function spectral_gap(sett::Settings)
         save(filename(sett, :solution), "λ", λ, "P", P)
 
         if λ < 0
-            @warn("Solver did not produce a valid solution!")
+            @warn "Solver did not produce a valid solution!"
         end
     end
     
-    info_strs = ["λ = $λ",
+    info_strs = ["Numerical metrics of matrix solution:",
         "sum(P) = $(sum(P))",
         "maximum(P) = $(maximum(P))",
         "minimum(P) = $(minimum(P))"]
-    @info(join(info_strs, "\n"))
+    @info join(info_strs, "\n")
 
     isapprox(eigvals(P), abs.(eigvals(P))) ||
-        @warn("The solution matrix doesn't seem to be positive definite!")
+        @warn "The solution matrix doesn't seem to be positive definite!"
 
-    @time Q = real(sqrt( (P.+ P')./2 ))
+    @time Q = real(sqrt(Symmetric( (P.+ P')./2 )))
     certified_sgap = distance_to_positive_cone(Δ, λ, Q, R=sett.radius)
     
     return certified_sgap

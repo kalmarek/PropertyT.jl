@@ -90,7 +90,7 @@ function SOS_problem(X::GroupRingElem, orderunit::GroupRingElem, data::OrbitData
         λ = JuMP.@variable(m, λ)
     end
     
-    @info("Adding $(length(data.orbits)) constraints... ")
+    @info "Adding $(length(data.orbits)) constraints..."
     @time addconstraints!(m, Ps, X, orderunit, data)
 
     JuMP.@objective(m, Max, λ)

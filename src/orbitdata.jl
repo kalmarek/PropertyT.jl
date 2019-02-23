@@ -12,19 +12,19 @@ struct OrbitData{T<:AbstractArray{Float64, 2}, GEl<:GroupElem, P<:perm}
 end
 
 function OrbitData(RG::GroupRing, autS::Group, verbose=true)
-    verbose && @info("Decomposing basis of RG into orbits of $(autS)")
+    verbose && @info "Decomposing basis of RG into orbits of" autS
     @time orbs = orbit_decomposition(autS, RG.basis, RG.basis_dict)
     @assert sum(length(o) for o in orbs) == length(RG.basis)
-    verbose && @info("The action has $(length(orbs)) orbits")
+    verbose && @info "The action has $(length(orbs)) orbits"
 
-    verbose && @info("Finding projections in the Group Ring of $(autS)")
+    verbose && @info "Finding projections in the Group Ring of" autS
     @time autS_mps = Projections.rankOne_projections(GroupRing(autS, collect(autS)))
 
-    verbose && @info("Finding AutS-action matrix representation")
+    verbose && @info "Finding AutS-action matrix representation"
     @time preps = perm_reps(autS, RG.basis[1:size(RG.pm,1)], RG.basis_dict)
     @time mreps = matrix_reps(preps)
 
-    verbose && @info("Computing the projection matrices Uπs")
+    verbose && @info "Computing the projection matrices Uπs"
     @time Uπs = [orthSVD(matrix_repr(p, mreps)) for p in autS_mps]
 
     multiplicities = size.(Uπs,2)
@@ -34,7 +34,7 @@ function OrbitData(RG::GroupRing, autS::Group, verbose=true)
         lpad("multiplicities", 14) * "  =" * join(lpad.(multiplicities, 4), ""),
         lpad("dimensions", 14) * "  =" * join(lpad.(dimensions, 4), "")
         ]
-        @info(join(info_strs, "\n"))
+        @info join(info_strs, "\n")
     end
     @assert dot(multiplicities, dimensions) == size(RG.pm,1)
 
