@@ -57,9 +57,8 @@ function SOS_problem(X::GroupRingElem, orderunit::GroupRingElem; upper_bound::Fl
     end
     
     cnstrs = constraints(parent(X).pm)
-
-    for (constraint, x, u) in zip(cnstrs, X.coeffs, orderunit.coeffs)
-        JuMP.@constraint(m, sum(P[constraint]) == x - λ*u)
+    for (constraint_indices, x, u) in zip(cnstrs, X.coeffs, orderunit.coeffs)
+        JuMP.@constraint(m, x - λ*u == sum(P[constraint_indices]))
     end
     
     JuMP.@objective(m, Max, λ)
@@ -125,7 +124,7 @@ function addconstraints!(m::JuMP.Model,
         
         x, u = X_orb[t], orderunit_orb[t]
         
-        @constraints m begin
+        JuMP.@constraints m begin
             x - λ*u == sum(dot(M[π], P[π]) for π in eachindex(data.Uπs))
         end
     end
