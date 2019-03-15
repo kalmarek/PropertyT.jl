@@ -3,16 +3,47 @@ using IntervalArithmetic
 IntervalArithmetic.setrounding(Interval, :tight)
 IntervalArithmetic.setformat(sigfigs=12)
 
-function compute_SOS(pm::Array{I,2}, Q) where I<:Integer
-    result = zeros(eltype(Q), maximum(pm));
-    for i in 1:size(Q,2)
-        GroupRings.fmac!(result, view(Q,:,i), view(Q,:,i), pm)
+function fma_SOS_thr!(result::AbstractVector{T}, pm::AbstractMatrix{<:Integer},
+    Q::AbstractMatrix{T}, acc_matrix=zeros(T, size(pm)...)) where T
+
+    s1, s2 = size(pm)
+
+    @inbounds for k in 1:s2
+        let k=k, s1=s1, s2=s2, Q=Q, acc_matrix=acc_matrix
+            Threads.@threads for j in 1:s2
+                for i in 1:s1
+                    @inbounds acc_matrix[i,j] = muladd(Q[i, k], Q[j, k], acc_matrix[i,j])
+                end
+            end
+        end
     end
+
+    @inbounds for j in 1:s2
+        for i in 1:s1
+            result[pm[i,j]] += acc_matrix[i,j]
+        end
+    end
+
     return result
 end
 
-function compute_SOS(RG::GroupRing, Q::AbstractArray)
+function compute_SOS(pm::AbstractMatrix{<:Integer}, Q::AbstractMatrix)
+    result = zeros(eltype(Q), maximum(pm));
+    return fma_SOS_thr!(result, pm, Q)
+end
+
+function compute_SOS(RG::GroupRing, Q::AbstractMatrix{<:Real})
     result = compute_SOS(RG.pm, Q)
+    return GroupRingElem(result, RG)
+end
+
+function compute_SOS_square(RG::GroupRing, Q::AbstractMatrix{<:Real})
+    result = zeros(eltype(Q), maximum(RG.pm));
+    
+    for i in 1:size(Q,2)
+        GroupRings.fmac!(result, view(Q,:,i), view(Q,:,i), RG.pm)
+    end
+    
     return GroupRingElem(result, RG)
 end
 
