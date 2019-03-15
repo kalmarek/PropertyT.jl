@@ -13,19 +13,10 @@ matrix:
   fast_finish: true
   allow_failures:
     - julia: nightly
-
-before_script:
-  - julia -e 'using Pkg; Pkg.build();'
-  - julia -e 'using Pkg;
-    Pkg.add(PackageSpec(name="MbedTLS", version="0.6.6"));
-    Pkg.pin(PackageSpec(name="MbedTLS", version="0.6.6"));'
+    - os: osx
 
 ## uncomment the following lines to override the default test
-script:
+# script:
   # - julia -e 'using Pkg; Pkg.build(); Pkg.test(coverage=true);'
 
 codecov: true
-
-# after_success:
-  # push coverage results to Coveralls
-   #- julia -e 'using Pkg; Pkg.build(); Pkg.test(coverage=true);' 
