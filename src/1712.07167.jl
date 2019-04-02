@@ -156,25 +156,26 @@ end
 #
 ###############################################################################
 
-function distance_to_positive_cone(Δ::GroupRingElem, λ, Q; R::Int=2)
+function certify_SOS_decomposition(elt::GroupRingElem, orderunit::GroupRingElem,
+    λ::Number, Q::AbstractMatrix; R::Int=2)
     separator = "-"^76
     @info "$separator\nChecking in floating-point arithmetic..." λ
-    eoi = Δ^2-λ*Δ
+    eoi = elt - λ*orderunit
     
     @info("Computing sum of squares decomposition...")
     @time residual = eoi - compute_SOS(parent(eoi), augIdproj(Q))
 
     L1_norm = norm(residual,1)
-    distance = λ - 2.0^(2ceil(log2(R)))*L1_norm
+    certified_λ = λ - 2.0^(2ceil(log2(R)))*L1_norm
     
     info_strs = ["Numerical metrics of the obtained SOS:",
-        "ɛ(Δ² - λΔ - ∑ξᵢ*ξᵢ) ≈ $(aug(residual))",
-        "‖Δ² - λΔ - ∑ξᵢ*ξᵢ‖₁ ≈ $(L1_norm)",
-        "Floating point distance (to positive cone) ≈"]
-    @info join(info_strs, "\n") distance
+        "ɛ(elt - λu - ∑ξᵢ*ξᵢ) ≈ $(aug(residual))",
+        "‖elt - λu - ∑ξᵢ*ξᵢ‖₁ ≈ $(L1_norm)",
+        "Floating point (NOT certified) λ ≈"]
+    @info join(info_strs, "\n") certified_λ
 
-    if distance ≤ 0
-        return distance
+    if certified_λ ≤ 0
+        return certified_λ
     end
 
     λ = @interval(λ)
@@ -182,27 +183,31 @@ function distance_to_positive_cone(Δ::GroupRingElem, λ, Q; R::Int=2)
         "Checking in interval arithmetic...",
         "λ ∈ $λ"]
     @info(join(info_strs, "\n"))
-    eoi = Δ^2 - λ*Δ
+    eoi = elt - λ*orderunit
     
     @info("Projecting columns of Q to the augmentation ideal...")
     @time Q, check = augIdproj(Interval, Q)
-    result = (check ? "Correct." : "FAILED!")
-    @info "Checking that sum of every column contains 0.0..." result
+    @info "Checking that sum of every column contains 0.0..." check_augmented=check
     check || @warn("The following numbers are meaningless!")
     
     @info("Computing sum of squares decomposition...")
     @time residual = eoi - compute_SOS(parent(eoi), Q)
     
     L1_norm = norm(residual,1)
-    distance = λ - 2.0^(2ceil(log2(R)))*L1_norm
+    certified_λ = λ - 2.0^(2ceil(log2(R)))*L1_norm
     
     info_strs = ["Numerical metrics of the obtained SOS:",
-        "ɛ(Δ² - λΔ - ∑ξᵢ*ξᵢ) ∈ $(aug(residual))",
-        "‖Δ² - λΔ - ∑ξᵢ*ξᵢ‖₁ ∈ $(L1_norm)",
-        "Interval distance (to positive cone) ∈"]
-    @info join(info_strs, "\n") distance
+        "ɛ(elt - λu - ∑ξᵢ*ξᵢ) ∈ $(aug(residual))",
+        "‖elt - λu - ∑ξᵢ*ξᵢ‖₁ ∈ $(L1_norm)",
+        "Interval aritmetic (certified) λ ∈"]
+    @info join(info_strs, "\n") certified_λ
 
-    return distance.lo
+    return certified_λ.lo
+end
+
+function spectral_gap(Δ::GroupRingElem, λ::Number, Q::AbstractMatrix; R::Int=2)
+    @info "elt = Δ², u = Δ"
+    return certify_SOS_decomposition(Δ^2, Δ, λ, Q, R=R)
 end
 
 ###############################################################################
@@ -285,7 +290,7 @@ function spectral_gap(sett::Settings)
         @warn "The solution matrix doesn't seem to be positive definite!"
 
     @time Q = real(sqrt(Symmetric( (P.+ P')./2 )))
-    certified_sgap = distance_to_positive_cone(Δ, λ, Q, R=sett.radius)
+    certified_sgap = spectral_gap(Δ, λ, Q, R=sett.radius)
     
     return certified_sgap
 end
