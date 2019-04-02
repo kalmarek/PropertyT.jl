@@ -49,7 +49,7 @@ suffix(s::Settings) = "$(s.upper_bound)"
 prepath(s::Settings) = prefix(s)
 fullpath(s::Settings) = joinpath(prefix(s), suffix(s))
 
-filename(sett::Settings, s::Symbol) = filename(sett, Val{s})
+filename(sett::Settings, s::Symbol; kwargs...) = filename(sett, Val{s}; kwargs...)
 
 filename(sett::Settings, ::Type{Val{:fulllog}}) =
     joinpath(fullpath(sett), "full_$(string(now())).log")
@@ -61,10 +61,16 @@ filename(sett::Settings, ::Type{Val{:Δ}}) =
 filename(sett::Settings, ::Type{Val{:OrbitData}}) =
     joinpath(prepath(sett), "OrbitData.jld")
 
-filename(sett::Settings, ::Type{Val{:warmstart}}) =
-    joinpath(fullpath(sett), "warmstart.jld")
 filename(sett::Settings, ::Type{Val{:solution}}) =
-    joinpath(fullpath(sett), "solution.jld")
+        joinpath(fullpath(sett), "solution.jld")
+
+function filename(sett::Settings, ::Type{Val{:warmstart}}; date=false)
+    if date
+        return joinpath(fullpath(sett), "warmstart_$(Dates.now()).jld")
+    else
+        return joinpath(fullpath(sett), "warmstart.jld")
+    end
+end
 
 ###############################################################################
 #
@@ -95,8 +101,14 @@ function computeλandP(sett::Naive, Δ::GroupRingElem;
     P = value.(SDP_problem[:P])
     λ = value(SDP_problem[:λ])
     
-    save(filename(sett, :warmstart), 
-    "warmstart", (ws.primal, ws.dual, ws.slack), "P", P, "λ", λ)
+    if any(isnan.(P))
+        @warn "The solution seems to contain NaNs. Not overriding warmstart.jld"
+    else
+        save(filename(sett, :warmstart), "warmstart", (ws.primal, ws.dual, ws.slack), "P", P, "λ", λ)
+    end
+    
+    save(filename(sett, :warmstart, date=true),
+        "warmstart", (ws.primal, ws.dual, ws.slack), "P", P, "λ", λ)
 
     return λ, P
 end
@@ -123,8 +135,14 @@ function computeλandP(sett::Symmetrized, Δ::GroupRingElem;
     λ = value(SDP_problem[:λ])
     Ps = [value.(P) for P in varP]
     
-    save(filename(sett, :warmstart), 
-    "warmstart", (ws.primal, ws.dual, ws.slack), "Ps", Ps, "λ", λ)
+    if any(any(isnan.(P)) for P in Ps)
+        @warn "The solution seems to contain NaNs. Not overriding warmstart.jld"
+    else
+        save(filename(sett, :warmstart), "warmstart", (ws.primal, ws.dual, ws.slack), "Ps", Ps, "λ", λ)
+    end
+    
+    save(filename(sett, :warmstart, date=true), 
+        "warmstart", (ws.primal, ws.dual, ws.slack), "Ps", Ps, "λ", λ)
     
     @info "Reconstructing P..."
     @time P = reconstruct(Ps, orbit_data)
