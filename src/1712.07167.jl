@@ -74,7 +74,7 @@ end
 
 ###############################################################################
 #
-#  λandP
+#  Approximation by SOS (logged & warmstarted)
 #
 ###############################################################################
 
@@ -87,16 +87,19 @@ function warmstart(sett::Settings)
     return ws
 end
 
-function computeλandP(sett::Naive, Δ::GroupRingElem;
+function approximate_by_SOS(sett::Naive, 
+    elt::GroupRingElem, orderunit::GroupRingElem;
     solverlog=tempname()*".log")
-
+    
     @info "Creating SDP problem..."
-    SDP_problem = SOS_problem(Δ^2, Δ, upper_bound=sett.upper_bound)
-    @info(Base.repr(SDP_problem))
+    SDP_problem = SOS_problem(elt, orderunit, upper_bound=sett.upper_bound)
+    @info Base.repr(SDP_problem)
+    
+    @info "Logging solver's progress into $solverlog"
 
     ws = warmstart(sett)
     @time status, ws = PropertyT.solve(solverlog, SDP_problem, sett.solver, ws)
-    @info "Optimization has finished:" status
+    @info "Optimization finished:" status
     
     P = value.(SDP_problem[:P])
     λ = value(SDP_problem[:λ])
@@ -113,24 +116,27 @@ function computeλandP(sett::Naive, Δ::GroupRingElem;
     return λ, P
 end
 
-function computeλandP(sett::Symmetrized, Δ::GroupRingElem;
+function approximate_by_SOS(sett::Symmetrized, 
+    elt::GroupRingElem, orderunit::GroupRingElem;
     solverlog=tempname()*".log")
-
+    
     if !isfile(filename(sett, :OrbitData))
-        isdefined(parent(Δ), :basis) || throw("You need to define basis of Group Ring to compute orbit decomposition!")
-        orbit_data = OrbitData(parent(Δ), sett.autS)
+        isdefined(parent(orderunit), :basis) || throw("You need to define basis of Group Ring to compute orbit decomposition!")
+        orbit_data = OrbitData(parent(orderunit), sett.autS)
         save(filename(sett, :OrbitData), "OrbitData", orbit_data)
     end
     orbit_data = load(filename(sett, :OrbitData), "OrbitData")
     orbit_data = decimate(orbit_data)
 
     @info "Creating SDP problem..."
-    SDP_problem, varP = SOS_problem(Δ^2, Δ, orbit_data, upper_bound=sett.upper_bound)
-    @info(Base.repr(SDP_problem))
-
+    SDP_problem, varP = SOS_problem(elt, orderunit, orbit_data, upper_bound=sett.upper_bound)
+    @info Base.repr(SDP_problem)
+    
+    @info "Logging solver's progress into $solverlog"
+    
     ws = warmstart(sett)
     @time status, ws = PropertyT.solve(solverlog, SDP_problem, sett.solver, ws)
-    @info "Optimization has finished:" status
+    @info "Optimization finished:" status
     
     λ = value(SDP_problem[:λ])
     Ps = [value.(P) for P in varP]
@@ -148,7 +154,7 @@ function computeλandP(sett::Symmetrized, Δ::GroupRingElem;
     @time P = reconstruct(Ps, orbit_data)
 
     return λ, P
-end
+end    
 
 ###############################################################################
 #
@@ -270,14 +276,12 @@ function spectral_gap(sett::Settings)
     if !sett.warmstart && isfile(filename(sett, :solution))
         λ, P = load(filename(sett, :solution), "λ", "P")
     else
-        λ, P = computeλandP(sett, Δ,
+        λ, P = approximate_by_SOS(sett, Δ^2, Δ;
             solverlog=filename(sett, :solverlog))
 
         save(filename(sett, :solution), "λ", λ, "P", P)
 
-        if λ < 0
-            @warn "Solver did not produce a valid solution!"
-        end
+        λ < 0 && @warn "Solver did not produce a valid solution!"
     end
     
     info_strs = ["Numerical metrics of matrix solution:",
