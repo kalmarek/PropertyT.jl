@@ -181,7 +181,7 @@ end
 function (p::perm)(A::GroupRingElem)
     RG = parent(A)
     result = zero(RG, eltype(A.coeffs))
-    
+
     for (idx, c) in enumerate(A.coeffs)
         if c!= zero(eltype(A.coeffs))
             result[p(RG.basis[idx])] = c
@@ -218,8 +218,8 @@ import Base.*
 """
 function *(x::AbstractAlgebra.MatElem, P::Generic.perm)
    z = similar(x)
-   m = rows(x)
-   n = cols(x)
+   m = nrows(x)
+   n = ncols(x)
    for i = 1:m
       for j = 1:n
          z[i, j] = x[i,P[j]]

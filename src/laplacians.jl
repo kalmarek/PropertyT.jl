@@ -59,7 +59,7 @@ end
 function loadGRElem(fname::String, G::Group)
     pm = load(fname, "pm")
     RG = GroupRing(G, pm)
-    return loadGRElem(fname, RG) 
+    return loadGRElem(fname, RG)
 end
 
 function loadGRElem(fname::String)

@@ -55,14 +55,14 @@ function SOS_problem(X::GroupRingElem, orderunit::GroupRingElem; upper_bound::Fl
     else
         λ = JuMP.@variable(m, λ)
     end
-    
+
     cnstrs = constraints(parent(X).pm)
     for (constraint_indices, x, u) in zip(cnstrs, X.coeffs, orderunit.coeffs)
         JuMP.@constraint(m, x - λ*u == sum(P[constraint_indices]))
     end
-    
+
     JuMP.@objective(m, Max, λ)
-    
+
     return m
 end
 
@@ -88,12 +88,12 @@ function SOS_problem(X::GroupRingElem, orderunit::GroupRingElem, data::OrbitData
     else
         λ = JuMP.@variable(m, λ)
     end
-    
+
     @info "Adding $(length(data.orbits)) constraints..."
     @time addconstraints!(m, Ps, X, orderunit, data)
 
     JuMP.@objective(m, Max, λ)
-        
+
     return m, Ps
 end
 
@@ -121,9 +121,9 @@ function addconstraints!(m::JuMP.Model,
     for (t, orbit) in enumerate(data.orbits)
         orbit_constraint!(orb_cnstr, cnstrs, orbit)
         constraintLHS!(M, orb_cnstr, data.Uπs, UπsT, data.dims)
-        
+
         x, u = X_orb[t], orderunit_orb[t]
-        
+
         JuMP.@constraints m begin
             x - λ*u == sum(dot(M[π], P[π]) for π in eachindex(data.Uπs))
         end
@@ -142,7 +142,7 @@ function reconstruct(Ps::Vector{M},
     lU = length(Uπs)
     transfP = [dims[π].*Uπs[π]*Ps[π]*Uπs[π]' for π in 1:lU]
     tmp = [zeros(Float64, size(first(transfP))) for _ in 1:lU]
-    
+
     Threads.@threads for π in 1:lU
         tmp[π] = perm_avg(tmp[π], transfP[π], values(preps))
     end
@@ -172,7 +172,7 @@ end
 #
 ###############################################################################
 
-function warmstart_scs!(m::JuMP.Model, warmstart)
+function setwarmstart_scs!(m::JuMP.Model, warmstart)
     solver_name(m) == "SCS" || throw("warmstarting defined only for SCS!")
     primal, dual, slack = warmstart
     m.moi_backend.optimizer.model.optimizer.sol.primal = primal
@@ -190,14 +190,14 @@ function getwarmstart_scs(m::JuMP.Model)
         )
     return warmstart
 end
-    
+
 function solve(m::JuMP.Model, with_optimizer::JuMP.OptimizerFactory, warmstart=nothing)
-    
+
     set_optimizer(m, with_optimizer)
     MOIU.attach_optimizer(m)
-    
+
     if warmstart != nothing
-        warmstart_scs!(m, warmstart)
+        setwarmstart_scs!(m, warmstart)
     end
 
     optimize!(m)

@@ -14,7 +14,7 @@ struct Naive{El} <: Settings
     S::Vector{El}
     radius::Int
     upper_bound::Float64
-    
+
     solver::JuMP.OptimizerFactory
     warmstart::Bool
 end
@@ -26,7 +26,7 @@ struct Symmetrized{El} <: Settings
     autS::Group
     radius::Int
     upper_bound::Float64
-        
+
     solver::JuMP.OptimizerFactory
     warmstart::Bool
 end
@@ -87,39 +87,43 @@ function warmstart(sett::Settings)
     return ws
 end
 
-function approximate_by_SOS(sett::Naive, 
+function approximate_by_SOS(sett::Naive,
     elt::GroupRingElem, orderunit::GroupRingElem;
     solverlog=tempname()*".log")
-    
+
+    isdir(fullpath(sett)) || mkpath(fullpath(sett))
+
     @info "Creating SDP problem..."
     SDP_problem = SOS_problem(elt, orderunit, upper_bound=sett.upper_bound)
     @info Base.repr(SDP_problem)
-    
+
     @info "Logging solver's progress into $solverlog"
 
     ws = warmstart(sett)
     @time status, ws = PropertyT.solve(solverlog, SDP_problem, sett.solver, ws)
     @info "Optimization finished:" status
-    
+
     P = value.(SDP_problem[:P])
     λ = value(SDP_problem[:λ])
-    
+
     if any(isnan.(P))
         @warn "The solution seems to contain NaNs. Not overriding warmstart.jld"
     else
         save(filename(sett, :warmstart), "warmstart", (ws.primal, ws.dual, ws.slack), "P", P, "λ", λ)
     end
-    
+
     save(filename(sett, :warmstart, date=true),
         "warmstart", (ws.primal, ws.dual, ws.slack), "P", P, "λ", λ)
 
     return λ, P
 end
 
-function approximate_by_SOS(sett::Symmetrized, 
+function approximate_by_SOS(sett::Symmetrized,
     elt::GroupRingElem, orderunit::GroupRingElem;
     solverlog=tempname()*".log")
-    
+
+    isdir(fullpath(sett)) || mkpath(fullpath(sett))
+
     if !isfile(filename(sett, :OrbitData))
         isdefined(parent(orderunit), :basis) || throw("You need to define basis of Group Ring to compute orbit decomposition!")
         orbit_data = OrbitData(parent(orderunit), sett.autS)
@@ -131,30 +135,30 @@ function approximate_by_SOS(sett::Symmetrized,
     @info "Creating SDP problem..."
     SDP_problem, varP = SOS_problem(elt, orderunit, orbit_data, upper_bound=sett.upper_bound)
     @info Base.repr(SDP_problem)
-    
+
     @info "Logging solver's progress into $solverlog"
-    
+
     ws = warmstart(sett)
     @time status, ws = PropertyT.solve(solverlog, SDP_problem, sett.solver, ws)
     @info "Optimization finished:" status
-    
+
     λ = value(SDP_problem[:λ])
     Ps = [value.(P) for P in varP]
-    
+
     if any(any(isnan.(P)) for P in Ps)
         @warn "The solution seems to contain NaNs. Not overriding warmstart.jld"
     else
         save(filename(sett, :warmstart), "warmstart", (ws.primal, ws.dual, ws.slack), "Ps", Ps, "λ", λ)
     end
-    
-    save(filename(sett, :warmstart, date=true), 
+
+    save(filename(sett, :warmstart, date=true),
         "warmstart", (ws.primal, ws.dual, ws.slack), "Ps", Ps, "λ", λ)
-    
+
     @info "Reconstructing P..."
     @time P = reconstruct(Ps, orbit_data)
 
     return λ, P
-end    
+end
 
 ###############################################################################
 #
@@ -167,21 +171,21 @@ function certify_SOS_decomposition(elt::GroupRingElem, orderunit::GroupRingElem,
     separator = "-"^76
     @info "$separator\nChecking in floating-point arithmetic..." λ
     eoi = elt - λ*orderunit
-    
+
     @info("Computing sum of squares decomposition...")
     @time residual = eoi - compute_SOS(parent(eoi), augIdproj(Q))
 
     L1_norm = norm(residual,1)
-    certified_λ = λ - 2.0^(2ceil(log2(R)))*L1_norm
-    
+    floatingpoint_λ = λ - 2.0^(2ceil(log2(R)))*L1_norm
+
     info_strs = ["Numerical metrics of the obtained SOS:",
         "ɛ(elt - λu - ∑ξᵢ*ξᵢ) ≈ $(aug(residual))",
         "‖elt - λu - ∑ξᵢ*ξᵢ‖₁ ≈ $(L1_norm)",
         "Floating point (NOT certified) λ ≈"]
-    @info join(info_strs, "\n") certified_λ
+    @info join(info_strs, "\n") floatingpoint_λ
 
-    if certified_λ ≤ 0
-        return certified_λ
+    if floatingpoint_λ ≤ 0
+        return floatingpoint_λ
     end
 
     λ = @interval(λ)
@@ -190,18 +194,18 @@ function certify_SOS_decomposition(elt::GroupRingElem, orderunit::GroupRingElem,
         "λ ∈ $λ"]
     @info(join(info_strs, "\n"))
     eoi = elt - λ*orderunit
-    
+
     @info("Projecting columns of Q to the augmentation ideal...")
     @time Q, check = augIdproj(Interval, Q)
     @info "Checking that sum of every column contains 0.0..." check_augmented=check
     check || @warn("The following numbers are meaningless!")
-    
+
     @info("Computing sum of squares decomposition...")
     @time residual = eoi - compute_SOS(parent(eoi), Q)
-    
+
     L1_norm = norm(residual,1)
     certified_λ = λ - 2.0^(2ceil(log2(R)))*L1_norm
-    
+
     info_strs = ["Numerical metrics of the obtained SOS:",
         "ɛ(elt - λu - ∑ξᵢ*ξᵢ) ∈ $(aug(residual))",
         "‖elt - λu - ∑ξᵢ*ξᵢ‖₁ ∈ $(L1_norm)",
@@ -262,7 +266,7 @@ end
 function spectral_gap(sett::Settings)
     fp = PropertyT.fullpath(sett)
     isdir(fp) || mkpath(fp)
-    
+
     if isfile(filename(sett,:Δ))
         # cached
         @info "Loading precomputed Δ..."
@@ -283,7 +287,7 @@ function spectral_gap(sett::Settings)
 
         λ < 0 && @warn "Solver did not produce a valid solution!"
     end
-    
+
     info_strs = ["Numerical metrics of matrix solution:",
         "sum(P) = $(sum(P))",
         "maximum(P) = $(maximum(P))",
@@ -295,6 +299,6 @@ function spectral_gap(sett::Settings)
 
     @time Q = real(sqrt(Symmetric( (P.+ P')./2 )))
     certified_sgap = spectral_gap(Δ, λ, Q, R=sett.radius)
-    
+
     return certified_sgap
 end

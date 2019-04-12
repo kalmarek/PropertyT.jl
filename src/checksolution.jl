@@ -39,11 +39,11 @@ end
 
 function compute_SOS_square(RG::GroupRing, Q::AbstractMatrix{<:Real})
     result = zeros(eltype(Q), maximum(RG.pm));
-    
+
     for i in 1:size(Q,2)
         GroupRings.fmac!(result, view(Q,:,i), view(Q,:,i), RG.pm)
     end
-    
+
     return GroupRingElem(result, RG)
 end
 
