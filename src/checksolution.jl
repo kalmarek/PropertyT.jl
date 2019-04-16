@@ -37,14 +37,18 @@ function compute_SOS(RG::GroupRing, Q::AbstractMatrix{<:Real})
     return GroupRingElem(result, RG)
 end
 
-function compute_SOS_square(RG::GroupRing, Q::AbstractMatrix{<:Real})
-    result = zeros(eltype(Q), maximum(RG.pm));
+function compute_SOS_square(pm::AbstractMatrix{<:Integer}, Q::AbstractMatrix{<:Real})
+    result = zeros(eltype(Q), maximum(pm));
 
     for i in 1:size(Q,2)
-        GroupRings.fmac!(result, view(Q,:,i), view(Q,:,i), RG.pm)
+        GroupRings.fmac!(result, view(Q,:,i), view(Q,:,i), pm)
     end
 
-    return GroupRingElem(result, RG)
+    return result
+end
+
+function compute_SOS_square(RG::GroupRing, Q::AbstractMatrix{<:Real})
+    return GroupRingElem(compute_SOS_square(RG.pm, Q), RG)
 end
 
 function augIdproj(Q::AbstractMatrix{T}) where {T<:Real}

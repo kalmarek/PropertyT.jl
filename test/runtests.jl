@@ -15,10 +15,11 @@ function Groups.gens(M::MatSpace)
     return S
 end
 
-solver(iters; accel=1) = 
-    with_optimizer(SCS.Optimizer, 
+solver(iters; accel=1) =
+    with_optimizer(SCS.Optimizer,
     linear_solver=SCS.Direct, max_iters=iters,
     acceleration_lookback=accel, eps=1e-10, warm_start=true)
-    
+
 include("1703.09680.jl")
 include("1712.07167.jl")
+include("SOS_correctness.jl")
