@@ -79,12 +79,14 @@ end
 ###############################################################################
 
 function warmstart(sett::Settings)
-    if sett.warmstart && isfile(filename(sett, :warmstart))
+    try
         ws = load(filename(sett, :warmstart), "warmstart")
-    else
-        ws = nothing
+        @info "Loaded $(filename(sett, :warmstart))."
+        return ws
+    catch
+        @info "Couldn't load $(filename(sett, :warmstart))."
+        return nothing
     end
-    return ws
 end
 
 function approximate_by_SOS(sett::Naive,
@@ -124,12 +126,17 @@ function approximate_by_SOS(sett::Symmetrized,
 
     isdir(fullpath(sett)) || mkpath(fullpath(sett))
 
-    if !isfile(filename(sett, :OrbitData))
+    orbit_data = try
+        orbit_data = load(filename(sett, :OrbitData), "OrbitData")
+        @info "Loaded Orbit Data"
+        orbit_data
+    catch
         isdefined(parent(orderunit), :basis) || throw("You need to define basis of Group Ring to compute orbit decomposition!")
         orbit_data = OrbitData(parent(orderunit), sett.autS)
         save(filename(sett, :OrbitData), "OrbitData", orbit_data)
+        orbit_data
     end
-    orbit_data = load(filename(sett, :OrbitData), "OrbitData")
+
     orbit_data = decimate(orbit_data)
 
     @info "Creating SDP problem..."
@@ -267,25 +274,27 @@ function spectral_gap(sett::Settings)
     fp = PropertyT.fullpath(sett)
     isdir(fp) || mkpath(fp)
 
-    if isfile(filename(sett,:Δ))
-        # cached
+    Δ = try
         @info "Loading precomputed Δ..."
-        Δ = loadGRElem(filename(sett,:Δ), sett.G)
-    else
+        loadGRElem(filename(sett,:Δ), sett.G)
+    catch
         # compute
         Δ = Laplacian(sett.S, sett.radius)
         saveGRElem(filename(sett, :Δ), Δ)
+        Δ
     end
 
-    if !sett.warmstart && isfile(filename(sett, :solution))
-        λ, P = load(filename(sett, :solution), "λ", "P")
-    else
+    λ, P = try
+        sett.warmstart && error()
+        load(filename(sett, :solution), "λ", "P")
+    catch
         λ, P = approximate_by_SOS(sett, Δ^2, Δ;
             solverlog=filename(sett, :solverlog))
 
         save(filename(sett, :solution), "λ", λ, "P", P)
 
         λ < 0 && @warn "Solver did not produce a valid solution!"
+        λ, P
     end
 
     info_strs = ["Numerical metrics of matrix solution:",
