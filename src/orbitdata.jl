@@ -225,39 +225,31 @@ end
 
 function matrix_emb(n::DirectPowerGroupElem, p::perm)
     Id = parent(n.elts[1])()
-    elt = Diagonal([(-1)^(el == Id ? 0 : 1) for el in n.elts])
+    elt = Diagonal([(el == Id ? 1 : -1) for el in n.elts])
     return elt[:, p.d]
 end
 
-function (g::WreathProductElem)(A::MatElem)
-    g_inv = inv(g)
-    G = matrix_emb(g.n, g_inv.p)
-    G_inv = matrix_emb(g_inv.n, g.p)
-    M = parent(A)
-    return M(G)*A*M(G_inv)
-end
-
-import Base.*
-
-@doc doc"""
-    *(x::AbstractAlgebra.MatElem, P::Generic.perm)
-> Apply the pemutation $P$ to the rows of the matrix $x$ and return the result.
-"""
-function *(x::AbstractAlgebra.MatElem, P::Generic.perm)
-   z = similar(x)
-   m = nrows(x)
-   n = ncols(x)
-   for i = 1:m
-      for j = 1:n
-         z[i, j] = x[i,P[j]]
-      end
-   end
-   return z
+function (g::WreathProductElem{N})(A::MatElem) where N
+    # @assert N == size(A,1) == size(A,2)
+    flips = ntuple(i->(g.n[i].d[1]==1 && g.n[i].d[2]==2 ? 1 : -1), N)
+    result = similar(A)
+    @inbounds for i = 1:size(A,1)
+        for j = 1:size(A,2)
+            result[i, j] = A[g.p[i], g.p[j]]*(flips[i]*flips[j])
+        end
+    end
+    return result
 end
 
 function (p::perm)(A::MatElem)
-    length(p.d) == A.r == A.c || throw("Can't act via $p on matrix of size ($(A.r), $(A.c))")
-    return p*A*inv(p)
+    length(p.d) == size(A, 1) == size(A,2) || throw("Can't act via $p on matrix of size $(size(A))")
+    result = similar(A)
+    @inbounds for i in 1:size(A, 1)
+        for j in 1:size(A, 2)
+            result[p[i],p[j]] = A[i,j] # action by permuting rows and colums/conjugation
+        end
+    end
+    return result
 end
 
 ###############################################################################
