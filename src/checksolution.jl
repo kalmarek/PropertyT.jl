@@ -37,7 +37,7 @@ function compute_SOS(RG::GroupRing, Q::AbstractMatrix{<:Real})
     return GroupRingElem(result, RG)
 end
 
-function compute_SOS_square(pm::AbstractMatrix{<:Integer}, Q::AbstractMatrix{<:Real})
+function compute_SOS_square(pm::AbstractMatrix{<:Integer}, Q::AbstractMatrix)
     result = zeros(eltype(Q), maximum(pm));
 
     for i in 1:size(Q,2)
@@ -47,12 +47,12 @@ function compute_SOS_square(pm::AbstractMatrix{<:Integer}, Q::AbstractMatrix{<:R
     return result
 end
 
-function compute_SOS_square(RG::GroupRing, Q::AbstractMatrix{<:Real})
+function compute_SOS_square(RG::GroupRing, Q::AbstractMatrix)
     return GroupRingElem(compute_SOS_square(RG.pm, Q), RG)
 end
 
-function augIdproj(Q::AbstractMatrix{T}) where {T<:Real}
-    result = zeros(size(Q))
+function augIdproj(Q::AbstractMatrix{T}) where T
+    result = zeros(T, size(Q))
     l = size(Q, 2)
     Threads.@threads for j in 1:l
         col = sum(view(Q, :,j))/l

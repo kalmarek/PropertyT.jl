@@ -58,9 +58,9 @@ function orthSVD(M::AbstractMatrix{T}) where {T<:AbstractFloat}
     return fact.U[:,1:M_rank]
 end
 
-function orbit_decomposition(G::Group, E::Vector, rdict=GroupRings.reverse_dict(E))
+orbit_decomposition(G::Group, E::AbstractVector, rdict=GroupRings.reverse_dict(E)) = orbit_decomposition(collect(G), E, rdict)
 
-    elts = collect(G)
+function orbit_decomposition(elts::AbstractVector{<:GroupElem}, E::AbstractVector, rdict=GroupRings.reverse_dict(E))
 
     tovisit = trues(size(E));
     orbits = Vector{Vector{Int}}()
