@@ -258,7 +258,10 @@ function (g::WreathProductElem{N})(A::MatElem) where N
     result = similar(A)
     @inbounds for i = 1:size(A,1)
         for j = 1:size(A,2)
-            result[i, j] = A[g.p[i], g.p[j]]*(flips[i]*flips[j])
+            x = A[g.p[i], g.p[j]]
+            result[i, j] = x*(flips[i]*flips[j])
+            # result[i, j] = AbstractAlgebra.mul!(x, x, flips[i]*flips[j])
+            # this mul! needs to be separately defined, but is 2x faster
         end
     end
     return result
