@@ -289,11 +289,10 @@ end
 
 function (g::WreathProductElem)(a::Groups.Automorphism)
     A = parent(a)
-    g = AutFG_emb(A,g)
-    res = A()
-    Groups.r_multiply!(res, g.symbols, reduced=false)
-    Groups.r_multiply!(res, a.symbols, reduced=false)
-    Groups.r_multiply!(res, [inv(s) for s in reverse!(g.symbols)])
+    g_emb = AutFG_emb(A,g)
+    res = deepcopy(g_emb)
+    res = Groups.r_multiply!(res, a.symbols, reduced=false)
+    res = Groups.r_multiply!(res, [inv(s) for s in reverse!(g_emb.symbols)])
     return res
 end
 
