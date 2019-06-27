@@ -218,19 +218,9 @@ function (p::perm)(A::MatElem)
     result = similar(A)
     @inbounds for i in 1:size(A, 1)
         for j in 1:size(A, 2)
-            result[p[i],p[j]] = A[i,j] # action by permuting rows and colums/conjugation
-        end
-    end
-    return result
-end
-
-function (p::perm)(A::MatElem)
-    length(p.d) == size(A, 1) == size(A,2) || throw("Can't act via $p on matrix of size $(size(A))")
-    result = similar(A)
-    @inbounds for i in 1:size(A, 1)
-        for j in 1:size(A, 2)
             result[i, j] = A[p[i], p[j]] # action by permuting rows and colums/conjugation
         end
+    end
     return result
 end
 
