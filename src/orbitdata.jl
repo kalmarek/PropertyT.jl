@@ -281,12 +281,6 @@ function AutFG_emb(A::AutGroup, g::WreathProductElem)
     return elt
 end
 
-function AutFG_emb(A::AutGroup, p::perm)
-    isa(A.objectGroup, FreeGroup) || throw("Not an Aut(Fₙ)")
-    parent(p).n == length(A.objectGroup.gens) || throw("No natural embedding of $(parent(p)) into $A")
-    return A(Groups.perm_autsymbol(p))
-end
-
 function (g::WreathProductElem)(a::Groups.Automorphism)
     A = parent(a)
     g_emb = AutFG_emb(A,g)
@@ -297,6 +291,8 @@ function (g::WreathProductElem)(a::Groups.Automorphism)
 end
 
 function (p::perm)(a::Groups.Automorphism)
-    g = AutFG_emb(parent(a),p)
-    return g*a*inv(g)
+    res = parent(a)(Groups.perm_autsymbol(p))
+    res = Groups.r_multiply!(res, a.symbols, reduced=false)
+    res = Groups.r_multiply!(res, [Groups.perm_autsymbol(inv(p))])
+    return res
 end
