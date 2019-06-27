@@ -178,6 +178,20 @@ end
 #
 ###############################################################################
 
+function (g::GroupRingElem)(y::GroupRingElem)
+    res = parent(y)()
+    for elt in GroupRings.supp(g)
+        res += g[elt]*elt(y)
+    end
+    return res
+end
+
+###############################################################################
+#
+#  perm actions
+#
+###############################################################################
+
 function (g::perm)(y::GroupRingElem)
     RG = parent(y)
     result = zero(RG, eltype(y.coeffs))
@@ -199,12 +213,15 @@ function (g::perm)(y::GroupRingElem{T, <:SparseVector}) where T
     return result
 end
 
-function (g::GroupRingElem)(y::GroupRingElem)
-    res = parent(y)()
-    for elt in GroupRings.supp(g)
-        res += g[elt]*elt(y)
+function (p::perm)(A::MatElem)
+    length(p.d) == size(A, 1) == size(A,2) || throw("Can't act via $p on matrix of size $(size(A))")
+    result = similar(A)
+    @inbounds for i in 1:size(A, 1)
+        for j in 1:size(A, 2)
+            result[p[i],p[j]] = A[i,j] # action by permuting rows and colums/conjugation
+        end
     end
-    return res
+    return result
 end
 
 function (p::perm)(A::MatElem)
@@ -219,14 +236,20 @@ end
 
 ###############################################################################
 #
-#  Action of WreathProductElems on Nemo.MatElem
+#  WreathProductElems action on Nemo.MatElem
 #
 ###############################################################################
 
-function matrix_emb(n::DirectPowerGroupElem, p::perm)
-    Id = parent(n.elts[1])()
-    elt = Diagonal([(el == Id ? 1 : -1) for el in n.elts])
-    return elt[:, p.d]
+function (g::WreathProductElem)(y::GroupRingElem)
+    RG = parent(y)
+    result = zero(RG, eltype(y.coeffs))
+
+    for (idx, c) in enumerate(y.coeffs)
+        if c!= zero(eltype(y.coeffs))
+            result[g(RG.basis[idx])] = c
+        end
+    end
+    return result
 end
 
 function (g::WreathProductElem{N})(A::MatElem) where N
@@ -236,17 +259,6 @@ function (g::WreathProductElem{N})(A::MatElem) where N
     @inbounds for i = 1:size(A,1)
         for j = 1:size(A,2)
             result[i, j] = A[g.p[i], g.p[j]]*(flips[i]*flips[j])
-        end
-    end
-    return result
-end
-
-function (p::perm)(A::MatElem)
-    length(p.d) == size(A, 1) == size(A,2) || throw("Can't act via $p on matrix of size $(size(A))")
-    result = similar(A)
-    @inbounds for i in 1:size(A, 1)
-        for j in 1:size(A, 2)
-            result[p[i],p[j]] = A[i,j] # action by permuting rows and colums/conjugation
         end
     end
     return result
