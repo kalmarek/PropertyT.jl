@@ -246,10 +246,17 @@ function (g::WreathProductElem{N})(A::MatElem) where N
     # @assert N == size(A,1) == size(A,2)
     flips = ntuple(i->(g.n[i].d[1]==1 && g.n[i].d[2]==2 ? 1 : -1), N)
     result = similar(A)
+    R = base_ring(parent(A))
+    tmp = R(1)
+
     @inbounds for i = 1:size(A,1)
         for j = 1:size(A,2)
             x = A[g.p[i], g.p[j]]
-            result[i, j] = x*(flips[i]*flips[j])
+            if flips[i]*flips[j] == 1
+                result[i, j] = x
+            else
+                result[i, j] = -x
+            end
             # result[i, j] = AbstractAlgebra.mul!(x, x, flips[i]*flips[j])
             # this mul! needs to be separately defined, but is 2x faster
         end
