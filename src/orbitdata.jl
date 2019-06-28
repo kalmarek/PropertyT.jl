@@ -58,9 +58,9 @@ function orthSVD(M::AbstractMatrix{T}) where {T<:AbstractFloat}
     return fact.U[:,1:M_rank]
 end
 
-function orbit_decomposition(G::Group, E::Vector, rdict=GroupRings.reverse_dict(E))
+orbit_decomposition(G::Group, E::AbstractVector, rdict=GroupRings.reverse_dict(E)) = orbit_decomposition(collect(G), E, rdict)
 
-    elts = collect(G)
+function orbit_decomposition(elts::AbstractVector{<:GroupElem}, E::AbstractVector, rdict=GroupRings.reverse_dict(E))
 
     tovisit = trues(size(E));
     orbits = Vector{Vector{Int}}()
@@ -178,13 +178,47 @@ end
 #
 ###############################################################################
 
-function (p::perm)(A::GroupRingElem)
-    RG = parent(A)
-    result = zero(RG, eltype(A.coeffs))
+function (g::GroupRingElem)(y::GroupRingElem)
+    res = parent(y)()
+    for elt in GroupRings.supp(g)
+        res += g[elt]*elt(y)
+    end
+    return res
+end
 
-    for (idx, c) in enumerate(A.coeffs)
-        if c!= zero(eltype(A.coeffs))
-            result[p(RG.basis[idx])] = c
+###############################################################################
+#
+#  perm actions
+#
+###############################################################################
+
+function (g::perm)(y::GroupRingElem)
+    RG = parent(y)
+    result = zero(RG, eltype(y.coeffs))
+
+    for (idx, c) in enumerate(y.coeffs)
+        if c!= zero(eltype(y.coeffs))
+            result[g(RG.basis[idx])] = c
+        end
+    end
+    return result
+end
+
+function (g::perm)(y::GroupRingElem{T, <:SparseVector}) where T
+    RG = parent(y)
+    index = [RG.basis_dict[g(RG.basis[idx])] for idx in y.coeffs.nzind]
+
+    result = GroupRingElem(sparsevec(index, y.coeffs.nzval, y.coeffs.n), RG)
+
+    return result
+end
+
+function (p::perm)(A::MatElem)
+    length(p.d) == size(A, 1) == size(A,2) || throw("Can't act via $p on matrix of size $(size(A))")
+    result = similar(A)
+    @inbounds for i in 1:size(A, 1)
+        for j in 1:size(A, 2)
+            result[i, j] = A[p[i], p[j]] # action by permuting rows and colums/conjugation
         end
     end
     return result
@@ -192,45 +226,35 @@ end
 
 ###############################################################################
 #
-#  Action of WreathProductElems on Nemo.MatElem
+#  WreathProductElems action on Nemo.MatElem
 #
 ###############################################################################
 
-function matrix_emb(n::DirectPowerGroupElem, p::perm)
-    Id = parent(n.elts[1])()
-    elt = Diagonal([(-1)^(el == Id ? 0 : 1) for el in n.elts])
-    return elt[:, p.d]
+function (g::WreathProductElem)(y::GroupRingElem)
+    RG = parent(y)
+    result = zero(RG, eltype(y.coeffs))
+
+    for (idx, c) in enumerate(y.coeffs)
+        if c!= zero(eltype(y.coeffs))
+            result[g(RG.basis[idx])] = c
+        end
+    end
+    return result
 end
 
-function (g::WreathProductElem)(A::MatElem)
-    g_inv = inv(g)
-    G = matrix_emb(g.n, g_inv.p)
-    G_inv = matrix_emb(g_inv.n, g.p)
-    M = parent(A)
-    return M(G)*A*M(G_inv)
-end
-
-import Base.*
-
-@doc doc"""
-    *(x::AbstractAlgebra.MatElem, P::Generic.perm)
-> Apply the pemutation $P$ to the rows of the matrix $x$ and return the result.
-"""
-function *(x::AbstractAlgebra.MatElem, P::Generic.perm)
-   z = similar(x)
-   m = nrows(x)
-   n = ncols(x)
-   for i = 1:m
-      for j = 1:n
-         z[i, j] = x[i,P[j]]
-      end
-   end
-   return z
-end
-
-function (p::perm)(A::MatElem)
-    length(p.d) == A.r == A.c || throw("Can't act via $p on matrix of size ($(A.r), $(A.c))")
-    return p*A*inv(p)
+function (g::WreathProductElem{N})(A::MatElem) where N
+    # @assert N == size(A,1) == size(A,2)
+    flips = ntuple(i->(g.n[i].d[1]==1 && g.n[i].d[2]==2 ? 1 : -1), N)
+    result = similar(A)
+    @inbounds for i = 1:size(A,1)
+        for j = 1:size(A,2)
+            x = A[g.p[i], g.p[j]]
+            result[i, j] = x*(flips[i]*flips[j])
+            # result[i, j] = AbstractAlgebra.mul!(x, x, flips[i]*flips[j])
+            # this mul! needs to be separately defined, but is 2x faster
+        end
+    end
+    return result
 end
 
 ###############################################################################
@@ -250,23 +274,18 @@ function AutFG_emb(A::AutGroup, g::WreathProductElem)
     return elt
 end
 
-function AutFG_emb(A::AutGroup, p::perm)
-    isa(A.objectGroup, FreeGroup) || throw("Not an Aut(Fₙ)")
-    parent(p).n == length(A.objectGroup.gens) || throw("No natural embedding of $(parent(p)) into $A")
-    return A(Groups.perm_autsymbol(p))
-end
-
 function (g::WreathProductElem)(a::Groups.Automorphism)
     A = parent(a)
-    g = AutFG_emb(A,g)
-    res = A()
-    Groups.r_multiply!(res, g.symbols, reduced=false)
-    Groups.r_multiply!(res, a.symbols, reduced=false)
-    Groups.r_multiply!(res, [inv(s) for s in reverse!(g.symbols)])
+    g_emb = AutFG_emb(A,g)
+    res = deepcopy(g_emb)
+    res = Groups.r_multiply!(res, a.symbols, reduced=false)
+    res = Groups.r_multiply!(res, [inv(s) for s in reverse!(g_emb.symbols)])
     return res
 end
 
 function (p::perm)(a::Groups.Automorphism)
-    g = AutFG_emb(parent(a),p)
-    return g*a*inv(g)
+    res = parent(a)(Groups.perm_autsymbol(p))
+    res = Groups.r_multiply!(res, a.symbols, reduced=false)
+    res = Groups.r_multiply!(res, [Groups.perm_autsymbol(inv(p))])
+    return res
 end
