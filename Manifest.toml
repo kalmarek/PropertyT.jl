@@ -124,11 +124,11 @@ version = "0.10.3"
 
 [[GroupRings]]
 deps = ["AbstractAlgebra", "LinearAlgebra", "Markdown", "SparseArrays"]
-git-tree-sha1 = "30ed912be2eb74523699bfdaaefd5d5426c43afa"
+git-tree-sha1 = "6d43558d0e7946d4e0e3d94a108344b2514e95b7"
 repo-rev = "master"
 repo-url = "https://github.com/kalmarek/GroupRings.jl"
 uuid = "0befed6a-bd73-11e8-1e41-a1190947c2f5"
-version = "0.2.0"
+version = "0.2.1"
 
 [[Groups]]
 deps = ["AbstractAlgebra", "LinearAlgebra", "Markdown"]
