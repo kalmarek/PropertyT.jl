@@ -9,7 +9,7 @@ function generating_set(G::AutGroup{N}, n=N) where N
     return [gen_set; inv.(gen_set)]
 end
 
-function E(M::MatSpace, i::Integer, j::Integer, val=1)
+function E(M::MatAlgebra, i::Integer, j::Integer, val=1)
     @assert i ≠ j
     @assert 1 ≤ i ≤ nrows(M)
     @assert 1 ≤ j ≤ ncols(M)
@@ -18,8 +18,7 @@ function E(M::MatSpace, i::Integer, j::Integer, val=1)
     return m
 end
 
-function generating_set(M::MatSpace, n=nrows(M))
-    @assert nrows(M) == ncols(M)
+function generating_set(M::MatAlgebra, n=M.n)
 
     elts = [E(M, i,j) for (i,j) in indexing(n)]
     return elem_type(M)[elts; inv.(elts)]
@@ -92,10 +91,13 @@ function Op(RG::GroupRing, N::Integer)
     return op÷factorial(N-2)^2
 end
 
+AbstractAlgebra.nrows(M::MatAlgebra) = M.n
+AbstractAlgebra.ncols(M::MatAlgebra) = M.n
+
 for Elt in [:Sq, :Adj, :Op]
     @eval begin
         $Elt(RG::GroupRing{AutGroup{N}}) where N = $Elt(RG, N)
-        $Elt(RG::GroupRing{<:MatSpace}) = $Elt(RG, nrows(RG.group))
+        $Elt(RG::GroupRing{<:MatAlgebra}) = $Elt(RG, nrows(RG.group))
     end
 end
 

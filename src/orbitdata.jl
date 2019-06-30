@@ -213,7 +213,7 @@ function (g::perm)(y::GroupRingElem{T, <:SparseVector}) where T
     return result
 end
 
-function (p::perm)(A::MatElem)
+function (p::perm)(A::MatAlgElem)
     length(p.d) == size(A, 1) == size(A,2) || throw("Can't act via $p on matrix of size $(size(A))")
     result = similar(A)
     @inbounds for i in 1:size(A, 1)
@@ -226,7 +226,7 @@ end
 
 ###############################################################################
 #
-#  WreathProductElems action on Nemo.MatElem
+#  WreathProductElems action on MatAlgElem
 #
 ###############################################################################
 
@@ -242,7 +242,7 @@ function (g::WreathProductElem)(y::GroupRingElem)
     return result
 end
 
-function (g::WreathProductElem{N})(A::MatElem) where N
+function (g::WreathProductElem{N})(A::MatAlgElem) where N
     # @assert N == size(A,1) == size(A,2)
     flips = ntuple(i->(g.n[i].d[1]==1 && g.n[i].d[2]==2 ? 1 : -1), N)
     result = similar(A)
