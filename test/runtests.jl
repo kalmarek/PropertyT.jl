@@ -23,3 +23,4 @@ solver(iters; accel=1) =
 include("1703.09680.jl")
 include("1712.07167.jl")
 include("SOS_correctness.jl")
+include("1812.03456.jl")
