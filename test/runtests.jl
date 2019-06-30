@@ -1,24 +1,15 @@
-using AbstractAlgebra, Nemo, Groups, SCS
-using SparseArrays
-using JLD
-using PropertyT
 using Test
-using JuMP
+using LinearAlgebra, SparseArrays
+using AbstractAlgebra, Groups, GroupRings
+using PropertyT
+using JLD
 
-indexing(n) = [(i,j) for i in 1:n for j in (i+1):n]
-function Groups.gens(M::MatSpace)
-    @assert ncols(M) == nrows(M)
-    N = ncols(M)
-    E(i,j) = begin g = M(1); g[i,j] = 1; g end
-    S = [E(i,j) for (i,j) in indexing(N)]
-    S = [S; transpose.(S)]
-    return S
-end
+using JuMP, SCS
 
-solver(iters; accel=1) =
+with_SCS(iters; accel=1, eps=1e-10) =
     with_optimizer(SCS.Optimizer,
     linear_solver=SCS.Direct, max_iters=iters,
-    acceleration_lookback=accel, eps=1e-10, warm_start=true)
+    acceleration_lookback=accel, eps=eps, warm_start=true)
 
 include("1703.09680.jl")
 include("1712.07167.jl")

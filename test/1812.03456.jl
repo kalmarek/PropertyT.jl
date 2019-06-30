@@ -7,25 +7,24 @@
 
     @testset "unit tests" begin
         for N in [3,4]
-            M = MatrixSpace(Nemo.ZZ, N,N)
-            A = SAut(FreeGroup(N))
-            @test length(PropertyT.generating_set(M)) == 2N*(N-1)
+            M = MatrixAlgebra(zz, N)
+
+            @test PropertyT.E(M, 1, 2) isa MatAlgElem
+            e12 = PropertyT.E(M, 1, 2)
+            @test e12[1,2] == 1
+            @test inv(e12)[1,2] == -1
+
             S = PropertyT.generating_set(M)
+            @test e12 ∈ S
+
+            @test length(PropertyT.generating_set(M)) == 2N*(N-1)
             @test all(inv(s) ∈ S for s in S)
+
+            A = SAut(FreeGroup(N))
             @test length(PropertyT.generating_set(A)) == 4N*(N-1)
             S = PropertyT.generating_set(A)
             @test all(inv(s) ∈ S for s in S)
         end
-
-        N = 4
-        M = MatrixSpace(Nemo.ZZ, N,N)
-        S = PropertyT.generating_set(M)
-
-        @test PropertyT.E(M, 1, 2) isa MatElem
-        e12 = PropertyT.E(M, 1, 2)
-        @test e12[1,2] == 1
-        @test inv(e12)[1,2] == -1
-        @test e12 ∈ S
 
         @test PropertyT.isopposite(perm"(1,2,3)(4)", perm"(1,4,2)")
         @test PropertyT.isadjacent(perm"(1,2,3)", perm"(1,2)(3)")
@@ -40,7 +39,7 @@
     @testset "Sq, Adj, Op" begin
 
         N = 4
-        M = MatrixSpace(Nemo.ZZ, N,N)
+        M = MatrixAlgebra(zz, N)
         S = PropertyT.generating_set(M)
         Δ = PropertyT.Laplacian(S, 2)
         RG = parent(Δ)
@@ -94,24 +93,17 @@ end
 
 @testset "1812.03456 examples" begin
 
-    with_SCS = with_optimizer(SCS.Optimizer,
-        linear_solver=SCS.Direct,
-        eps=2e-10,
-        max_iters=20000,
-        alpha=1.5,
-        acceleration_lookback=10,
-        warm_start=true)
-
-    function SOS_residual(x::GroupRingElem, Q::Matrix)
+        function SOS_residual(x::GroupRingElem, Q::Matrix)
         RG = parent(x)
         @time sos = PropertyT.compute_SOS(RG, Q);
         return x - sos
     end
 
-    function check_positivity(elt, Δ, orbit_data, upper_bound, warm=nothing; with_solver=with_SCS)
+    function check_positivity(elt, Δ, orbit_data, upper_bound, warm=nothing; with_solver=with_SCS(20_000, accel=10))
         SDP_problem, varP = PropertyT.SOS_problem(elt, Δ, orbit_data; upper_bound=upper_bound)
 
         status, warm = PropertyT.solve(SDP_problem, with_solver, warm);
+        Base.Libc.flush_cstdio()
         @info "Optimization status:" status
 
         λ = value(SDP_problem[:λ])
@@ -127,7 +119,7 @@ end
     @testset "SL(3,Z)" begin
         N = 3
         halfradius = 2
-        M = MatrixSpace(Nemo.ZZ, N,N)
+        M = MatrixAlgebra(zz, N)
         S = PropertyT.generating_set(M)
         Δ = PropertyT.Laplacian(S, halfradius)
         RG = parent(Δ)
@@ -139,6 +131,7 @@ end
             UB = 0.05 # 0.105?
 
             residual, λ, _ = check_positivity(elt, Δ, orbit_data, UB)
+            Base.Libc.flush_cstdio()
             @info "obtained λ and residual" λ norm(residual, 1)
 
             @test 2^2*norm(residual, 1) < λ # i.e. we can certify positivity
@@ -151,6 +144,7 @@ end
             UB = 0.1 # 0.157?
 
             residual, λ, _ = check_positivity(elt, Δ, orbit_data, UB)
+            Base.Libc.flush_cstdio()
             @info "obtained λ and residual" λ norm(residual, 1)
 
             @test 2^2*norm(residual, 1) < λ
@@ -162,6 +156,7 @@ end
             UB = Inf
 
             residual, λ, _ = check_positivity(elt, Δ, orbit_data, UB)
+            Base.Libc.flush_cstdio()
             @info "obtained λ and residual" λ norm(residual, 1)
 
             @test 2^2*norm(residual, 1) > λ
@@ -171,7 +166,7 @@ end
     @testset "SL(4,Z)" begin
         N = 4
         halfradius = 2
-        M = MatrixSpace(Nemo.ZZ, N,N)
+        M = MatrixAlgebra(zz, N)
         S = PropertyT.generating_set(M)
         Δ = PropertyT.Laplacian(S, halfradius)
         RG = parent(Δ)
@@ -183,6 +178,7 @@ end
             UB = 0.2 # 0.3172
 
             residual, λ, _ = check_positivity(elt, Δ, orbit_data, UB)
+            Base.Libc.flush_cstdio()
             @info "obtained λ and residual" λ norm(residual, 1)
 
             @test 2^2*norm(residual, 1) < λ # i.e. we can certify positivity
@@ -204,7 +200,9 @@ end
             elt = PropertyT.Op(RG)
             UB = 2.0
 
-            residual, λ, _ = check_positivity(elt, Δ, orbit_data, UB)
+            residual, λ, _ = check_positivity(elt, Δ, orbit_data, UB,
+            with_solver=with_SCS(20_000, accel=10, eps=2e-10))
+            Base.Libc.flush_cstdio()
             @info "obtained λ and residual" λ norm(residual, 1)
 
             @test 2^2*norm(residual, 1) > λ # i.e. we can certify positivity
@@ -215,6 +213,7 @@ end
             UB = 0.6 # 0.82005
 
             residual, λ, _ = check_positivity(elt, Δ, orbit_data, UB)
+            Base.Libc.flush_cstdio()
             @info "obtained λ and residual" λ norm(residual, 1)
 
             @test 2^2*norm(residual, 1) < λ # i.e. we can certify positivity

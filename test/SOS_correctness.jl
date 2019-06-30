@@ -1,5 +1,3 @@
-using PropertyT.GroupRings
-
 @testset "Correctness of HPC SOS computation" begin
 
     function prepare(G_name, λ, S_size)
