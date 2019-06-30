@@ -91,3 +91,135 @@
     end
 end
 
+
+@testset "1812.03456 examples" begin
+
+    with_SCS = with_optimizer(SCS.Optimizer,
+        linear_solver=SCS.Direct,
+        eps=2e-10,
+        max_iters=20000,
+        alpha=1.5,
+        acceleration_lookback=10,
+        warm_start=true)
+
+    function SOS_residual(x::GroupRingElem, Q::Matrix)
+        RG = parent(x)
+        @time sos = PropertyT.compute_SOS(RG, Q);
+        return x - sos
+    end
+
+    function check_positivity(elt, Δ, orbit_data, upper_bound, warm=nothing; with_solver=with_SCS)
+        SDP_problem, varP = PropertyT.SOS_problem(elt, Δ, orbit_data; upper_bound=upper_bound)
+
+        status, warm = PropertyT.solve(SDP_problem, with_solver, warm);
+        @info "Optimization status:" status
+
+        λ = value(SDP_problem[:λ])
+        Ps = [value.(P) for P in varP]
+
+        Qs = real.(sqrt.(Ps));
+        Q = PropertyT.reconstruct(Qs, orbit_data);
+
+        b = SOS_residual(elt - λ*Δ, Q)
+        return b, λ, warm
+    end
+
+    @testset "SL(3,Z)" begin
+        N = 3
+        halfradius = 2
+        M = MatrixSpace(Nemo.ZZ, N,N)
+        S = PropertyT.generating_set(M)
+        Δ = PropertyT.Laplacian(S, halfradius)
+        RG = parent(Δ)
+        orbit_data = PropertyT.OrbitData(RG, WreathProduct(PermGroup(2), PermGroup(N)))
+        orbit_data = PropertyT.decimate(orbit_data);
+
+        @testset "Sq₃ is SOS" begin
+            elt = PropertyT.Sq(RG)
+            UB = 0.05 # 0.105?
+
+            residual, λ, _ = check_positivity(elt, Δ, orbit_data, UB)
+            @info "obtained λ and residual" λ norm(residual, 1)
+
+            @test 2^2*norm(residual, 1) < λ # i.e. we can certify positivity
+
+            @test 2^2*norm(residual, 1) < λ/100
+        end
+
+        @testset "Adj₃ is SOS" begin
+            elt = PropertyT.Adj(RG)
+            UB = 0.1 # 0.157?
+
+            residual, λ, _ = check_positivity(elt, Δ, orbit_data, UB)
+            @info "obtained λ and residual" λ norm(residual, 1)
+
+            @test 2^2*norm(residual, 1) < λ
+            @test 2^2*norm(residual, 1) < λ/100
+        end
+
+        @testset "Op₃ is empty, so can not be certified" begin
+            elt = PropertyT.Op(RG)
+            UB = Inf
+
+            residual, λ, _ = check_positivity(elt, Δ, orbit_data, UB)
+            @info "obtained λ and residual" λ norm(residual, 1)
+
+            @test 2^2*norm(residual, 1) > λ
+        end
+    end
+
+    @testset "SL(4,Z)" begin
+        N = 4
+        halfradius = 2
+        M = MatrixSpace(Nemo.ZZ, N,N)
+        S = PropertyT.generating_set(M)
+        Δ = PropertyT.Laplacian(S, halfradius)
+        RG = parent(Δ)
+        orbit_data = PropertyT.OrbitData(RG, WreathProduct(PermGroup(2), PermGroup(N)))
+        orbit_data = PropertyT.decimate(orbit_data);
+
+        @testset "Sq₄ is SOS" begin
+            elt = PropertyT.Sq(RG)
+            UB = 0.2 # 0.3172
+
+            residual, λ, _ = check_positivity(elt, Δ, orbit_data, UB)
+            @info "obtained λ and residual" λ norm(residual, 1)
+
+            @test 2^2*norm(residual, 1) < λ # i.e. we can certify positivity
+            @test 2^2*norm(residual, 1) < λ/100
+        end
+
+        @testset "Adj₄ is SOS" begin
+            elt = PropertyT.Adj(RG)
+            UB = 0.3 # 0.5459?
+
+            residual, λ, _ = check_positivity(elt, Δ, orbit_data, UB)
+            @info "obtained λ and residual" λ norm(residual, 1)
+
+            @test 2^2*norm(residual, 1) < λ # i.e. we can certify positivity
+            @test 2^2*norm(residual, 1) < λ/100
+        end
+
+        @testset "we can't cerify that Op₄ SOS" begin
+            elt = PropertyT.Op(RG)
+            UB = 2.0
+
+            residual, λ, _ = check_positivity(elt, Δ, orbit_data, UB)
+            @info "obtained λ and residual" λ norm(residual, 1)
+
+            @test 2^2*norm(residual, 1) > λ # i.e. we can certify positivity
+        end
+
+        @testset "Adj₄ + Op₄ is SOS" begin
+            elt = PropertyT.Adj(RG) + PropertyT.Op(RG)
+            UB = 0.6 # 0.82005
+
+            residual, λ, _ = check_positivity(elt, Δ, orbit_data, UB)
+            @info "obtained λ and residual" λ norm(residual, 1)
+
+            @test 2^2*norm(residual, 1) < λ # i.e. we can certify positivity
+            @test 2^2*norm(residual, 1) < λ/100
+        end
+    end
+
+end
