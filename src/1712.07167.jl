@@ -12,7 +12,7 @@ struct Naive{El} <: Settings
     name::String
     G::Group
     S::Vector{El}
-    radius::Int
+    halfradius::Int
     upper_bound::Float64
 
     solver::JuMP.OptimizerFactory
@@ -24,7 +24,7 @@ struct Symmetrized{El} <: Settings
     G::Group
     S::Vector{El}
     autS::Group
-    radius::Int
+    halfradius::Int
     upper_bound::Float64
 
     solver::JuMP.OptimizerFactory
@@ -33,14 +33,14 @@ end
 
 function Settings(name::String,
     G::Group, S::Vector{<:GroupElem}, solver::JuMP.OptimizerFactory;
-    radius::Integer=2, upper_bound::Float64=1.0, warmstart=true)
-    return Naive(name, G, S, radius, upper_bound, solver, warmstart)
+    halfradius::Integer=2, upper_bound::Float64=1.0, warmstart=true)
+    return Naive(name, G, S, halfradius, upper_bound, solver, warmstart)
 end
 
 function Settings(name::String,
     G::Group, S::Vector{<:GroupElem}, autS::Group, solver::JuMP.OptimizerFactory;
-    radius::Integer=2, upper_bound::Float64=1.0, warmstart=true)
-    return Symmetrized(name, G, S, autS, radius, upper_bound, solver, warmstart)
+    halfradius::Integer=2, upper_bound::Float64=1.0, warmstart=true)
+    return Symmetrized(name, G, S, autS, halfradius, upper_bound, solver, warmstart)
 end
 
 prefix(s::Naive) = s.name
@@ -245,7 +245,7 @@ function print_summary(sett::Settings)
     separator = "="^76
     info_strs = [separator,
     "Running tests for $(sett.name):",
-    "Upper bound for λ: $(sett.upper_bound), on radius $(sett.radius).",
+    "Upper bound for λ: $(sett.upper_bound), on halfradius $(sett.halfradius).",
     "Warmstart: $(sett.warmstart)",
     "Results will be stored in ./$(PropertyT.prepath(sett))",
     "Solver: $(typeof(sett.solver()))",
@@ -279,7 +279,7 @@ function spectral_gap(sett::Settings)
         loadGRElem(filename(sett,:Δ), sett.G)
     catch
         # compute
-        Δ = Laplacian(sett.S, sett.radius)
+        Δ = Laplacian(sett.S, sett.halfradius)
         saveGRElem(filename(sett, :Δ), Δ)
         Δ
     end
@@ -307,7 +307,7 @@ function spectral_gap(sett::Settings)
         @warn "The solution matrix doesn't seem to be positive definite!"
 
     @time Q = real(sqrt(Symmetric( (P.+ P')./2 )))
-    certified_sgap = spectral_gap(Δ, λ, Q, R=sett.radius)
+    certified_sgap = spectral_gap(Δ, λ, Q, R=sett.halfradius)
 
     return certified_sgap
 end

@@ -22,24 +22,24 @@ function spLaplacian(RG::GroupRing, S::Vector{REl}, T::Type=Float64) where {REl<
     return result
 end
 
-function Laplacian(S::Vector{E}, radius) where E<:AbstractAlgebra.ModuleElem
+function Laplacian(S::Vector{E}, halfradius) where E<:AbstractAlgebra.ModuleElem
     R = parent(first(S))
-    return Laplacian(S, one(R), radius)
+    return Laplacian(S, one(R), halfradius)
 end
 
-function Laplacian(S::Vector{E}, radius) where E<:AbstractAlgebra.GroupElem
+function Laplacian(S::Vector{E}, halfradius) where E<:AbstractAlgebra.GroupElem
     G = parent(first(S))
-    return Laplacian(S, G(), radius)
+    return Laplacian(S, G(), halfradius)
 end
 
-function Laplacian(S, Id, radius)
-    @info "Generating metric ball of radius" radius=2radius
-    @time E_R, sizes = Groups.generate_balls(S, Id, radius=2radius)
+function Laplacian(S, Id, halfradius)
+    @info "Generating metric ball of radius" radius=2halfradius
+    @time E_R, sizes = Groups.generate_balls(S, Id, radius=2halfradius)
     @info "Generated balls:" sizes
 
     @info "Creating product matrix..."
     rdict = GroupRings.reverse_dict(E_R)
-    @time pm = GroupRings.create_pm(E_R, rdict, sizes[radius]; twisted=true)
+    @time pm = GroupRings.create_pm(E_R, rdict, sizes[halfradius]; twisted=true)
 
     RG = GroupRing(parent(Id), E_R, rdict, pm)
     Δ = spLaplacian(RG, S)
