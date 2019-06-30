@@ -221,4 +221,25 @@ end
         end
     end
 
+    # @testset "Adj₄ + 100 Op₄ ∈ ISAut(F₄) is SOS" begin
+    #     N = 4
+    #     halfradius = 2
+    #     M = SAut(FreeGroup(N))
+    #     S = PropertyT.generating_set(M)
+    #     Δ = PropertyT.Laplacian(S, halfradius)
+    #     RG = parent(Δ)
+    #     orbit_data = PropertyT.OrbitData(RG, WreathProduct(PermGroup(2), PermGroup(N)))
+    #     orbit_data = PropertyT.decimate(orbit_data);
+    #
+    #     @time elt = PropertyT.Adj(RG) + 100PropertyT.Op(RG)
+    #     UB = 0.05
+    #
+    #     warm = nothing
+    #
+    #     residual, λ, warm = check_positivity(elt, Δ, orbit_data, UB, warm, with_solver=with_SCS(20_000, accel=10))
+    #     @info "obtained λ and residual" λ norm(residual, 1)
+    #
+    #     @test 2^2*norm(residual, 1) < λ # i.e. we can certify positivity
+    #     @test 2^2*norm(residual, 1) < λ/100
+    # end
 end
