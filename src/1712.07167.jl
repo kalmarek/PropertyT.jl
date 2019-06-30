@@ -10,7 +10,7 @@ abstract type Settings end
 
 struct Naive{El} <: Settings
     name::String
-    G::Group
+    G::Union{Group, NCRing}
     S::Vector{El}
     halfradius::Int
     upper_bound::Float64
@@ -21,7 +21,7 @@ end
 
 struct Symmetrized{El} <: Settings
     name::String
-    G::Group
+    G::Union{Group, NCRing}
     S::Vector{El}
     autS::Group
     halfradius::Int
@@ -32,14 +32,14 @@ struct Symmetrized{El} <: Settings
 end
 
 function Settings(name::String,
-    G::Group, S::Vector{<:GroupElem}, solver::JuMP.OptimizerFactory;
-    halfradius::Integer=2, upper_bound::Float64=1.0, warmstart=true)
+    G::Union{Group, NCRing}, S::AbstractVector{El}, solver::JuMP.OptimizerFactory;
+    halfradius::Integer=2, upper_bound::Float64=1.0, warmstart=true) where El <: Union{GroupElem, NCRingElem}
     return Naive(name, G, S, halfradius, upper_bound, solver, warmstart)
 end
 
 function Settings(name::String,
-    G::Group, S::Vector{<:GroupElem}, autS::Group, solver::JuMP.OptimizerFactory;
-    halfradius::Integer=2, upper_bound::Float64=1.0, warmstart=true)
+    G::Union{Group, NCRing}, S::AbstractVector{El}, autS::Group, solver::JuMP.OptimizerFactory;
+    halfradius::Integer=2, upper_bound::Float64=1.0, warmstart=true) where El <: Union{GroupElem, NCRingElem}
     return Symmetrized(name, G, S, autS, halfradius, upper_bound, solver, warmstart)
 end
 

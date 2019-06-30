@@ -4,30 +4,22 @@
 #
 ###############################################################################
 
-function spLaplacian(RG::GroupRing, S, T::Type=Float64)
+function spLaplacian(RG::GroupRing, S::AbstractVector{El}, T::Type=Float64) where El
     result = RG(T)
-    result[RG.group()] = T(length(S))
+    id = (El <: AbstractAlgebra.NCRingElem ? one(RG.group) : RG.group())
+    result[id] = T(length(S))
     for s in S
         result[s] -= one(T)
     end
     return result
 end
 
-function spLaplacian(RG::GroupRing, S::Vector{REl}, T::Type=Float64) where {REl<:AbstractAlgebra.ModuleElem}
-    result = RG(T)
-    result[one(RG.group)] = T(length(S))
-    for s in S
-        result[s] -= one(T)
-    end
-    return result
-end
-
-function Laplacian(S::Vector{E}, halfradius) where E<:AbstractAlgebra.ModuleElem
+function Laplacian(S::AbstractVector{REl}, halfradius) where REl<:AbstractAlgebra.NCRingElem
     R = parent(first(S))
     return Laplacian(S, one(R), halfradius)
 end
 
-function Laplacian(S::Vector{E}, halfradius) where E<:AbstractAlgebra.GroupElem
+function Laplacian(S::AbstractVector{E}, halfradius) where E<:AbstractAlgebra.GroupElem
     G = parent(first(S))
     return Laplacian(S, G(), halfradius)
 end
@@ -56,7 +48,7 @@ function loadGRElem(fname::String, RG::GroupRing)
     return GroupRingElem(coeffs, RG)
 end
 
-function loadGRElem(fname::String, G::Group)
+function loadGRElem(fname::String, G::Union{Group, NCRing})
     pm = load(fname, "pm")
     RG = GroupRing(G, pm)
     return loadGRElem(fname, RG)
