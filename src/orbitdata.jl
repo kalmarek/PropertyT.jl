@@ -218,7 +218,7 @@ function (p::perm)(A::MatElem)
     result = similar(A)
     @inbounds for i in 1:size(A, 1)
         for j in 1:size(A, 2)
-            result[i, j] = A[p[i], p[j]] # action by permuting rows and colums/conjugation
+            result[p[i], p[j]] = A[i,j] # action by permuting rows and colums/conjugation
         end
     end
     return result
@@ -251,11 +251,11 @@ function (g::WreathProductElem{N})(A::MatElem) where N
 
     @inbounds for i = 1:size(A,1)
         for j = 1:size(A,2)
-            x = A[g.p[i], g.p[j]]
+            x = A[i, j]
             if flips[i]*flips[j] == 1
-                result[i, j] = x
+                result[g.p[i], g.p[j]] = x
             else
-                result[i, j] = -x
+                result[g.p[i], g.p[j]] = -x
             end
             # result[i, j] = AbstractAlgebra.mul!(x, x, flips[i]*flips[j])
             # this mul! needs to be separately defined, but is 2x faster
