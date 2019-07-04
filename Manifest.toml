@@ -2,9 +2,9 @@
 
 [[AbstractAlgebra]]
 deps = ["InteractiveUtils", "LinearAlgebra", "Markdown", "Random", "SparseArrays", "Test"]
-git-tree-sha1 = "c0d57a3f0618bfbb214005860b9b5e5bceafa61c"
+git-tree-sha1 = "0d4f7283435bd7e12a703a3fd58aa11224a96019"
 uuid = "c3fe647b-3220-5bb0-a1ea-a7954cac585d"
-version = "0.5.0"
+version = "0.5.2"
 
 [[Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
@@ -16,10 +16,10 @@ uuid = "9e28174c-4ba2-5203-b857-d8d62c4213ee"
 version = "0.8.10"
 
 [[BinaryProvider]]
-deps = ["Libdl", "SHA"]
-git-tree-sha1 = "c7361ce8a2129f20b0e05a89f7070820cfed6648"
+deps = ["Libdl", "Logging", "SHA"]
+git-tree-sha1 = "8153fd64131cd00a79544bb23788877741f627bb"
 uuid = "b99e7846-7c00-51b0-8f62-c81ae34c0232"
-version = "0.5.4"
+version = "0.5.5"
 
 [[Blosc]]
 deps = ["BinaryProvider", "CMakeWrapper", "Compat", "Libdl"]
@@ -124,19 +124,19 @@ version = "0.10.3"
 
 [[GroupRings]]
 deps = ["AbstractAlgebra", "LinearAlgebra", "Markdown", "SparseArrays"]
-git-tree-sha1 = "6d43558d0e7946d4e0e3d94a108344b2514e95b7"
+git-tree-sha1 = "9f41bad54217ce2605c13f10b79d1221c259ed32"
 repo-rev = "master"
 repo-url = "https://github.com/kalmarek/GroupRings.jl"
 uuid = "0befed6a-bd73-11e8-1e41-a1190947c2f5"
-version = "0.2.1"
+version = "0.3.0"
 
 [[Groups]]
 deps = ["AbstractAlgebra", "LinearAlgebra", "Markdown"]
-git-tree-sha1 = "64dcaa46affb4568501d35e6fae36a71a7ae5cbb"
+git-tree-sha1 = "bf267f82f4c313a6deb3db64efc7893b139d4340"
 repo-rev = "master"
 repo-url = "https://github.com/kalmarek/Groups.jl"
 uuid = "5d8bd718-bd84-11e8-3b40-ad14f4a32557"
-version = "0.2.1"
+version = "0.2.2"
 
 [[HDF5]]
 deps = ["BinDeps", "Blosc", "Homebrew", "Libdl", "Mmap", "WinRPM"]
@@ -192,9 +192,9 @@ version = "0.4.1"
 
 [[LibCURL]]
 deps = ["BinaryProvider", "Libdl"]
-git-tree-sha1 = "5ee138c679fa202ebe211b2683d1eee2a87b3dbe"
+git-tree-sha1 = "fd5fc15f2a04608fe1435a769dbbfc7959ff1daa"
 uuid = "b27032c2-a3e7-50c8-80cd-2d36dbcbfd21"
-version = "0.5.1"
+version = "0.5.2"
 
 [[LibExpat]]
 deps = ["Compat"]
@@ -245,12 +245,6 @@ deps = ["Compat"]
 git-tree-sha1 = "ce3b85e484a5d4c71dd5316215069311135fa9f2"
 uuid = "77ba4419-2d1f-58cd-9bb1-8ffee604a2e3"
 version = "0.3.2"
-
-[[Nemo]]
-deps = ["AbstractAlgebra", "BinaryProvider", "InteractiveUtils", "Libdl", "LinearAlgebra", "Markdown", "Test"]
-git-tree-sha1 = "b359c25b708c3edcc2f17345d59da7169c207385"
-uuid = "2edaba10-b0f1-5616-af89-8c11ac63239a"
-version = "0.14.0"
 
 [[OrderedCollections]]
 deps = ["Random", "Serialization", "Test"]
