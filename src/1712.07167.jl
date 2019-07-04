@@ -79,12 +79,13 @@ end
 ###############################################################################
 
 function warmstart(sett::Settings)
+    warmstart_fname = filename(sett, :warmstart)
     try
         ws = load(filename(sett, :warmstart), "warmstart")
-        @info "Loaded $(filename(sett, :warmstart))."
+        @info "Loaded $warmstart_fname."
         return ws
-    catch
-        @info "Couldn't load $(filename(sett, :warmstart))."
+    catch ex
+        @warn "$(ex.msg). Not providing a warmstart to the solver."
         return nothing
     end
 end
@@ -128,10 +129,12 @@ function approximate_by_SOS(sett::Symmetrized,
 
     orbit_data = try
         orbit_data = load(filename(sett, :OrbitData), "OrbitData")
-        @info "Loaded Orbit Data"
+        @info "Loaded orbit data."
         orbit_data
-    catch
+    catch ex
+        @warn ex.msg
         isdefined(parent(orderunit), :basis) || throw("You need to define basis of Group Ring to compute orbit decomposition!")
+        @info "Computing orbit and Wedderburn decomposition..."
         orbit_data = OrbitData(parent(orderunit), sett.autS)
         save(filename(sett, :OrbitData), "OrbitData", orbit_data)
         orbit_data
@@ -275,26 +278,39 @@ function spectral_gap(sett::Settings)
     isdir(fp) || mkpath(fp)
 
     Δ = try
-        @info "Loading precomputed Δ..."
-        loadGRElem(filename(sett,:Δ), sett.G)
-    catch
-        # compute
+        Δ = loadGRElem(filename(sett,:Δ), sett.G)
+        @info "Loaded precomputed Δ."
+        Δ
+    catch ex
+        @warn ex.msg
+        @info "Computing Δ..."
         Δ = Laplacian(sett.S, sett.halfradius)
         saveGRElem(filename(sett, :Δ), Δ)
         Δ
     end
 
-    λ, P = try
-        sett.warmstart && error()
-        load(filename(sett, :solution), "λ", "P")
-    catch
+    function compute(sett, Δ)
+        @info "Computing λ and P..."
         λ, P = approximate_by_SOS(sett, Δ^2, Δ;
             solverlog=filename(sett, :solverlog))
 
         save(filename(sett, :solution), "λ", λ, "P", P)
 
         λ < 0 && @warn "Solver did not produce a valid solution!"
-        λ, P
+        return λ, P
+    end
+
+    if sett.warmstart
+        λ, P = compute(sett, Δ)
+    else
+        λ, P =try
+            λ, P = load(filename(sett, :solution), "λ", "P")
+            @info "Loaded existing λ and P."
+            λ, P
+        catch ex
+            @warn ex.msg
+            compute(sett, Δ)
+        end
     end
 
     info_strs = ["Numerical metrics of matrix solution:",
