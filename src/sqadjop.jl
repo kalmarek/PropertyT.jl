@@ -1,29 +1,3 @@
-indexing(n) = [(i,j) for i in 1:n for j in 1:n if i≠j]
-
-function generating_set(G::AutGroup{N}, n=N) where N
-
-    rmuls = [Groups.rmul_autsymbol(i,j) for (i,j) in indexing(n)]
-    lmuls = [Groups.lmul_autsymbol(i,j) for (i,j) in indexing(n)]
-    gen_set = G.([rmuls; lmuls])
-
-    return [gen_set; inv.(gen_set)]
-end
-
-function E(M::MatAlgebra, i::Integer, j::Integer, val=1)
-    @assert i ≠ j
-    @assert 1 ≤ i ≤ nrows(M)
-    @assert 1 ≤ j ≤ ncols(M)
-    m = one(M)
-    m[i,j] = val
-    return m
-end
-
-function generating_set(M::MatAlgebra, n=M.n)
-
-    elts = [E(M, i,j) for (i,j) in indexing(n)]
-    return elem_type(M)[elts; inv.(elts)]
-end
-
 isopposite(σ::perm, τ::perm, i=1, j=2) =
     σ[i] ≠ τ[i] && σ[i] ≠ τ[j] &&
     σ[j] ≠ τ[i] && σ[j] ≠ τ[j]
@@ -90,9 +64,6 @@ function Op(RG::GroupRing, N::Integer)
     end
     return op÷factorial(N-2)^2
 end
-
-AbstractAlgebra.nrows(M::MatAlgebra) = M.n
-AbstractAlgebra.ncols(M::MatAlgebra) = M.n
 
 for Elt in [:Sq, :Adj, :Op]
     @eval begin

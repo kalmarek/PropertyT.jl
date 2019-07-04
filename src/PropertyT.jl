@@ -22,9 +22,8 @@ include("RGprojections.jl")
 include("orbitdata.jl")
 include("sos_sdps.jl")
 include("checksolution.jl")
-include("sqadjop.jl")
 
 include("1712.07167.jl")
-
+include("1812.03456.jl")
 
 end # module Property(T)

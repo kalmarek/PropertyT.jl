@@ -9,8 +9,8 @@
         for N in [3,4]
             M = MatrixAlgebra(zz, N)
 
-            @test PropertyT.E(M, 1, 2) isa MatAlgElem
-            e12 = PropertyT.E(M, 1, 2)
+            @test PropertyT.EltaryMat(M, 1, 2) isa MatAlgElem
+            e12 = PropertyT.EltaryMat(M, 1, 2)
             @test e12[1,2] == 1
             @test inv(e12)[1,2] == -1
 
@@ -65,9 +65,9 @@
         @test op == PropertyT.Op(RG)
 
         e = one(M)
-        g = PropertyT.E(M, 1,2)
-        h = PropertyT.E(M, 1,3)
-        k = PropertyT.E(M, 3,4)
+        g = PropertyT.EltaryMat(M, 1,2)
+        h = PropertyT.EltaryMat(M, 1,3)
+        k = PropertyT.EltaryMat(M, 3,4)
 
         edges = N*(N-1)÷2
         @test sq[e] == 20*edges
@@ -93,7 +93,7 @@ end
 
 @testset "1812.03456 examples" begin
 
-        function SOS_residual(x::GroupRingElem, Q::Matrix)
+    function SOS_residual(x::GroupRingElem, Q::Matrix)
         RG = parent(x)
         @time sos = PropertyT.compute_SOS(RG, Q);
         return x - sos
