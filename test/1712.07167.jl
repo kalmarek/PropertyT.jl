@@ -32,6 +32,18 @@
         # this should be very fast due to warmstarting:
         @test λ ≈ PropertyT.spectral_gap(sett) atol=1e-5
         @test PropertyT.check_property_T(sett) == true
+
+        ##########
+        # Symmetrizing by PermGroup(3):
+
+        sett = PropertyT.Settings("SL($N,Z)", G, S, PermGroup(N), with_SCS(4000, accel=20);
+        upper_bound=0.27, warmstart=true)
+
+        PropertyT.print_summary(sett)
+
+        λ = PropertyT.spectral_gap(sett)
+        @test λ > 0.269999
+        @test PropertyT.interpret_results(sett, λ) == true
     end
 
     @testset "oSL(4,Z)" begin
