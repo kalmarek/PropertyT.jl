@@ -28,7 +28,7 @@ function OrbitData(RG::GroupRing, autS::Group, verbose=true)
     @time Uπs = [orthSVD(matrix_repr(p, mreps)) for p in autS_mps]
 
     multiplicities = size.(Uπs,2)
-    dimensions = [Int(p[autS()]*Int(order(autS))) for p in autS_mps]
+    dimensions = [Int(p[one(autS)]*Int(order(autS))) for p in autS_mps]
     if verbose
         info_strs = ["",
         lpad("multiplicities", 14) * "  =" * join(lpad.(multiplicities, 4), ""),
@@ -273,8 +273,8 @@ end
 function AutFG_emb(A::AutGroup, g::WreathProductElem)
     isa(A.objectGroup, FreeGroup) || throw("Not an Aut(Fₙ)")
     parent(g).P.n == length(A.objectGroup.gens) || throw("No natural embedding of $(parent(g)) into $A")
-    elt = A()
-    Id = parent(g.n.elts[1])()
+    elt = one(A)
+    Id = one(parent(g.n.elts[1]))
     flips = Groups.AutSymbol[Groups.flip_autsymbol(i) for i in 1:length(g.p.d) if g.n.elts[i] != Id]
     Groups.r_multiply!(elt, flips, reduced=false)
     Groups.r_multiply!(elt, [Groups.perm_autsymbol(g.p)])

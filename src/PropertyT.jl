@@ -17,6 +17,8 @@ import AbstractAlgebra: Group, NCRing, perm
 
 import MathProgBase.SolverInterface.AbstractMathProgSolver
 
+AbstractAlgebra.one(G::Group) = G()
+
 include("laplacians.jl")
 include("RGprojections.jl")
 include("orbitdata.jl")

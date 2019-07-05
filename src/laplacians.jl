@@ -4,36 +4,26 @@
 #
 ###############################################################################
 
-function spLaplacian(RG::GroupRing, S::AbstractVector{El}, T::Type=Float64) where El
+function spLaplacian(RG::GroupRing, S::AbstractVector, T::Type=Float64)
     result = RG(T)
-    id = (El <: AbstractAlgebra.NCRingElem ? one(RG.group) : RG.group())
-    result[id] = T(length(S))
+    result[one(RG.group)] = T(length(S))
     for s in S
         result[s] -= one(T)
     end
     return result
 end
 
-function Laplacian(S::AbstractVector{REl}, halfradius) where REl<:AbstractAlgebra.NCRingElem
-    R = parent(first(S))
-    return Laplacian(S, one(R), halfradius)
-end
-
-function Laplacian(S::AbstractVector{E}, halfradius) where E<:AbstractAlgebra.GroupElem
+function Laplacian(S::AbstractVector{REl}, halfradius) where REl<:Union{NCRingElem, GroupElem}
     G = parent(first(S))
-    return Laplacian(S, G(), halfradius)
-end
-
-function Laplacian(S, Id, halfradius)
     @info "Generating metric ball of radius" radius=2halfradius
-    @time E_R, sizes = Groups.generate_balls(S, Id, radius=2halfradius)
+    @time E_R, sizes = Groups.generate_balls(S, one(G), radius=2halfradius)
     @info "Generated balls:" sizes
 
     @info "Creating product matrix..."
     rdict = GroupRings.reverse_dict(E_R)
     @time pm = GroupRings.create_pm(E_R, rdict, sizes[halfradius]; twisted=true)
 
-    RG = GroupRing(parent(Id), E_R, rdict, pm)
+    RG = GroupRing(G, E_R, rdict, pm)
     Δ = spLaplacian(RG, S)
     return Δ
 end
