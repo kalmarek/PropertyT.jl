@@ -2,38 +2,50 @@
 
     @testset "SL(2,Z)" begin
         N = 2
-        G = MatrixSpace(Nemo.ZZ, N,N)
-        S = Groups.gens(G)
-        S = [S; inv.(S)]
+        G = MatrixAlgebra(zz, N)
+        S = PropertyT.generating_set(G)
 
         rm("SL($N,Z)", recursive=true, force=true)
-        sett = PropertyT.Settings("SL($N,Z)", G, S, solver(20000, accel=20); upper_bound=0.1)
-        
-        @test PropertyT.check_property_T(sett) == false
+        sett = PropertyT.Settings("SL($N,Z)", G, S, with_SCS(20000, accel=20); upper_bound=0.1)
+
+        PropertyT.print_summary(sett)
+
+        λ = PropertyT.spectral_gap(sett)
+        @test λ < 0.0
+        @test PropertyT.interpret_results(sett, λ) == false
     end
 
     @testset "SL(3,Z)" begin
         N = 3
-        G = MatrixSpace(Nemo.ZZ, N,N)
-        S = Groups.gens(G)
-        S = [S; inv.(S)]
-        
+        G = MatrixAlgebra(zz, N)
+        S = PropertyT.generating_set(G)
+
         rm("SL($N,Z)", recursive=true, force=true)
-        sett = PropertyT.Settings("SL($N,Z)", G, S, solver(1000, accel=20); upper_bound=0.1)
-        
-        @test PropertyT.check_property_T(sett) == true
+        sett = PropertyT.Settings("SL($N,Z)", G, S, with_SCS(1000, accel=20); upper_bound=0.1)
+
+        PropertyT.print_summary(sett)
+
+        λ = PropertyT.spectral_gap(sett)
+        @test λ > 0.0999
+        @test PropertyT.interpret_results(sett, λ) == true
+
+        @test PropertyT.check_property_T(sett) == true #second run should be fast
     end
-    
+
     @testset "SAut(F₂)" begin
         N = 2
         G = SAut(FreeGroup(N))
-        S = Groups.gens(G)
-        S = [S; inv.(S)]
-        
+        S = PropertyT.generating_set(G)
+
         rm("SAut(F$N)", recursive=true, force=true)
-        sett = PropertyT.Settings("SAut(F$N)", G, S, solver(20000);
+        sett = PropertyT.Settings("SAut(F$N)", G, S, with_SCS(10000);
         upper_bound=0.15, warmstart=false)
-        
-        @test PropertyT.check_property_T(sett) == false
+
+        PropertyT.print_summary(sett)
+
+        λ = PropertyT.spectral_gap(sett)
+        @test λ < 0.0
+        @test PropertyT.interpret_results(sett, λ) == false
+
     end
 end

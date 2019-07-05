@@ -10,9 +10,9 @@ abstract type Settings end
 
 struct Naive{El} <: Settings
     name::String
-    G::Group
+    G::Union{Group, NCRing}
     S::Vector{El}
-    radius::Int
+    halfradius::Int
     upper_bound::Float64
 
     solver::JuMP.OptimizerFactory
@@ -21,10 +21,10 @@ end
 
 struct Symmetrized{El} <: Settings
     name::String
-    G::Group
+    G::Union{Group, NCRing}
     S::Vector{El}
     autS::Group
-    radius::Int
+    halfradius::Int
     upper_bound::Float64
 
     solver::JuMP.OptimizerFactory
@@ -32,15 +32,15 @@ struct Symmetrized{El} <: Settings
 end
 
 function Settings(name::String,
-    G::Group, S::Vector{<:GroupElem}, solver::JuMP.OptimizerFactory;
-    radius::Integer=2, upper_bound::Float64=1.0, warmstart=true)
-    return Naive(name, G, S, radius, upper_bound, solver, warmstart)
+    G::Union{Group, NCRing}, S::AbstractVector{El}, solver::JuMP.OptimizerFactory;
+    halfradius::Integer=2, upper_bound::Float64=1.0, warmstart=true) where El <: Union{GroupElem, NCRingElem}
+    return Naive(name, G, S, halfradius, upper_bound, solver, warmstart)
 end
 
 function Settings(name::String,
-    G::Group, S::Vector{<:GroupElem}, autS::Group, solver::JuMP.OptimizerFactory;
-    radius::Integer=2, upper_bound::Float64=1.0, warmstart=true)
-    return Symmetrized(name, G, S, autS, radius, upper_bound, solver, warmstart)
+    G::Union{Group, NCRing}, S::AbstractVector{El}, autS::Group, solver::JuMP.OptimizerFactory;
+    halfradius::Integer=2, upper_bound::Float64=1.0, warmstart=true) where El <: Union{GroupElem, NCRingElem}
+    return Symmetrized(name, G, S, autS, halfradius, upper_bound, solver, warmstart)
 end
 
 prefix(s::Naive) = s.name
@@ -79,12 +79,13 @@ end
 ###############################################################################
 
 function warmstart(sett::Settings)
+    warmstart_fname = filename(sett, :warmstart)
     try
         ws = load(filename(sett, :warmstart), "warmstart")
-        @info "Loaded $(filename(sett, :warmstart))."
+        @info "Loaded $warmstart_fname."
         return ws
-    catch
-        @info "Couldn't load $(filename(sett, :warmstart))."
+    catch ex
+        @warn "$(ex.msg). Not providing a warmstart to the solver."
         return nothing
     end
 end
@@ -128,10 +129,12 @@ function approximate_by_SOS(sett::Symmetrized,
 
     orbit_data = try
         orbit_data = load(filename(sett, :OrbitData), "OrbitData")
-        @info "Loaded Orbit Data"
+        @info "Loaded orbit data."
         orbit_data
-    catch
+    catch ex
+        @warn ex.msg
         isdefined(parent(orderunit), :basis) || throw("You need to define basis of Group Ring to compute orbit decomposition!")
+        @info "Computing orbit and Wedderburn decomposition..."
         orbit_data = OrbitData(parent(orderunit), sett.autS)
         save(filename(sett, :OrbitData), "OrbitData", orbit_data)
         orbit_data
@@ -245,7 +248,7 @@ function print_summary(sett::Settings)
     separator = "="^76
     info_strs = [separator,
     "Running tests for $(sett.name):",
-    "Upper bound for λ: $(sett.upper_bound), on radius $(sett.radius).",
+    "Upper bound for λ: $(sett.upper_bound), on halfradius $(sett.halfradius).",
     "Warmstart: $(sett.warmstart)",
     "Results will be stored in ./$(PropertyT.prepath(sett))",
     "Solver: $(typeof(sett.solver()))",
@@ -275,26 +278,39 @@ function spectral_gap(sett::Settings)
     isdir(fp) || mkpath(fp)
 
     Δ = try
-        @info "Loading precomputed Δ..."
-        loadGRElem(filename(sett,:Δ), sett.G)
-    catch
-        # compute
-        Δ = Laplacian(sett.S, sett.radius)
+        Δ = loadGRElem(filename(sett,:Δ), sett.G)
+        @info "Loaded precomputed Δ."
+        Δ
+    catch ex
+        @warn ex.msg
+        @info "Computing Δ..."
+        Δ = Laplacian(sett.S, sett.halfradius)
         saveGRElem(filename(sett, :Δ), Δ)
         Δ
     end
 
-    λ, P = try
-        sett.warmstart && error()
-        load(filename(sett, :solution), "λ", "P")
-    catch
+    function compute(sett, Δ)
+        @info "Computing λ and P..."
         λ, P = approximate_by_SOS(sett, Δ^2, Δ;
             solverlog=filename(sett, :solverlog))
 
         save(filename(sett, :solution), "λ", λ, "P", P)
 
         λ < 0 && @warn "Solver did not produce a valid solution!"
-        λ, P
+        return λ, P
+    end
+
+    if sett.warmstart
+        λ, P = compute(sett, Δ)
+    else
+        λ, P =try
+            λ, P = load(filename(sett, :solution), "λ", "P")
+            @info "Loaded existing λ and P."
+            λ, P
+        catch ex
+            @warn ex.msg
+            compute(sett, Δ)
+        end
     end
 
     info_strs = ["Numerical metrics of matrix solution:",
@@ -307,7 +323,7 @@ function spectral_gap(sett::Settings)
         @warn "The solution matrix doesn't seem to be positive definite!"
 
     @time Q = real(sqrt(Symmetric( (P.+ P')./2 )))
-    certified_sgap = spectral_gap(Δ, λ, Q, R=sett.radius)
+    certified_sgap = spectral_gap(Δ, λ, Q, R=sett.halfradius)
 
     return certified_sgap
 end

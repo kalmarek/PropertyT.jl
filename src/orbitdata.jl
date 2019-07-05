@@ -28,7 +28,7 @@ function OrbitData(RG::GroupRing, autS::Group, verbose=true)
     @time Uπs = [orthSVD(matrix_repr(p, mreps)) for p in autS_mps]
 
     multiplicities = size.(Uπs,2)
-    dimensions = [Int(p[autS()]*Int(order(autS))) for p in autS_mps]
+    dimensions = [Int(p[one(autS)]*Int(order(autS))) for p in autS_mps]
     if verbose
         info_strs = ["",
         lpad("multiplicities", 14) * "  =" * join(lpad.(multiplicities, 4), ""),
@@ -213,12 +213,12 @@ function (g::perm)(y::GroupRingElem{T, <:SparseVector}) where T
     return result
 end
 
-function (p::perm)(A::MatElem)
+function (p::perm)(A::MatAlgElem)
     length(p.d) == size(A, 1) == size(A,2) || throw("Can't act via $p on matrix of size $(size(A))")
     result = similar(A)
     @inbounds for i in 1:size(A, 1)
         for j in 1:size(A, 2)
-            result[i, j] = A[p[i], p[j]] # action by permuting rows and colums/conjugation
+            result[p[i], p[j]] = A[i,j] # action by permuting rows and colums/conjugation
         end
     end
     return result
@@ -226,7 +226,7 @@ end
 
 ###############################################################################
 #
-#  WreathProductElems action on Nemo.MatElem
+#  WreathProductElems action on MatAlgElem
 #
 ###############################################################################
 
@@ -242,7 +242,7 @@ function (g::WreathProductElem)(y::GroupRingElem)
     return result
 end
 
-function (g::WreathProductElem{N})(A::MatElem) where N
+function (g::WreathProductElem{N})(A::MatAlgElem) where N
     # @assert N == size(A,1) == size(A,2)
     flips = ntuple(i->(g.n[i].d[1]==1 && g.n[i].d[2]==2 ? 1 : -1), N)
     result = similar(A)
@@ -251,11 +251,11 @@ function (g::WreathProductElem{N})(A::MatElem) where N
 
     @inbounds for i = 1:size(A,1)
         for j = 1:size(A,2)
-            x = A[g.p[i], g.p[j]]
+            x = A[i, j]
             if flips[i]*flips[j] == 1
-                result[i, j] = x
+                result[g.p[i], g.p[j]] = x
             else
-                result[i, j] = -x
+                result[g.p[i], g.p[j]] = -x
             end
             # result[i, j] = AbstractAlgebra.mul!(x, x, flips[i]*flips[j])
             # this mul! needs to be separately defined, but is 2x faster
@@ -273,8 +273,8 @@ end
 function AutFG_emb(A::AutGroup, g::WreathProductElem)
     isa(A.objectGroup, FreeGroup) || throw("Not an Aut(Fₙ)")
     parent(g).P.n == length(A.objectGroup.gens) || throw("No natural embedding of $(parent(g)) into $A")
-    elt = A()
-    Id = parent(g.n.elts[1])()
+    elt = one(A)
+    Id = one(parent(g.n.elts[1]))
     flips = Groups.AutSymbol[Groups.flip_autsymbol(i) for i in 1:length(g.p.d) if g.n.elts[i] != Id]
     Groups.r_multiply!(elt, flips, reduced=false)
     Groups.r_multiply!(elt, [Groups.perm_autsymbol(g.p)])

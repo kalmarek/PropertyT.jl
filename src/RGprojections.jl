@@ -70,7 +70,7 @@ end
 
 function central_projection(RG::GroupRing, chi::AbstractCharacter, T::Type=Rational{Int})
     result = RG(zeros(T, length(RG.basis)))
-    dim = chi(RG.group())
+    dim = chi(one(RG.group))
     ord = Int(order(RG.group))
 
     for g in RG.basis
@@ -187,8 +187,8 @@ function rankOne_projections(RBn::GroupRing{G}, T::Type=Rational{Int}) where {G<
 
     r = collect(1:N)
     for i in 1:N-1
-        first_emb = g->Bn(Generic.emb!(Bn.P(), g, view(r, 1:i)))
-        last_emb = g->Bn(Generic.emb!(Bn.P(), g, view(r, (i+1):N)))
+        first_emb = g->Bn(Generic.emb!(one(Bn.P), g, view(r, 1:i)))
+        last_emb = g->Bn(Generic.emb!(one(Bn.P), g, view(r, (i+1):N)))
 
         Sk_first = (RBn(first_emb, p) for p in Sn_rankOnePr[i])
         Sk_last = (RBn(last_emb, p) for p in Sn_rankOnePr[N-i])
@@ -238,7 +238,7 @@ end
 > The identity element `Id` and binary operation function `op` can be supplied
 > to e.g. take advantage of additive group structure.
 """
-function generateGroup(gens::Vector{T}, r=2, Id::T=parent(first(gens))(), op=*) where {T<:GroupElem}
+function generateGroup(gens::Vector{T}, r=2, Id::T=one(parent(first(gens))), op=*) where {T<:GroupElem}
     n = 0
     R = 1
     elts = gens

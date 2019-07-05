@@ -1,5 +1,3 @@
-using PropertyT.GroupRings
-
 @testset "Correctness of HPC SOS computation" begin
 
     function prepare(G_name, λ, S_size)
@@ -35,7 +33,7 @@ using PropertyT.GroupRings
     @time sos_sqr = PropertyT.compute_SOS_square(pm, Q)
     @time sos_hpc = PropertyT.compute_SOS(pm, Q)
 
-    @test norm(sos_sqr - sos_hpc, 1) < 3e-12
+    @test norm(sos_sqr - sos_hpc, 1) < 4e-12
     @info "$NAME:\nDifference in l₁-norm between square and hpc sos decompositions:" norm(eoi-sos_sqr,1) norm(eoi-sos_hpc,1) norm(sos_sqr - sos_hpc, 1)
 
     #########################################################
