@@ -47,7 +47,8 @@ function SOS_problem(X::GroupRingElem, orderunit::GroupRingElem; upper_bound::Fl
     m = JuMP.Model();
 
     JuMP.@variable(m, P[1:N, 1:N])
-    JuMP.@constraint(m, P in PSDCone())
+    # SP = Symmetric(P)
+    JuMP.@constraint(m, sdp, P in PSDCone())
     JuMP.@constraint(m, sum(P[i] for i in eachindex(P)) == 0)
 
     if upper_bound < Inf
@@ -57,9 +58,11 @@ function SOS_problem(X::GroupRingElem, orderunit::GroupRingElem; upper_bound::Fl
     end
 
     cnstrs = constraints(parent(X).pm)
-    for (constraint_indices, x, u) in zip(cnstrs, X.coeffs, orderunit.coeffs)
-        JuMP.@constraint(m, x - λ*u == sum(P[constraint_indices]))
-    end
+    @assert length(cnstrs) == length(X.coeffs) == length(orderunit.coeffs)
+
+    x, u = X.coeffs, orderunit.coeffs
+    JuMP.@constraint(m, lincnstr[i=1:length(cnstrs)],
+        x[i] - λ*u[i] == sum(P[cnstrs[i]]))
 
     JuMP.@objective(m, Max, λ)
 
@@ -115,7 +118,7 @@ function addconstraints!(m::JuMP.Model,
     orb_cnstr = spzeros(Float64, size(parent(X).pm)...)
 
     M = [Array{Float64}(undef, n,n) for n in size.(UπsT,1)]
-    
+
     λ = m[:λ]
 
     for (t, orbit) in enumerate(data.orbits)
