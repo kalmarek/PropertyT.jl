@@ -147,7 +147,7 @@ function reconstruct(Ps::Vector{M},
     tmp = [zeros(Float64, size(first(transfP))) for _ in 1:lU]
 
     Threads.@threads for π in 1:lU
-        tmp[π] = perm_avg(tmp[π], transfP[π], values(preps))
+        tmp[π] = perm_avg!(tmp[π], transfP[π], values(preps))
     end
 
     recP = sum(tmp)./length(preps)
@@ -155,7 +155,7 @@ function reconstruct(Ps::Vector{M},
     return recP
 end
 
-function perm_avg(result, P, perms)
+function perm_avg!(result, P, perms)
     lp = length(first(perms).d)
     for p in perms
         # result .+= view(P, p.d, p.d)
