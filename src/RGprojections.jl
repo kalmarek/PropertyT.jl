@@ -31,7 +31,7 @@ function (chi::DirectProdCharacter)(g::DirectPowerGroupElem)
     return res
 end
 
-function (chi::PermCharacter)(g::Generic.perm)
+function (chi::PermCharacter)(g::Generic.Perm)
     R = AbstractAlgebra.partitionseq(chi.p)
     p = Partition(Generic.permtype(g))
     return Int(Generic.MN1inner(R, p, 1, Generic._charvalsTable))
@@ -97,7 +97,7 @@ function idempotents(RG::GroupRing{Generic.PermGroup{S}}, T::Type=Rational{Int})
         return GroupRingElem{T}[1//2*(Id + transp), 1//2*(Id - transp)]
     end
 
-    projs = Vector{Vector{Generic.perm{S}}}()
+    projs = Vector{Vector{Generic.Perm{S}}}()
     for l in 2:RG.group.n
         u = RG.group([circshift([i for i in 1:l], -1); [i for i in l+1:RG.group.n]])
         i = 0

@@ -13,7 +13,7 @@ using GroupRings
 using JLD
 using JuMP
 
-import AbstractAlgebra: Group, NCRing, perm
+import AbstractAlgebra: Group, NCRing
 
 import MathProgBase.SolverInterface.AbstractMathProgSolver
 

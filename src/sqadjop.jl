@@ -1,8 +1,8 @@
-isopposite(σ::perm, τ::perm, i=1, j=2) =
+isopposite(σ::Generic.Perm, τ::Generic.Perm, i=1, j=2) =
     σ[i] ≠ τ[i] && σ[i] ≠ τ[j] &&
     σ[j] ≠ τ[i] && σ[j] ≠ τ[j]
 
-isadjacent(σ::perm, τ::perm, i=1, j=2) =
+isadjacent(σ::Generic.Perm, τ::Generic.Perm, i=1, j=2) =
     (σ[i] == τ[i] && σ[j] ≠ τ[j]) || # first equal, second differ
     (σ[j] == τ[j] && σ[i] ≠ τ[i]) || # sedond equal, first differ
     (σ[i] == τ[j] && σ[j] ≠ τ[i]) || # first σ equal to second τ

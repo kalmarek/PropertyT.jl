@@ -140,7 +140,7 @@ end
 
 function reconstruct(Ps::Vector{M},
     preps::Dict{GEl, P}, Uπs::Vector{U}, dims::Vector{Int}) where
-        {M<:AbstractMatrix, GEl<:GroupElem, P<:perm, U<:AbstractMatrix}
+        {M<:AbstractMatrix, GEl<:GroupElem, P<:Generic.Perm, U<:AbstractMatrix}
 
     lU = length(Uπs)
     transfP = [dims[π].*Uπs[π]*Ps[π]*Uπs[π]' for π in 1:lU]

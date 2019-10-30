@@ -4,7 +4,7 @@
 #
 ###############################################################################
 
-struct OrbitData{T<:AbstractArray{Float64, 2}, GEl<:GroupElem, P<:perm}
+struct OrbitData{T<:AbstractArray{Float64, 2}, GEl<:GroupElem, P<:Generic.Perm}
     orbits::Vector{Vector{Int}}
     preps::Dict{GEl, P}
     Uπs::Vector{T}
@@ -147,7 +147,7 @@ end
 function perm_reps(G::Group, E::Vector, E_rdict=GroupRings.reverse_dict(E))
     elts = collect(G)
     l = length(elts)
-    preps = Vector{perm}(undef, l)
+    preps = Vector{Generic.Perm}(undef, l)
 
     permG = PermutationGroup(length(E))
 
@@ -163,7 +163,7 @@ function matrix_repr(x::GroupRingElem, mreps::Dict)
     return sum(x[i].*mreps[parent(x).basis[i]] for i in nzeros)
 end
 
-function matrix_reps(preps::Dict{T,perm{I}}) where {T<:GroupElem, I<:Integer}
+function matrix_reps(preps::Dict{T,Generic.Perm{I}}) where {T<:GroupElem, I<:Integer}
     kk = collect(keys(preps))
     mreps = Vector{SparseMatrixCSC{Float64, Int}}(undef, length(kk))
     Threads.@threads for i in 1:length(kk)
@@ -192,7 +192,7 @@ end
 #
 ###############################################################################
 
-function (g::perm)(y::GroupRingElem)
+function (g::Generic.Perm)(y::GroupRingElem)
     RG = parent(y)
     result = zero(RG, eltype(y.coeffs))
 
@@ -204,7 +204,7 @@ function (g::perm)(y::GroupRingElem)
     return result
 end
 
-function (g::perm)(y::GroupRingElem{T, <:SparseVector}) where T
+function (g::Generic.Perm)(y::GroupRingElem{T, <:SparseVector}) where T
     RG = parent(y)
     index = [RG.basis_dict[g(RG.basis[idx])] for idx in y.coeffs.nzind]
 
@@ -213,7 +213,7 @@ function (g::perm)(y::GroupRingElem{T, <:SparseVector}) where T
     return result
 end
 
-function (p::perm)(A::MatAlgElem)
+function (p::Generic.Perm)(A::MatAlgElem)
     length(p.d) == size(A, 1) == size(A,2) || throw("Can't act via $p on matrix of size $(size(A))")
     result = similar(A)
     @inbounds for i in 1:size(A, 1)
@@ -290,7 +290,7 @@ function (g::WreathProductElem)(a::Groups.Automorphism)
     return res
 end
 
-function (p::perm)(a::Groups.Automorphism)
+function (p::Generic.Perm)(a::Groups.Automorphism)
     res = parent(a)(Groups.perm_autsymbol(p))
     res = Groups.r_multiply!(res, a.symbols, reduced=false)
     res = Groups.r_multiply!(res, [Groups.perm_autsymbol(inv(p))])
