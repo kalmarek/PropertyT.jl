@@ -66,7 +66,7 @@
         @test λ == PropertyT.spectral_gap(sett)
         @test PropertyT.check_property_T(sett) == false
 
-        sett = PropertyT.Settings("SL($N,Z)", G, S, autS, with_SCS(5000, accel=20, warm_start=true);
+        sett = PropertyT.Settings("SL($N,Z)", G, S, autS, with_SCS(15000, accel=20, warm_start=true);
         upper_bound=1.3, force_compute=true)
 
         @info sett
