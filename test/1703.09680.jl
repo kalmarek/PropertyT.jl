@@ -26,7 +26,7 @@
         @info sett
 
         λ = PropertyT.spectral_gap(sett)
-        @test λ > 0.0999
+        @test λ > 0.099
         @test PropertyT.interpret_results(sett, λ) == true
 
         @test PropertyT.check_property_T(sett) == true #second run should be fast
