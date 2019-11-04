@@ -136,7 +136,7 @@ end
 
             @test 2^2*norm(residual, 1) < λ # i.e. we can certify positivity
 
-            @test 2^2*norm(residual, 1) < λ/100
+            @test 2^2*norm(residual, 1) < 2λ/100
         end
 
         @testset "Adj₃ is SOS" begin
@@ -205,7 +205,7 @@ end
             Base.Libc.flush_cstdio()
             @info "obtained λ and residual" λ norm(residual, 1)
 
-            @test 2^2*norm(residual, 1) > λ # i.e. we can certify positivity
+            @test 2^2*norm(residual, 1) > λ # i.e. we can't certify positivity
         end
 
         @testset "Adj₄ + Op₄ is SOS" begin

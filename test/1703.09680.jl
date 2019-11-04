@@ -8,7 +8,7 @@
         rm("SL($N,Z)", recursive=true, force=true)
         sett = PropertyT.Settings("SL($N,Z)", G, S, with_SCS(20000, accel=20); upper_bound=0.1)
 
-        PropertyT.print_summary(sett)
+        @info sett
 
         λ = PropertyT.spectral_gap(sett)
         @test λ < 0.0
@@ -23,10 +23,10 @@
         rm("SL($N,Z)", recursive=true, force=true)
         sett = PropertyT.Settings("SL($N,Z)", G, S, with_SCS(1000, accel=20); upper_bound=0.1)
 
-        PropertyT.print_summary(sett)
+        @info sett
 
         λ = PropertyT.spectral_gap(sett)
-        @test λ > 0.0999
+        @test λ > 0.099
         @test PropertyT.interpret_results(sett, λ) == true
 
         @test PropertyT.check_property_T(sett) == true #second run should be fast
@@ -39,9 +39,9 @@
 
         rm("SAut(F$N)", recursive=true, force=true)
         sett = PropertyT.Settings("SAut(F$N)", G, S, with_SCS(10000);
-        upper_bound=0.15, warmstart=false)
+        upper_bound=0.15)
 
-        PropertyT.print_summary(sett)
+        @info sett
 
         λ = PropertyT.spectral_gap(sett)
         @test λ < 0.0

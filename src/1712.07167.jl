@@ -16,7 +16,7 @@ struct Naive{El} <: Settings
     upper_bound::Float64
 
     solver::JuMP.OptimizerFactory
-    warmstart::Bool
+    force_compute::Bool
 end
 
 struct Symmetrized{El} <: Settings
@@ -28,19 +28,19 @@ struct Symmetrized{El} <: Settings
     upper_bound::Float64
 
     solver::JuMP.OptimizerFactory
-    warmstart::Bool
+    force_compute::Bool
 end
 
 function Settings(name::String,
     G::Union{Group, NCRing}, S::AbstractVector{El}, solver::JuMP.OptimizerFactory;
-    halfradius::Integer=2, upper_bound::Float64=1.0, warmstart=true) where El <: Union{GroupElem, NCRingElem}
-    return Naive(name, G, S, halfradius, upper_bound, solver, warmstart)
+    halfradius::Integer=2, upper_bound::Float64=1.0, force_compute=false) where El <: Union{GroupElem, NCRingElem}
+    return Naive(name, G, S, halfradius, upper_bound, solver, force_compute)
 end
 
 function Settings(name::String,
     G::Union{Group, NCRing}, S::AbstractVector{El}, autS::Group, solver::JuMP.OptimizerFactory;
-    halfradius::Integer=2, upper_bound::Float64=1.0, warmstart=true) where El <: Union{GroupElem, NCRingElem}
-    return Symmetrized(name, G, S, autS, halfradius, upper_bound, solver, warmstart)
+    halfradius::Integer=2, upper_bound::Float64=1.0, force_compute=false) where El <: Union{GroupElem, NCRingElem}
+    return Symmetrized(name, G, S, autS, halfradius, upper_bound, solver, force_compute)
 end
 
 prefix(s::Naive) = s.name
@@ -81,11 +81,11 @@ end
 function warmstart(sett::Settings)
     warmstart_fname = filename(sett, :warmstart)
     try
-        ws = load(filename(sett, :warmstart), "warmstart")
+        ws = load(warmstart_fname, "warmstart")
         @info "Loaded $warmstart_fname."
         return ws
     catch ex
-        @warn "$(ex.msg). Not providing a warmstart to the solver."
+        @warn "$(ex.msg). Could not provide a warmstart to the solver."
         return nothing
     end
 end
@@ -239,23 +239,22 @@ end
 Kazhdan(λ::Number, N::Integer) = sqrt(2*λ/N)
 
 function check_property_T(sett::Settings)
-    print_summary(sett)
+    @info sett
     certified_sgap = spectral_gap(sett)
     return interpret_results(sett, certified_sgap)
 end
 
-function print_summary(sett::Settings)
-    separator = "="^76
-    info_strs = [separator,
-    "Running tests for $(sett.name):",
+function Base.show(io::IO, sett::Settings)
+    info_strs = ["PropertyT Settings:",
+    "Group: $(sett.name)",
     "Upper bound for λ: $(sett.upper_bound), on halfradius $(sett.halfradius).",
-    "Warmstart: $(sett.warmstart)",
-    "Results will be stored in ./$(PropertyT.prepath(sett))",
+    "Force computations: $(sett.force_compute);",
+    "Results will be stored in ./$(PropertyT.prepath(sett));",
     "Solver: $(typeof(sett.solver()))",
     "Solvers options: "]
     append!(info_strs, [rpad("   $k", 30)* "→ \t$v" for (k,v) in sett.solver().options])
-    push!(info_strs, separator)
-    @info join(info_strs, "\n")
+    push!(info_strs, "="^76)
+    print(io, join(info_strs, "\n"))
 end
 
 function interpret_results(sett::Settings, sgap::Number)
@@ -300,7 +299,7 @@ function spectral_gap(sett::Settings)
         return λ, P
     end
 
-    if sett.warmstart
+    if sett.force_compute
         λ, P = compute(sett, Δ)
     else
         λ, P =try

@@ -8,22 +8,22 @@
 
         rm("oSL($N,Z)", recursive=true, force=true)
         sett = PropertyT.Settings("SL($N,Z)", G, S, autS, with_SCS(2000, accel=20);
-        upper_bound=0.27, warmstart=false)
+        upper_bound=0.27, force_compute=false)
 
-        PropertyT.print_summary(sett)
+        @info sett
 
         λ = PropertyT.spectral_gap(sett)
         @test λ < 0.0
         @test PropertyT.interpret_results(sett, λ) == false
 
-        # second run just checks the solution due to warmstart=false above
+        # second run just checks the solution due to force_compute=false above
         @test λ == PropertyT.spectral_gap(sett)
         @test PropertyT.check_property_T(sett) == false
 
-        sett = PropertyT.Settings("SL($N,Z)", G, S, autS, with_SCS(2000, accel=20);
-        upper_bound=0.27, warmstart=true)
+        sett = PropertyT.Settings("SL($N,Z)", G, S, autS, with_SCS(4000, accel=20);
+        upper_bound=0.27, force_compute=true)
 
-        PropertyT.print_summary(sett)
+        @info sett
 
         λ = PropertyT.spectral_gap(sett)
         @test λ > 0.269999
@@ -36,10 +36,10 @@
         ##########
         # Symmetrizing by PermGroup(3):
 
-        sett = PropertyT.Settings("SL($N,Z)", G, S, PermGroup(N), with_SCS(4000, accel=20);
-        upper_bound=0.27, warmstart=true)
+        sett = PropertyT.Settings("SL($N,Z)", G, S, PermGroup(N), with_SCS(4000, accel=20, warm_start=false);
+        upper_bound=0.27, force_compute=true)
 
-        PropertyT.print_summary(sett)
+        @info sett
 
         λ = PropertyT.spectral_gap(sett)
         @test λ > 0.269999
@@ -54,22 +54,22 @@
 
         rm("oSL($N,Z)", recursive=true, force=true)
         sett = PropertyT.Settings("SL($N,Z)", G, S, autS, with_SCS(2000, accel=20);
-        upper_bound=1.3, warmstart=false)
+        upper_bound=1.3, force_compute=false)
 
-        PropertyT.print_summary(sett)
+        @info sett
 
         λ = PropertyT.spectral_gap(sett)
         @test λ < 0.0
         @test PropertyT.interpret_results(sett, λ) == false
 
-        # second run just checks the solution due to warmstart=false above
+        # second run just checks the solution due to force_compute=false above
         @test λ == PropertyT.spectral_gap(sett)
         @test PropertyT.check_property_T(sett) == false
 
-        sett = PropertyT.Settings("SL($N,Z)", G, S, autS, with_SCS(5000, accel=20);
-        upper_bound=1.3, warmstart=true)
+        sett = PropertyT.Settings("SL($N,Z)", G, S, autS, with_SCS(15000, accel=20, warm_start=true);
+        upper_bound=1.3, force_compute=true)
 
-        PropertyT.print_summary(sett)
+        @info sett
 
         λ = PropertyT.spectral_gap(sett)
         @test λ > 1.2999
@@ -89,9 +89,9 @@
         rm("oSAut(F$N)", recursive=true, force=true)
 
         sett = PropertyT.Settings("SAut(F$N)", G, S, autS, with_SCS(1000);
-        upper_bound=0.15, warmstart=false)
+        upper_bound=0.15)
 
-        PropertyT.print_summary(sett)
+        @info sett
 
         @test PropertyT.check_property_T(sett) == false
     end

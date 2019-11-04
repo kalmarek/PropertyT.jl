@@ -20,8 +20,7 @@ SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 [compat]
 GroupRings = "^0.3.0"
 Groups = "^0.2.1"
-IntervalArithmetic = "^0.15.0"
-JuMP = "^0.19.0"
+julia = "≥ 1.1.0"
 
 [extras]
 SCS = "c946c3f1-0d1f-5ce8-9dea-7daa1f7e2d13"
