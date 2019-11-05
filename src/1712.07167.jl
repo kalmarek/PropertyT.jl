@@ -224,7 +224,7 @@ function certify_SOS_decomposition(elt::GroupRingElem, orderunit::GroupRingElem,
         "Interval aritmetic (certified) λ ∈"]
     @info join(info_strs, "\n") certified_λ
 
-    return certified_λ.lo
+    return certified_λ
 end
 
 function spectral_gap(Δ::GroupRingElem, λ::Number, Q::AbstractMatrix; R::Int=2)
@@ -238,7 +238,8 @@ end
 #
 ###############################################################################
 
-Kazhdan(λ::Number, N::Integer) = sqrt(2*λ/N)
+Kazhdan_constant(λ::Number, N::Integer) = sqrt(2*λ/N)
+Kazhdan_constant(λ::Interval, N::Integer) = IntervalArithmetic.inf(sqrt(2*λ/N))
 
 function check_property_T(sett::Settings)
     @info sett
@@ -259,20 +260,23 @@ function Base.show(io::IO, sett::Settings)
     print(io, join(info_strs, "\n"))
 end
 
-function interpret_results(sett::Settings, sgap::Number)
+function interpret_results(name::String, sgap::Number, N::Integer)
     if sgap > 0
-        Kazhdan_κ = Kazhdan(sgap, length(sett.S))
-        if Kazhdan_κ > 0
-            @info "κ($(sett.name), S) ≥ $Kazhdan_κ: Group HAS property (T)!"
-            return true
-        end
+        κ = Kazhdan_constant(sgap, N)
+        @info "κ($name, S) ≥ $κ: Group HAS property (T)!"
+        return true
     end
-    info_strs = ["The certified lower bound on the spectral gap is negative:",
-        "λ($(sett.name), S) ≥ 0.0 > $sgap",
-        "This tells us nothing about property (T)"]
+    info_strs = [
+        "The certified lower bound on the spectral gap is negative:",
+        "λ($name, S) ≥ 0.0 > $sgap",
+        "This tells us nothing about property (T)",
+    ]
     @info join(info_strs, "\n")
     return false
 end
+
+interpret_results(sett::Settings, sgap::Number) =
+    interpret_results(sett.name, sgap, length(sett.S))
 
 function spectral_gap(sett::Settings)
     fp = PropertyT.fullpath(sett)
