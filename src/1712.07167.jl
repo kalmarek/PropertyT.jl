@@ -43,33 +43,35 @@ function Settings(name::String,
     return Symmetrized(name, G, S, autS, halfradius, upper_bound, solver, force_compute)
 end
 
-prefix(s::Naive) = s.name
-prefix(s::Symmetrized) = "o"*s.name
+prefix(s::Naive) = ""
+prefix(s::Symmetrized) = "o"
 suffix(s::Settings) = "$(s.upper_bound)"
-prepath(s::Settings) = prefix(s)
-fullpath(s::Settings) = joinpath(prefix(s), suffix(s))
+prepath(s::Settings) = prefix(s)*s.name
+fullpath(s::Settings) = joinpath(prepath(s), suffix(s))
 
 filename(sett::Settings, s::Symbol; kwargs...) = filename(sett, Val{s}; kwargs...)
 
-filename(sett::Settings, ::Type{Val{:fulllog}}) =
-    joinpath(fullpath(sett), "full_$(string(now())).log")
-filename(sett::Settings, ::Type{Val{:solverlog}}) =
-    joinpath(fullpath(sett), "solver_$(string(now())).log")
+filename(sett::Settings, ::Type{Val{:fulllog}}; kwargs...) =
+    filename(fullpath(sett), "full", "log", suffix=Dates.now(); kwargs...)
+filename(sett::Settings, ::Type{Val{:solverlog}}; kwargs...) =
+    filename(fullpath(sett), "solver", "log", suffix=Dates.now(); kwargs...)
 
-filename(sett::Settings, ::Type{Val{:Δ}}) =
-    joinpath(prepath(sett), "delta.jld")
-filename(sett::Settings, ::Type{Val{:OrbitData}}) =
-    joinpath(prepath(sett), "OrbitData.jld")
+filename(sett::Settings, ::Type{Val{:Δ}}; kwargs...) =
+    filename(prepath(sett), "delta", "jld"; kwargs...)
+filename(sett::Settings, ::Type{Val{:OrbitData}}; kwargs...) =
+    filename(prepath(sett), "OrbitData", "jld"; kwargs...)
 
-filename(sett::Settings, ::Type{Val{:solution}}) =
-        joinpath(fullpath(sett), "solution.jld")
+filename(sett::Settings, ::Type{Val{:solution}}; kwargs...) =
+    filename(fullpath(sett), "solution", "jld"; kwargs...)
 
-function filename(sett::Settings, ::Type{Val{:warmstart}}; date=false)
-    if date
-        return joinpath(fullpath(sett), "warmstart_$(Dates.now()).jld")
-    else
-        return joinpath(fullpath(sett), "warmstart.jld")
-    end
+function filename(sett::Settings, ::Type{Val{:warmstart}}; kwargs...)
+    filename(fullpath(sett), "warmstart", "jld"; kwargs...)
+end
+
+function filename(path::String, name, extension; prefix=nothing, suffix=nothing)
+    pre = isnothing(prefix) ? "" : "$(prefix)_"
+    suf = isnothing(suffix) ? "" : "_$(suffix)"
+    return joinpath(path, "$pre$name$suf.$extension")
 end
 
 ###############################################################################
@@ -115,7 +117,7 @@ function approximate_by_SOS(sett::Naive,
         save(filename(sett, :warmstart), "warmstart", (ws.primal, ws.dual, ws.slack), "P", P, "λ", λ)
     end
 
-    save(filename(sett, :warmstart, date=true),
+    save(filename(sett, :warmstart, suffix=Dates.now()),
         "warmstart", (ws.primal, ws.dual, ws.slack), "P", P, "λ", λ)
 
     return λ, P
@@ -161,7 +163,7 @@ function approximate_by_SOS(sett::Symmetrized,
         save(filename(sett, :warmstart), "warmstart", (ws.primal, ws.dual, ws.slack), "Ps", Ps, "λ", λ)
     end
 
-    save(filename(sett, :warmstart, date=true),
+    save(filename(sett, :warmstart, suffix=Dates.now()),
         "warmstart", (ws.primal, ws.dual, ws.slack), "Ps", Ps, "λ", λ)
 
     @info "Reconstructing P..."
