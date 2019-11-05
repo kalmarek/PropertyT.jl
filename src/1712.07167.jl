@@ -33,13 +33,13 @@ end
 
 function Settings(name::String,
     G::Union{Group, NCRing}, S::AbstractVector{El}, solver::JuMP.OptimizerFactory;
-    halfradius::Integer=2, upper_bound::Float64=1.0, force_compute=false) where El <: Union{GroupElem, NCRingElem}
+    halfradius=2, upper_bound=1.0, force_compute=false) where El <: Union{GroupElem, NCRingElem}
     return Naive(name, G, S, halfradius, upper_bound, solver, force_compute)
 end
 
 function Settings(name::String,
     G::Union{Group, NCRing}, S::AbstractVector{El}, autS::Group, solver::JuMP.OptimizerFactory;
-    halfradius::Integer=2, upper_bound::Float64=1.0, force_compute=false) where El <: Union{GroupElem, NCRingElem}
+    halfradius=2, upper_bound=1.0, force_compute=false) where El <: Union{GroupElem, NCRingElem}
     return Symmetrized(name, G, S, autS, halfradius, upper_bound, solver, force_compute)
 end
 
@@ -111,7 +111,7 @@ function approximate_by_SOS(sett::Naive,
     P = value.(SDP_problem[:P])
     λ = value(SDP_problem[:λ])
 
-    if any(isnan.(P))
+    if any(isnan, P)
         @warn "The solution seems to contain NaNs. Not overriding warmstart.jld"
     else
         save(filename(sett, :warmstart), "warmstart", (ws.primal, ws.dual, ws.slack), "P", P, "λ", λ)
@@ -157,7 +157,7 @@ function approximate_by_SOS(sett::Symmetrized,
     λ = value(SDP_problem[:λ])
     Ps = [value.(P) for P in varP]
 
-    if any(any(isnan.(P)) for P in Ps)
+    if any(any(isnan, P) for P in Ps)
         @warn "The solution seems to contain NaNs. Not overriding warmstart.jld"
     else
         save(filename(sett, :warmstart), "warmstart", (ws.primal, ws.dual, ws.slack), "Ps", Ps, "λ", λ)
@@ -210,7 +210,7 @@ function certify_SOS_decomposition(elt::GroupRingElem, orderunit::GroupRingElem,
     @info("Projecting columns of Q to the augmentation ideal...")
     @time Q, check = augIdproj(Interval, Q)
     @info "Checking that sum of every column contains 0.0..." check_augmented=check
-    check || @warn("The following numbers are meaningless!")
+    check || @error("The following numbers are meaningless!")
 
     @info("Computing sum of squares decomposition...")
     @time residual = eoi - compute_SOS(parent(eoi), Q)
