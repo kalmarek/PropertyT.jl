@@ -7,7 +7,7 @@
         autS = WreathProduct(PermGroup(2), PermGroup(N))
 
         rm("oSL($N,Z)", recursive=true, force=true)
-        sett = PropertyT.Settings("SL($N,Z)", G, S, autS, with_SCS(2000, accel=20);
+        sett = PropertyT.Settings("SL($N,Z)", G, S, autS, with_SCS(1000, accel=20);
         upper_bound=0.27, force_compute=false)
 
         @info sett
