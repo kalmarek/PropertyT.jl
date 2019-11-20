@@ -33,43 +33,43 @@ end
 
 function Settings(name::String,
     G::Union{Group, NCRing}, S::AbstractVector{El}, solver::JuMP.OptimizerFactory;
-    halfradius::Integer=2, upper_bound::Float64=1.0, force_compute=false) where El <: Union{GroupElem, NCRingElem}
+    halfradius=2, upper_bound=1.0, force_compute=false) where El <: Union{GroupElem, NCRingElem}
     return Naive(name, G, S, halfradius, upper_bound, solver, force_compute)
 end
 
 function Settings(name::String,
     G::Union{Group, NCRing}, S::AbstractVector{El}, autS::Group, solver::JuMP.OptimizerFactory;
-    halfradius::Integer=2, upper_bound::Float64=1.0, force_compute=false) where El <: Union{GroupElem, NCRingElem}
+    halfradius=2, upper_bound=1.0, force_compute=false) where El <: Union{GroupElem, NCRingElem}
     return Symmetrized(name, G, S, autS, halfradius, upper_bound, solver, force_compute)
 end
 
-prefix(s::Naive) = s.name
-prefix(s::Symmetrized) = "o"*s.name
 suffix(s::Settings) = "$(s.upper_bound)"
-prepath(s::Settings) = prefix(s)
-fullpath(s::Settings) = joinpath(prefix(s), suffix(s))
+prepath(s::Settings) = s.name
+fullpath(s::Settings) = joinpath(prepath(s), suffix(s))
 
 filename(sett::Settings, s::Symbol; kwargs...) = filename(sett, Val{s}; kwargs...)
 
-filename(sett::Settings, ::Type{Val{:fulllog}}) =
-    joinpath(fullpath(sett), "full_$(string(now())).log")
-filename(sett::Settings, ::Type{Val{:solverlog}}) =
-    joinpath(fullpath(sett), "solver_$(string(now())).log")
+filename(sett::Settings, ::Type{Val{:fulllog}}; kwargs...) =
+    filename(fullpath(sett), "full", "log", suffix=Dates.now(); kwargs...)
+filename(sett::Settings, ::Type{Val{:solverlog}}; kwargs...) =
+    filename(fullpath(sett), "solver", "log", suffix=Dates.now(); kwargs...)
 
-filename(sett::Settings, ::Type{Val{:Δ}}) =
-    joinpath(prepath(sett), "delta.jld")
-filename(sett::Settings, ::Type{Val{:OrbitData}}) =
-    joinpath(prepath(sett), "OrbitData.jld")
+filename(sett::Settings, ::Type{Val{:Δ}}; kwargs...) =
+    filename(prepath(sett), "delta", "jld"; kwargs...)
+filename(sett::Settings, ::Type{Val{:OrbitData}}; kwargs...) =
+    filename(prepath(sett), "OrbitData", "jld"; kwargs...)
 
-filename(sett::Settings, ::Type{Val{:solution}}) =
-        joinpath(fullpath(sett), "solution.jld")
+filename(sett::Settings, ::Type{Val{:solution}}; kwargs...) =
+    filename(fullpath(sett), "solution", "jld"; kwargs...)
 
-function filename(sett::Settings, ::Type{Val{:warmstart}}; date=false)
-    if date
-        return joinpath(fullpath(sett), "warmstart_$(Dates.now()).jld")
-    else
-        return joinpath(fullpath(sett), "warmstart.jld")
-    end
+function filename(sett::Settings, ::Type{Val{:warmstart}}; kwargs...)
+    filename(fullpath(sett), "warmstart", "jld"; kwargs...)
+end
+
+function filename(path::String, name, extension; prefix=nothing, suffix=nothing)
+    pre = isnothing(prefix) ? "" : "$(prefix)_"
+    suf = isnothing(suffix) ? "" : "_$(suffix)"
+    return joinpath(path, "$pre$name$suf.$extension")
 end
 
 ###############################################################################
@@ -109,13 +109,13 @@ function approximate_by_SOS(sett::Naive,
     P = value.(SDP_problem[:P])
     λ = value(SDP_problem[:λ])
 
-    if any(isnan.(P))
+    if any(isnan, P)
         @warn "The solution seems to contain NaNs. Not overriding warmstart.jld"
     else
         save(filename(sett, :warmstart), "warmstart", (ws.primal, ws.dual, ws.slack), "P", P, "λ", λ)
     end
 
-    save(filename(sett, :warmstart, date=true),
+    save(filename(sett, :warmstart, suffix=Dates.now()),
         "warmstart", (ws.primal, ws.dual, ws.slack), "P", P, "λ", λ)
 
     return λ, P
@@ -155,13 +155,13 @@ function approximate_by_SOS(sett::Symmetrized,
     λ = value(SDP_problem[:λ])
     Ps = [value.(P) for P in varP]
 
-    if any(any(isnan.(P)) for P in Ps)
+    if any(any(isnan, P) for P in Ps)
         @warn "The solution seems to contain NaNs. Not overriding warmstart.jld"
     else
         save(filename(sett, :warmstart), "warmstart", (ws.primal, ws.dual, ws.slack), "Ps", Ps, "λ", λ)
     end
 
-    save(filename(sett, :warmstart, date=true),
+    save(filename(sett, :warmstart, suffix=Dates.now()),
         "warmstart", (ws.primal, ws.dual, ws.slack), "Ps", Ps, "λ", λ)
 
     @info "Reconstructing P..."
@@ -208,7 +208,7 @@ function certify_SOS_decomposition(elt::GroupRingElem, orderunit::GroupRingElem,
     @info("Projecting columns of Q to the augmentation ideal...")
     @time Q, check = augIdproj(Interval, Q)
     @info "Checking that sum of every column contains 0.0..." check_augmented=check
-    check || @warn("The following numbers are meaningless!")
+    check || @error("The following numbers are meaningless!")
 
     @info("Computing sum of squares decomposition...")
     @time residual = eoi - compute_SOS(parent(eoi), Q)
@@ -222,7 +222,7 @@ function certify_SOS_decomposition(elt::GroupRingElem, orderunit::GroupRingElem,
         "Interval aritmetic (certified) λ ∈"]
     @info join(info_strs, "\n") certified_λ
 
-    return certified_λ.lo
+    return certified_λ
 end
 
 function spectral_gap(Δ::GroupRingElem, λ::Number, Q::AbstractMatrix; R::Int=2)
@@ -236,7 +236,8 @@ end
 #
 ###############################################################################
 
-Kazhdan(λ::Number, N::Integer) = sqrt(2*λ/N)
+Kazhdan_constant(λ::Number, N::Integer) = sqrt(2*λ/N)
+Kazhdan_constant(λ::Interval, N::Integer) = IntervalArithmetic.inf(sqrt(2*λ/N))
 
 function check_property_T(sett::Settings)
     @info sett
@@ -257,20 +258,23 @@ function Base.show(io::IO, sett::Settings)
     print(io, join(info_strs, "\n"))
 end
 
-function interpret_results(sett::Settings, sgap::Number)
+function interpret_results(name::String, sgap::Number, N::Integer)
     if sgap > 0
-        Kazhdan_κ = Kazhdan(sgap, length(sett.S))
-        if Kazhdan_κ > 0
-            @info "κ($(sett.name), S) ≥ $Kazhdan_κ: Group HAS property (T)!"
-            return true
-        end
+        κ = Kazhdan_constant(sgap, N)
+        @info "κ($name, S) ≥ $κ: Group HAS property (T)!"
+        return true
     end
-    info_strs = ["The certified lower bound on the spectral gap is negative:",
-        "λ($(sett.name), S) ≥ 0.0 > $sgap",
-        "This tells us nothing about property (T)"]
+    info_strs = [
+        "The certified lower bound on the spectral gap is negative:",
+        "λ($name, S) ≥ 0.0 > $sgap",
+        "This tells us nothing about property (T)",
+    ]
     @info join(info_strs, "\n")
     return false
 end
+
+interpret_results(sett::Settings, sgap::Number) =
+    interpret_results(sett.name, sgap, length(sett.S))
 
 function spectral_gap(sett::Settings)
     fp = PropertyT.fullpath(sett)

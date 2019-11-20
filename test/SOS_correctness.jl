@@ -27,17 +27,17 @@
     @info "$NAME:\nDifference in l₁-norm between square and hpc sos decompositions:" norm(eoi-sos_sqr,1) norm(eoi-sos_hpc,1) norm(sos_sqr - sos_hpc, 1)
 
     #########################################################
-    NAME = "oSL(3,Z)"
+    NAME = "SL(3,Z)_orbit"
     eoi, pm, Q = prepare(NAME, 0.27, 3*2*2)
 
     @time sos_sqr = PropertyT.compute_SOS_square(pm, Q)
     @time sos_hpc = PropertyT.compute_SOS(pm, Q)
 
-    @test norm(sos_sqr - sos_hpc, 1) < 4e-12
+    @test norm(sos_sqr - sos_hpc, 1) < 5e-12
     @info "$NAME:\nDifference in l₁-norm between square and hpc sos decompositions:" norm(eoi-sos_sqr,1) norm(eoi-sos_hpc,1) norm(sos_sqr - sos_hpc, 1)
 
     #########################################################
-    NAME = "oSL(4,Z)"
+    NAME = "SL(4,Z)_orbit"
     eoi, pm, Q = prepare(NAME, 1.3, 4*3*2)
 
     @time sos_sqr = PropertyT.compute_SOS_square(pm, Q)
@@ -47,7 +47,7 @@
     @info "$NAME:\nDifference in l₁-norm between square and hpc sos decompositions:" norm(eoi-sos_sqr,1) norm(eoi-sos_hpc,1) norm(sos_sqr - sos_hpc, 1)
 
     #########################################################
-    NAME = "oSAut(F3)"
+    NAME = "SAut(F3)_orbit"
     eoi, pm, Q = prepare(NAME, 0.15, 4*3*2*2)
 
     @time sos_sqr = PropertyT.compute_SOS_square(pm, Q)

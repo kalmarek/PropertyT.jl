@@ -23,9 +23,9 @@ version = "0.8.10"
 
 [[BinaryProvider]]
 deps = ["Libdl", "SHA"]
-git-tree-sha1 = "29995a7b317bbd06be147e1974a3541ce2502dca"
+git-tree-sha1 = "5b08ed6036d9d3f0ee6369410b830f8873d4024c"
 uuid = "b99e7846-7c00-51b0-8f62-c81ae34c0232"
-version = "0.5.7"
+version = "0.5.8"
 
 [[Blosc]]
 deps = ["BinaryProvider", "CMakeWrapper", "Compat", "Libdl"]
@@ -90,10 +90,10 @@ uuid = "163ba53b-c6d8-5494-b064-1a9d43ac40c5"
 version = "0.0.4"
 
 [[DiffRules]]
-deps = ["Random", "Test"]
-git-tree-sha1 = "dc0869fb2f5b23466b32ea799bd82c76480167f7"
+deps = ["NaNMath", "Random", "SpecialFunctions"]
+git-tree-sha1 = "f734b5f6bc9c909027ef99f6d91d5d9e4b111eed"
 uuid = "b552c78f-8df3-52c6-915a-8e097449b14b"
-version = "0.0.10"
+version = "0.1.0"
 
 [[Distributed]]
 deps = ["Random", "Serialization", "Sockets"]
@@ -118,13 +118,13 @@ version = "1.0.7"
 
 [[ForwardDiff]]
 deps = ["CommonSubexpressions", "DiffResults", "DiffRules", "NaNMath", "Random", "SpecialFunctions", "StaticArrays"]
-git-tree-sha1 = "e2c81741a8be50de143ecddee942396894f47750"
+git-tree-sha1 = "4407e7b76999eca2646abdb68203bd4302476168"
 uuid = "f6369f11-7733-5829-9624-2563aa707210"
-version = "0.10.4"
+version = "0.10.6"
 
 [[GroupRings]]
 deps = ["AbstractAlgebra", "LinearAlgebra", "Markdown", "SparseArrays"]
-git-tree-sha1 = "0953bbaa3ccd0b7e12585e705011f01ac8672c7c"
+git-tree-sha1 = "8a9541783cff6911e35840770d0f004c0d2a13dd"
 repo-rev = "master"
 repo-url = "https://github.com/kalmarek/GroupRings.jl"
 uuid = "0befed6a-bd73-11e8-1e41-a1190947c2f5"
@@ -132,17 +132,17 @@ version = "0.3.0"
 
 [[Groups]]
 deps = ["AbstractAlgebra", "LinearAlgebra", "Markdown"]
-git-tree-sha1 = "852339602ab880eb0e2a78f072ad386f3266f8a2"
+git-tree-sha1 = "2487fd5e6106dabcafb835b694df08b4d22dde0e"
 repo-rev = "master"
 repo-url = "https://github.com/kalmarek/Groups.jl"
 uuid = "5d8bd718-bd84-11e8-3b40-ad14f4a32557"
-version = "0.2.3"
+version = "0.3.0"
 
 [[HDF5]]
 deps = ["BinaryProvider", "Blosc", "CMakeWrapper", "Libdl", "Mmap"]
-git-tree-sha1 = "c14a84878428b66222fccea6ed89cdafa7c22ae4"
+git-tree-sha1 = "d3ea5532668bf9bdd5e8d5f16571e0b520cbbb9f"
 uuid = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
-version = "0.12.4"
+version = "0.12.5"
 
 [[InteractiveUtils]]
 deps = ["Markdown"]
@@ -197,9 +197,9 @@ uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
 
 [[MathOptInterface]]
 deps = ["BenchmarkTools", "LinearAlgebra", "OrderedCollections", "SparseArrays", "Test", "Unicode"]
-git-tree-sha1 = "0d0e9987440b0b5c03f8df9cd30694f1acec81bb"
+git-tree-sha1 = "78427dcc212e0c0ad9658049bc56a50303ad9737"
 uuid = "b8f27783-ece8-5eb3-8dc8-9495eed66fee"
-version = "0.9.6"
+version = "0.9.7"
 
 [[MathProgBase]]
 deps = ["Compat"]
@@ -230,9 +230,9 @@ version = "0.12.0"
 
 [[Parsers]]
 deps = ["Dates", "Test"]
-git-tree-sha1 = "ef0af6c8601db18c282d092ccbd2f01f3f0cd70b"
+git-tree-sha1 = "a23968e107c0544aca91bfab6f7dd34de1206a54"
 uuid = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
-version = "0.3.7"
+version = "0.3.9"
 
 [[Pkg]]
 deps = ["Dates", "LibGit2", "Markdown", "Printf", "REPL", "Random", "SHA", "UUIDs"]
@@ -290,9 +290,9 @@ version = "0.8.0"
 
 [[StaticArrays]]
 deps = ["LinearAlgebra", "Random", "Statistics"]
-git-tree-sha1 = "1085ffbf5fd48fdba64ef8e902ca429c4e1212d3"
+git-tree-sha1 = "5a3bcb6233adabde68ebc97be66e95dcb787424c"
 uuid = "90137ffa-7385-5640-81b9-e52037218182"
-version = "0.11.1"
+version = "0.12.1"
 
 [[Statistics]]
 deps = ["LinearAlgebra", "SparseArrays"]
