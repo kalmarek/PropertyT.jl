@@ -43,10 +43,8 @@ function Settings(name::String,
     return Symmetrized(name, G, S, autS, halfradius, upper_bound, solver, force_compute)
 end
 
-prefix(s::Naive) = ""
-prefix(s::Symmetrized) = "o"
 suffix(s::Settings) = "$(s.upper_bound)"
-prepath(s::Settings) = prefix(s)*s.name
+prepath(s::Settings) = s.name
 fullpath(s::Settings) = joinpath(prepath(s), suffix(s))
 
 filename(sett::Settings, s::Symbol; kwargs...) = filename(sett, Val{s}; kwargs...)

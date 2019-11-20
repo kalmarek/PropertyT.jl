@@ -1,13 +1,15 @@
 @testset "1712.07167 Examples" begin
 
-    @testset "oSL(3,Z)" begin
+    @testset "SL(3,Z)" begin
         N = 3
         G = MatrixAlgebra(zz, N)
         S = PropertyT.generating_set(G)
         autS = WreathProduct(PermGroup(2), PermGroup(N))
 
-        rm("oSL($N,Z)", recursive=true, force=true)
-        sett = PropertyT.Settings("SL($N,Z)", G, S, autS, with_SCS(1000, accel=20);
+        NAME = "SL($N,Z)_orbit"
+
+        rm(NAME, recursive=true, force=true)
+        sett = PropertyT.Settings(NAME, G, S, autS, with_SCS(1000, accel=20);
         upper_bound=0.27, force_compute=false)
 
         @info sett
@@ -20,7 +22,7 @@
         @test λ == PropertyT.spectral_gap(sett)
         @test PropertyT.check_property_T(sett) == false
 
-        sett = PropertyT.Settings("SL($N,Z)", G, S, autS, with_SCS(4000, accel=20);
+        sett = PropertyT.Settings(NAME, G, S, autS, with_SCS(4000, accel=20);
         upper_bound=0.27, force_compute=true)
 
         @info sett
@@ -36,7 +38,7 @@
         ##########
         # Symmetrizing by PermGroup(3):
 
-        sett = PropertyT.Settings("SL($N,Z)", G, S, PermGroup(N), with_SCS(4000, accel=20, warm_start=false);
+        sett = PropertyT.Settings(NAME, G, S, PermGroup(N), with_SCS(4000, accel=20, warm_start=false);
         upper_bound=0.27, force_compute=true)
 
         @info sett
@@ -46,14 +48,16 @@
         @test PropertyT.interpret_results(sett, λ) == true
     end
 
-    @testset "oSL(4,Z)" begin
+    @testset "SL(4,Z)" begin
         N = 4
         G = MatrixAlgebra(zz, N)
         S = PropertyT.generating_set(G)
         autS = WreathProduct(PermGroup(2), PermGroup(N))
 
-        rm("oSL($N,Z)", recursive=true, force=true)
-        sett = PropertyT.Settings("SL($N,Z)", G, S, autS, with_SCS(2000, accel=20);
+        NAME = "SL($N,Z)_orbit"
+
+        rm(NAME, recursive=true, force=true)
+        sett = PropertyT.Settings(NAME, G, S, autS, with_SCS(2000, accel=20);
         upper_bound=1.3, force_compute=false)
 
         @info sett
@@ -66,7 +70,7 @@
         @test λ == PropertyT.spectral_gap(sett)
         @test PropertyT.check_property_T(sett) == false
 
-        sett = PropertyT.Settings("SL($N,Z)", G, S, autS, with_SCS(15000, accel=20, warm_start=true);
+        sett = PropertyT.Settings(NAME, G, S, autS, with_SCS(15000, accel=20, warm_start=true);
         upper_bound=1.3, force_compute=true)
 
         @info sett
@@ -86,9 +90,11 @@
         S = PropertyT.generating_set(G)
         autS = WreathProduct(PermGroup(2), PermGroup(N))
 
-        rm("oSAut(F$N)", recursive=true, force=true)
+        NAME = "SAut(F$N)_orbit"
 
-        sett = PropertyT.Settings("SAut(F$N)", G, S, autS, with_SCS(1000);
+        rm(NAME, recursive=true, force=true)
+
+        sett = PropertyT.Settings(NAME, G, S, autS, with_SCS(1000);
         upper_bound=0.15)
 
         @info sett
