@@ -1,8 +1,5 @@
 ###############################################################################
-#
 #  Settings and filenames
-#
-###############################################################################
 
 abstract type Settings end
 
@@ -71,10 +68,7 @@ function filename(path::String, name, extension; prefix=nothing, suffix=nothing)
 end
 
 ###############################################################################
-#
 #  Approximation by SOS (logged & warmstarted)
-#
-###############################################################################
 
 function warmstart(sett::Settings)
     warmstart_fname = filename(sett, :warmstart)
@@ -110,11 +104,16 @@ function approximate_by_SOS(sett::Naive,
     if any(isnan, P)
         @warn "The solution seems to contain NaNs. Not overriding warmstart.jld"
     else
-        save(filename(sett, :warmstart), "warmstart", (ws.primal, ws.dual, ws.slack), "P", P, "λ", λ)
+        save(filename(sett, :warmstart),
+            "warmstart", (ws.primal, ws.dual, ws.slack),
+            "P", P,
+            "λ", λ)
     end
 
     save(filename(sett, :warmstart, suffix=Dates.now()),
-        "warmstart", (ws.primal, ws.dual, ws.slack), "P", P, "λ", λ)
+        "warmstart", (ws.primal, ws.dual, ws.slack),
+        "P", P,
+        "λ", λ)
 
     return λ, P
 end
@@ -131,7 +130,8 @@ function approximate_by_SOS(sett::Symmetrized,
         orbit_data
     catch ex
         @warn ex.msg
-        isdefined(parent(orderunit), :basis) || throw("You need to define basis of Group Ring to compute orbit decomposition!")
+        Grouprings.hasbasis(parent(orderunit)) ||
+            throw("You need to define basis of Group Ring to compute orbit decomposition!")
         @info "Computing orbit and Wedderburn decomposition..."
         orbit_data = OrbitData(parent(orderunit), sett.autS)
         save(filename(sett, :OrbitData), "OrbitData", orbit_data)
@@ -156,11 +156,16 @@ function approximate_by_SOS(sett::Symmetrized,
     if any(any(isnan, P) for P in Ps)
         @warn "The solution seems to contain NaNs. Not overriding warmstart.jld"
     else
-        save(filename(sett, :warmstart), "warmstart", (ws.primal, ws.dual, ws.slack), "Ps", Ps, "λ", λ)
+        save(filename(sett, :warmstart),
+            "warmstart", (ws.primal, ws.dual, ws.slack),
+            "Ps", Ps,
+            "λ",  λ)
     end
 
     save(filename(sett, :warmstart, suffix=Dates.now()),
-        "warmstart", (ws.primal, ws.dual, ws.slack), "Ps", Ps, "λ", λ)
+        "warmstart", (ws.primal, ws.dual, ws.slack),
+        "Ps", Ps,
+        "λ",  λ)
 
     @info "Reconstructing P..."
     @time P = reconstruct(Ps, orbit_data)
@@ -169,10 +174,7 @@ function approximate_by_SOS(sett::Symmetrized,
 end
 
 ###############################################################################
-#
 #  Checking solution
-#
-###############################################################################
 
 function certify_SOS_decomposition(elt::GroupRingElem, orderunit::GroupRingElem,
     λ::Number, Q::AbstractMatrix; R::Int=2)
@@ -229,10 +231,7 @@ function spectral_gap(Δ::GroupRingElem, λ::Number, Q::AbstractMatrix; R::Int=2
 end
 
 ###############################################################################
-#
 #  Interpreting the numerical results
-#
-###############################################################################
 
 Kazhdan_constant(λ::Number, N::Integer) = sqrt(2*λ/N)
 Kazhdan_constant(λ::Interval, N::Integer) = IntervalArithmetic.inf(sqrt(2*λ/N))
