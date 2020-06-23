@@ -130,7 +130,7 @@ function approximate_by_SOS(sett::Symmetrized,
         orbit_data
     catch ex
         @warn ex.msg
-        Grouprings.hasbasis(parent(orderunit)) ||
+        GroupRings.hasbasis(parent(orderunit)) ||
             throw("You need to define basis of Group Ring to compute orbit decomposition!")
         @info "Computing orbit and Wedderburn decomposition..."
         orbit_data = OrbitData(parent(orderunit), sett.autS)

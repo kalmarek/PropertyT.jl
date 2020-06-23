@@ -149,7 +149,7 @@ function perm_reps(G::Group, E::Vector, E_rdict=GroupRings.reverse_dict(E))
     l = length(elts)
     preps = Vector{Generic.Perm}(undef, l)
 
-    permG = PermutationGroup(length(E))
+    permG = SymmetricGroup(length(E))
 
     Threads.@threads for i in 1:l
         preps[i] = permG(PropertyT.perm_repr(elts[i], E, E_rdict), false)
