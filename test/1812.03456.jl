@@ -44,7 +44,7 @@
         Δ = PropertyT.Laplacian(S, 2)
         RG = parent(Δ)
 
-        autS = WreathProduct(PermGroup(2), PermGroup(N))
+        autS = WreathProduct(SymmetricGroup(2), SymmetricGroup(N))
         orbits = PropertyT.orbit_decomposition(autS, RG.basis)
 
         @test PropertyT.Sq(RG) isa GroupRingElem
@@ -123,7 +123,7 @@ end
         S = PropertyT.generating_set(M)
         Δ = PropertyT.Laplacian(S, halfradius)
         RG = parent(Δ)
-        orbit_data = PropertyT.OrbitData(RG, WreathProduct(PermGroup(2), PermGroup(N)))
+        orbit_data = PropertyT.OrbitData(RG, WreathProduct(SymmetricGroup(2), SymmetricGroup(N)))
         orbit_data = PropertyT.decimate(orbit_data);
 
         @testset "Sq₃ is SOS" begin
@@ -170,7 +170,7 @@ end
         S = PropertyT.generating_set(M)
         Δ = PropertyT.Laplacian(S, halfradius)
         RG = parent(Δ)
-        orbit_data = PropertyT.OrbitData(RG, WreathProduct(PermGroup(2), PermGroup(N)))
+        orbit_data = PropertyT.OrbitData(RG, WreathProduct(SymmetricGroup(2), SymmetricGroup(N)))
         orbit_data = PropertyT.decimate(orbit_data);
 
         @testset "Sq₄ is SOS" begin
@@ -228,7 +228,7 @@ end
     #     S = PropertyT.generating_set(M)
     #     Δ = PropertyT.Laplacian(S, halfradius)
     #     RG = parent(Δ)
-    #     orbit_data = PropertyT.OrbitData(RG, WreathProduct(PermGroup(2), PermGroup(N)))
+    #     orbit_data = PropertyT.OrbitData(RG, WreathProduct(SymmetricGroup(2), SymmetricGroup(N)))
     #     orbit_data = PropertyT.decimate(orbit_data);
     #
     #     @time elt = PropertyT.Adj(RG) + 100PropertyT.Op(RG)

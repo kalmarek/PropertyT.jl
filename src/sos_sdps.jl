@@ -49,7 +49,9 @@ function SOS_problem(X::GroupRingElem, orderunit::GroupRingElem; upper_bound::Fl
     JuMP.@variable(m, P[1:N, 1:N])
     # SP = Symmetric(P)
     JuMP.@constraint(m, sdp, P in PSDCone())
-    JuMP.@constraint(m, sum(P[i] for i in eachindex(P)) == 0)
+    if iszero(aug(X)) && iszero(aug(orderunit))
+        JuMP.@constraint(m, sum(P) == 0)
+    end
 
     if upper_bound < Inf
         λ = JuMP.@variable(m, λ <= upper_bound)

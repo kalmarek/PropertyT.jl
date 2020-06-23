@@ -4,7 +4,6 @@ module PropertyT
 using AbstractAlgebra
 using LinearAlgebra
 using SparseArrays
-using Markdown
 using Dates
 
 using Groups
@@ -14,8 +13,6 @@ using JLD
 using JuMP
 
 import AbstractAlgebra: Group, NCRing
-
-import MathProgBase.SolverInterface.AbstractMathProgSolver
 
 include("laplacians.jl")
 include("RGprojections.jl")

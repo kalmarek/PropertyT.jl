@@ -2,8 +2,8 @@ indexing(n) = [(i,j) for i in 1:n for j in 1:n if i≠j]
 
 function generating_set(G::AutGroup{N}, n=N) where N
 
-    rmuls = [Groups.rmul_autsymbol(i,j) for (i,j) in indexing(n)]
-    lmuls = [Groups.lmul_autsymbol(i,j) for (i,j) in indexing(n)]
+    rmuls = [Groups.transvection_R(i,j) for (i,j) in indexing(n)]
+    lmuls = [Groups.transvection_L(i,j) for (i,j) in indexing(n)]
     gen_set = G.([rmuls; lmuls])
 
     return [gen_set; inv.(gen_set)]

@@ -149,7 +149,7 @@ function perm_reps(G::Group, E::Vector, E_rdict=GroupRings.reverse_dict(E))
     l = length(elts)
     preps = Vector{Generic.Perm}(undef, l)
 
-    permG = PermutationGroup(length(E))
+    permG = SymmetricGroup(length(E))
 
     Threads.@threads for i in 1:l
         preps[i] = permG(PropertyT.perm_repr(elts[i], E, E_rdict), false)
@@ -186,25 +186,19 @@ function (g::GroupRingElem)(y::GroupRingElem)
     return res
 end
 
-###############################################################################
-#
-#  perm actions
-#
-###############################################################################
-
-function (g::Generic.Perm)(y::GroupRingElem)
+function (g::GroupElem)(y::GroupRingElem)
     RG = parent(y)
     result = zero(RG, eltype(y.coeffs))
 
     for (idx, c) in enumerate(y.coeffs)
-        if c!= zero(eltype(y.coeffs))
+        if !iszero(c)
             result[g(RG.basis[idx])] = c
         end
     end
     return result
 end
 
-function (g::Generic.Perm)(y::GroupRingElem{T, <:SparseVector}) where T
+function (g::GroupElem)(y::GroupRingElem{T, <:SparseVector}) where T
     RG = parent(y)
     index = [RG.basis_dict[g(RG.basis[idx])] for idx in y.coeffs.nzind]
 
@@ -213,30 +207,18 @@ function (g::Generic.Perm)(y::GroupRingElem{T, <:SparseVector}) where T
     return result
 end
 
+###############################################################################
+#
+#  perm && WreathProductElems actions: MatAlgElem
+#
+###############################################################################
+
 function (p::Generic.Perm)(A::MatAlgElem)
     length(p.d) == size(A, 1) == size(A,2) || throw("Can't act via $p on matrix of size $(size(A))")
     result = similar(A)
     @inbounds for i in 1:size(A, 1)
         for j in 1:size(A, 2)
             result[p[i], p[j]] = A[i,j] # action by permuting rows and colums/conjugation
-        end
-    end
-    return result
-end
-
-###############################################################################
-#
-#  WreathProductElems action on MatAlgElem
-#
-###############################################################################
-
-function (g::WreathProductElem)(y::GroupRingElem)
-    RG = parent(y)
-    result = zero(RG, eltype(y.coeffs))
-
-    for (idx, c) in enumerate(y.coeffs)
-        if c!= zero(eltype(y.coeffs))
-            result[g(RG.basis[idx])] = c
         end
     end
     return result
@@ -257,8 +239,6 @@ function (g::WreathProductElem{N})(A::MatAlgElem) where N
             else
                 result[g.p[i], g.p[j]] = -x
             end
-            # result[i, j] = AbstractAlgebra.mul!(x, x, flips[i]*flips[j])
-            # this mul! needs to be separately defined, but is 2x faster
         end
     end
     return result
@@ -266,33 +246,33 @@ end
 
 ###############################################################################
 #
-#  Action of WreathProductElems on AutGroupElem
+# perm && WreathProductElems actions: Automorphism
 #
 ###############################################################################
 
-function AutFG_emb(A::AutGroup, g::WreathProductElem)
+function (g::GroupElem)(a::Automorphism)
+    Ag = parent(a)(g)
+    Ag_inv = inv(Ag)
+    res = append!(Ag, a, Ag_inv)
+    return Groups.freereduce!(res)
+end
+
+(A::AutGroup)(p::Generic.Perm) = A(Groups.AutSymbol(p))
+
+function (A::AutGroup)(g::WreathProductElem)
     isa(A.objectGroup, FreeGroup) || throw("Not an Aut(Fₙ)")
     parent(g).P.n == length(A.objectGroup.gens) || throw("No natural embedding of $(parent(g)) into $A")
     elt = one(A)
     Id = one(parent(g.n.elts[1]))
-    flips = Groups.AutSymbol[Groups.flip_autsymbol(i) for i in 1:length(g.p.d) if g.n.elts[i] != Id]
-    Groups.r_multiply!(elt, flips, reduced=false)
-    Groups.r_multiply!(elt, [Groups.perm_autsymbol(g.p)])
+    for i in 1:length(g.p.d)
+        if g.n.elts[i] != Id
+            push!(elt, Groups.flip(i))
+        end
+    end
+    push!(elt, Groups.AutSymbol(g.p))
     return elt
 end
 
-function (g::WreathProductElem)(a::Groups.Automorphism)
-    A = parent(a)
-    g_emb = AutFG_emb(A,g)
-    res = deepcopy(g_emb)
-    res = Groups.r_multiply!(res, a.symbols, reduced=false)
-    res = Groups.r_multiply!(res, [inv(s) for s in reverse!(g_emb.symbols)])
-    return res
-end
 
-function (p::Generic.Perm)(a::Groups.Automorphism)
-    res = parent(a)(Groups.perm_autsymbol(p))
-    res = Groups.r_multiply!(res, a.symbols, reduced=false)
-    res = Groups.r_multiply!(res, [Groups.perm_autsymbol(inv(p))])
-    return res
-end
+# fallback:
+Base.one(p::Generic.Perm) = Perm(length(p.d))

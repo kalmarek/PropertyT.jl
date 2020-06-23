@@ -4,7 +4,7 @@ isopposite(σ::Generic.Perm, τ::Generic.Perm, i=1, j=2) =
 
 isadjacent(σ::Generic.Perm, τ::Generic.Perm, i=1, j=2) =
     (σ[i] == τ[i] && σ[j] ≠ τ[j]) || # first equal, second differ
-    (σ[j] == τ[j] && σ[i] ≠ τ[i]) || # sedond equal, first differ
+    (σ[j] == τ[j] && σ[i] ≠ τ[i]) || # second equal, first differ
     (σ[i] == τ[j] && σ[j] ≠ τ[i]) || # first σ equal to second τ
     (σ[j] == τ[i] && σ[i] ≠ τ[j])    # second σ equal to first τ
 
@@ -15,7 +15,7 @@ function Sq(RG::GroupRing, N::Integer)
     ℤ = Int64
     Δ₂ = length(S₂)*one(RG, ℤ) - RG(S₂, ℤ);
 
-    Alt_N = [g for g in PermutationGroup(N) if parity(g) == 0]
+    Alt_N = [g for g in SymmetricGroup(N) if parity(g) == 0]
 
     sq = RG()
     for σ in Alt_N
@@ -29,7 +29,7 @@ function Adj(RG::GroupRing, N::Integer)
     ℤ = Int64
     Δ₂ = length(S₂)*one(RG, ℤ) - RG(S₂, ℤ);
 
-    Alt_N = [g for g in PermutationGroup(N) if parity(g) == 0]
+    Alt_N = [g for g in SymmetricGroup(N) if parity(g) == 0]
     Δ₂s = Dict(σ=>σ(Δ₂) for σ in Alt_N)
     adj = RG()
 
@@ -51,7 +51,7 @@ function Op(RG::GroupRing, N::Integer)
     ℤ = Int64
     Δ₂ = length(S₂)*one(RG, ℤ) - RG(S₂, ℤ);
 
-    Alt_N = [g for g in PermutationGroup(N) if parity(g) == 0]
+    Alt_N = [g for g in SymmetricGroup(N) if parity(g) == 0]
     Δ₂s = Dict(σ=>σ(Δ₂) for σ in Alt_N)
     op = RG()
 
@@ -77,7 +77,7 @@ function SqAdjOp(RG::GroupRing, N::Integer)
     ℤ = Int64
     Δ₂ = length(S₂)*one(RG, ℤ) - RG(S₂, ℤ);
 
-    Alt_N = [σ for σ in PermutationGroup(N) if parity(σ) == 0]
+    Alt_N = [σ for σ in SymmetricGroup(N) if parity(σ) == 0]
     sq, adj, op = RG(), RG(), RG()
 
     Δ₂s = Dict(σ=>σ(Δ₂) for σ in Alt_N)

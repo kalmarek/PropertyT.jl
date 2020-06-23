@@ -4,7 +4,7 @@
         N = 3
         G = MatrixAlgebra(zz, N)
         S = PropertyT.generating_set(G)
-        autS = WreathProduct(PermGroup(2), PermGroup(N))
+        autS = WreathProduct(SymmetricGroup(2), SymmetricGroup(N))
 
         NAME = "SL($N,Z)_orbit"
 
@@ -36,9 +36,9 @@
         @test PropertyT.check_property_T(sett) == true
 
         ##########
-        # Symmetrizing by PermGroup(3):
+        # Symmetrizing by SymmetricGroup(3):
 
-        sett = PropertyT.Settings(NAME, G, S, PermGroup(N), with_SCS(4000, accel=20, warm_start=false);
+        sett = PropertyT.Settings(NAME, G, S, SymmetricGroup(N), with_SCS(4000, accel=20, warm_start=false);
         upper_bound=0.27, force_compute=true)
 
         @info sett
@@ -52,7 +52,7 @@
         N = 4
         G = MatrixAlgebra(zz, N)
         S = PropertyT.generating_set(G)
-        autS = WreathProduct(PermGroup(2), PermGroup(N))
+        autS = WreathProduct(SymmetricGroup(2), SymmetricGroup(N))
 
         NAME = "SL($N,Z)_orbit"
 
@@ -88,7 +88,7 @@
         N = 3
         G = SAut(FreeGroup(N))
         S = PropertyT.generating_set(G)
-        autS = WreathProduct(PermGroup(2), PermGroup(N))
+        autS = WreathProduct(SymmetricGroup(2), SymmetricGroup(N))
 
         NAME = "SAut(F$N)_orbit"
 
