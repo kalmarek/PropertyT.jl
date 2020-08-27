@@ -206,6 +206,8 @@ function solve(m::JuMP.Model, with_optimizer::JuMP.OptimizerFactory, warmstart=n
     end
 
     optimize!(m)
+    Base.Libc.flush_cstdio()
+
     status = termination_status(m)
 
     return status, getwarmstart_scs(m)
@@ -219,7 +221,6 @@ function solve(solverlog::String, m::JuMP.Model, with_optimizer::JuMP.OptimizerF
     status, warmstart = open(solverlog, "a+") do logfile
         redirect_stdout(logfile) do
             status, warmstart = PropertyT.solve(m, with_optimizer, warmstart)
-            Base.Libc.flush_cstdio()
             status, warmstart
         end
     end
