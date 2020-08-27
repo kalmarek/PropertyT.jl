@@ -42,15 +42,41 @@ end
 #
 ###############################################################################
 
-function SOS_problem(X::GroupRingElem, orderunit::GroupRingElem; upper_bound::Float64=Inf)
+function SOS_problem_dual(elt::GroupRingElem, order_unit::GroupRingElem;
+    upper_bound::Float64=Inf)
+    @assert parent(elt) == parent(order_unit)
+
+    RG = parent(elt)
+    m = Model()
+
+    y = @variable(m, y[1:length(elt.coeffs)])
+
+    @constraint(m, λ_dual, dot(order_unit.coeffs, y) == 1)
+    @constraint(m, psd, [y[i] for i in RG.pm] in PSDCone())
+
+    if !isinf(upper_bound)
+        @variable(m, λ_ub_dual)
+        expr = dot(elt.coeffs, y) + upper_bound*λ_ub_dual
+        @objective m Min expr
+    else
+        @objective m Min dot(elt.coeffs, y)
+    end
+
+    return m
+end
+
+function SOS_problem_primal(X::GroupRingElem, orderunit::GroupRingElem;
+    upper_bound::Float64=Inf)
+
     N = size(parent(X).pm, 1)
     m = JuMP.Model();
 
     JuMP.@variable(m, P[1:N, 1:N])
     # SP = Symmetric(P)
     JuMP.@constraint(m, sdp, P in PSDCone())
+
     if iszero(aug(X)) && iszero(aug(orderunit))
-        JuMP.@constraint(m, sum(P) == 0)
+        JuMP.@constraint(m, augmentation, sum(P) == 0)
     end
 
     if upper_bound < Inf
@@ -70,6 +96,8 @@ function SOS_problem(X::GroupRingElem, orderunit::GroupRingElem; upper_bound::Fl
 
     return m
 end
+
+const SOS_problem = SOS_problem_primal
 
 ###############################################################################
 #
