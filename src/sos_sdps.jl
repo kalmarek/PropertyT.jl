@@ -205,22 +205,29 @@ end
 #
 ###############################################################################
 
-function setwarmstart_scs!(m::JuMP.Model, warmstart)
-    solver_name(m) == "SCS" || throw("warmstarting defined only for SCS!")
-    primal, dual, slack = warmstart
-    m.moi_backend.optimizer.model.optimizer.sol.primal = primal
-    m.moi_backend.optimizer.model.optimizer.sol.dual = dual
-    m.moi_backend.optimizer.model.optimizer.sol.slack = slack
+function setwarmstart!(m::JuMP.Model, warmstart)
+    if solver_name(m) == "SCS"
+        primal, dual, slack = warmstart
+        m.moi_backend.optimizer.model.optimizer.data.primal = primal
+        m.moi_backend.optimizer.model.optimizer.data.dual = dual
+        m.moi_backend.optimizer.model.optimizer.data.slack = slack
+    else
+        @warn "Setting warmstart for $(solver_name(m)) is not implemented! Ignoring..."
+    end
     return m
 end
 
-function getwarmstart_scs(m::JuMP.Model)
-    solver_name(m) == "SCS" || return (primal=Float64[], dual=Float64[], slack=Float64[])
-    warmstart = (
-        primal = m.moi_backend.optimizer.model.optimizer.sol.primal,
-        dual = m.moi_backend.optimizer.model.optimizer.sol.dual,
-        slack = m.moi_backend.optimizer.model.optimizer.sol.slack
-        )
+function getwarmstart(m::JuMP.Model)
+    if solver_name(m) == "SCS"
+        warmstart = (
+            primal = m.moi_backend.optimizer.model.optimizer.data.primal,
+            dual = m.moi_backend.optimizer.model.optimizer.data.dual,
+            slack = m.moi_backend.optimizer.model.optimizer.data.slack
+            )
+    else
+        @warn "Saving warmstart for $(solver_name(m)) is not implemented!"
+        return (primal=Float64[], dual=Float64[], slack=Float64[])
+    end
     return warmstart
 end
 
@@ -230,7 +237,7 @@ function solve(m::JuMP.Model, with_optimizer::JuMP.OptimizerFactory, warmstart=n
     MOIU.attach_optimizer(m)
 
     if warmstart != nothing
-        setwarmstart_scs!(m, warmstart)
+        setwarmstart!(m, warmstart)
     end
 
     optimize!(m)
@@ -238,7 +245,7 @@ function solve(m::JuMP.Model, with_optimizer::JuMP.OptimizerFactory, warmstart=n
 
     status = termination_status(m)
 
-    return status, getwarmstart_scs(m)
+    return status, getwarmstart(m)
 end
 
 function solve(solverlog::String, m::JuMP.Model, with_optimizer::JuMP.OptimizerFactory, warmstart=nothing)
