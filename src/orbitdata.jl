@@ -41,21 +41,20 @@ function OrbitData(RG::GroupRing, autS::Group, verbose=true)
     return OrbitData(orbs, preps, Uπs, dimensions)
 end
 
-function decimate(od::OrbitData)
-    nzros = [i for i in 1:length(od.Uπs) if size(od.Uπs[i],2) !=0]
+function decimate(od::OrbitData, verbose=true)
+    nzros = [i for i in 1:length(od.Uπs) if !isempty(od.Uπs[i])]
 
-    Us = map(x -> PropertyT.sparsify!(x, eps(Float64)*1e3, verbose=true), od.Uπs[nzros])
-    #dimensions of the corresponding πs:
+    Us = sparsify!.(od.Uπs, eps(Float64) * 1e4, verbose = verbose)[nzros]
+    #dimensions of the corresponding Uπs:
     dims = od.dims[nzros]
 
-    return OrbitData(od.orbits, od.preps, Array{Float64}.(Us), dims);
+    return OrbitData(od.orbits, od.preps, Array{Float64}.(Us), dims)
 end
 
 function orthSVD(M::AbstractMatrix{T}) where {T<:AbstractFloat}
-    M = Matrix(M)
-    fact = svd(M)
-    M_rank = sum(fact.S .> maximum(size(M))*eps(T))
-    return fact.U[:,1:M_rank]
+    fact = svd(convert(Matrix{T}, M))
+    M_rank = sum(fact.S .> maximum(size(M)) * eps(T))
+    return fact.U[:, 1:M_rank]
 end
 
 orbit_decomposition(
@@ -94,26 +93,25 @@ end
 dens(M::SparseMatrixCSC) = nnz(M)/length(M)
 dens(M::AbstractArray) = count(!iszero, M)/length(M)
 
-function sparsify!(M::SparseMatrixCSC{Tv,Ti}, eps=eps(Tv); verbose=false) where {Tv,Ti}
+function sparsify!(M::SparseMatrixCSC{Tv,Ti}, tol=eps(Tv); verbose=false) where {Tv,Ti}
 
     densM = dens(M)
-    for i in eachindex(M.nzval)
-        if abs(M.nzval[i]) < eps
-            M.nzval[i] = zero(Tv)
-        end
-    end
-    dropzeros!(M)
+    droptol!(M, tol)
 
-    if verbose
-        @info("Sparsified density:", rpad(densM, 20), " → ", rpad(dens(M), 20), " ($(nnz(M)) non-zeros)")
-    end
+    verbose && @info(
+                "Sparsified density:",
+                rpad(densM, 20),
+                " → ",
+                rpad(dens(M), 20),
+                " ($(nnz(M)) non-zeros)"
+            )
 
     return M
 end
 
-function sparsify!(M::AbstractArray{T}, eps=eps(T); verbose=false) where T
+function sparsify!(M::AbstractArray{T}, tol=eps(T); verbose=false) where T
     densM = dens(M)
-    clamp_small!(M, eps)
+    clamp_small!(M, tol)
 
     if verbose
         @info("Sparsifying $(size(M))-matrix... \n $(rpad(densM, 20)) → $(rpad(dens(M),20))), ($(count(!iszero, M)) non-zeros)")
@@ -122,9 +120,9 @@ function sparsify!(M::AbstractArray{T}, eps=eps(T); verbose=false) where T
     return sparse(M)
 end
 
-function clamp_small!(M::AbstractArray{T}, eps=eps(T)) where T
+function clamp_small!(M::AbstractArray{T}, tol=eps(T)) where T
     for n in eachindex(M)
-        if abs(M[n]) < eps
+        if abs(M[n]) < tol
             M[n] = zero(T)
         end
     end
