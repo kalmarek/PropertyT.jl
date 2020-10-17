@@ -80,7 +80,7 @@ function SqAdjOp(RG::GroupRing, N::Integer)
     Alt_N = [σ for σ in SymmetricGroup(N) if parity(σ) == 0]
     sq, adj, op = RG(), RG(), RG()
 
-    Δ₂s = Dict(σ=>σ(Δ₂) for σ in Alt_N)
+    Δ₂s = Dict(σ=>Δ₂^σ for σ in Alt_N)
 
     for σ in Alt_N
         GroupRings.addeq!(sq, *(Δ₂s[σ], Δ₂s[σ], false))

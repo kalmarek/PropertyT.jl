@@ -31,14 +31,14 @@
         y = 2RG(elt2) - RG(elt)
 
         for G in [SymmetricGroup(N), WreathProduct(SymmetricGroup(2), SymmetricGroup(N))]
-            @test all(g(one(M)) == one(M) for g in G)
-            @test all(rdict[g(m)] <= sizes[1] for g in G for m in S)
-            @test all(g(m)*g(n) == g(m*n) for g in G for m in S for n in S)
+            @test all(one(M)^g == one(M) for g in G)
+            @test all(rdict[m^g] <= sizes[1] for g in G for m in S)
+            @test all(m^g*n^g == (m*n)^g for g in G for m in S for n in S)
 
-            @test all(g(Δ) == Δ for g in G)
-            @test all(g(x) == RG(1) - RG(g(elt)) for g in G)
+            @test all(Δ^g == Δ for g in G)
+            @test all(x^g == RG(1) - RG(elt^g) for g in G)
 
-            @test all(2RG(g(elt2)) - RG(g(elt)) == g(y) for g in G)
+            @test all(2RG(elt2^g) - RG(elt^g) == y^g for g in G)
         end
     end
 
@@ -47,9 +47,9 @@
             Sij = ssgs(M, i,j)
             Δij= PropertyT.spLaplacian(RG, Sij)
 
-            @test all(p(Δij) == PropertyT.spLaplacian(RG, ssgs(M, p[i], p[j])) for p in SymmetricGroup(N))
+            @test all(Δij^p == PropertyT.spLaplacian(RG, ssgs(M, p[i], p[j])) for p in SymmetricGroup(N))
 
-            @test all(g(Δij) == PropertyT.spLaplacian(RG, ssgs(M, g.p[i], g.p[j])) for g in WreathProduct(SymmetricGroup(2), SymmetricGroup(N)))
+            @test all(Δij^g == PropertyT.spLaplacian(RG, ssgs(M, g.p[i], g.p[j])) for g in WreathProduct(SymmetricGroup(2), SymmetricGroup(N)))
         end
     end
 end
@@ -77,14 +77,14 @@ end
         y = 2RG(elt2) - RG(elt)
 
         for G in [SymmetricGroup(N), WreathProduct(SymmetricGroup(2), SymmetricGroup(N))]
-            @test all(g(one(M)) == one(M) for g in G)
-            @test all(rdict[g(m)] <= sizes[1] for g in G for m in S)
-            @test all(g(m)*g(n) == g(m*n) for g in G for m in S for n in S)
+            @test all(one(M)^g == one(M) for g in G)
+            @test all(rdict[m^g] <= sizes[1] for g in G for m in S)
+            @test all(m^g*n^g == (m*n)^g for g in G for m in S for n in S)
 
-            @test all(g(Δ) == Δ for g in G)
-            @test all(g(x) == RG(1) - RG(g(elt)) for g in G)
+            @test all(Δ^g == Δ for g in G)
+            @test all(x^g == RG(1) - RG(elt^g) for g in G)
 
-            @test all(2RG(g(elt2)) - RG(g(elt)) == g(y) for g in G)
+            @test all(2RG(elt2^g) - RG(elt^g) == y^g for g in G)
         end
     end
 
@@ -92,9 +92,9 @@ end
         Sij = ssgs(M, i,j)
         Δij= PropertyT.spLaplacian(RG, Sij)
 
-        @test all(p(Δij) == PropertyT.spLaplacian(RG, ssgs(M, p[i], p[j])) for p in SymmetricGroup(N))
+        @test all(Δij^p == PropertyT.spLaplacian(RG, ssgs(M, p[i], p[j])) for p in SymmetricGroup(N))
 
-        @test all(g(Δij) == PropertyT.spLaplacian(RG, ssgs(M, g.p[i], g.p[j])) for g in WreathProduct(SymmetricGroup(2), SymmetricGroup(N)))
+        @test all(Δij^g == PropertyT.spLaplacian(RG, ssgs(M, g.p[i], g.p[j])) for g in WreathProduct(SymmetricGroup(2), SymmetricGroup(N)))
     end
 end
 
