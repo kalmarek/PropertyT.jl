@@ -43,7 +43,7 @@ end
 ###############################################################################
 
 function SOS_problem_dual(elt::GroupRingElem, order_unit::GroupRingElem;
-    upper_bound::Float64=Inf)
+    lower_bound::Float64=Inf)
     @assert parent(elt) == parent(order_unit)
 
     RG = parent(elt)
@@ -54,9 +54,10 @@ function SOS_problem_dual(elt::GroupRingElem, order_unit::GroupRingElem;
     @constraint(m, λ_dual, dot(order_unit.coeffs, y) == 1)
     @constraint(m, psd, [y[i] for i in RG.pm] in PSDCone())
 
-    if !isinf(upper_bound)
+    if !isinf(lower_bound)
         @variable(m, λ_ub_dual)
-        expr = dot(elt.coeffs, y) + upper_bound*λ_ub_dual
+        expr = dot(elt.coeffs, y) + lower_bound*λ_ub_dual
+        # @constraint m expr >= lower_bound
         @objective m Min expr
     else
         @objective m Min dot(elt.coeffs, y)
@@ -73,7 +74,7 @@ function SOS_problem_primal(X::GroupRingElem, orderunit::GroupRingElem;
 
     JuMP.@variable(m, P[1:N, 1:N])
     # SP = Symmetric(P)
-    JuMP.@constraint(m, sdp, P in PSDCone())
+    JuMP.@SDconstraint(m, sdp, P >= 0)
 
     if iszero(aug(X)) && iszero(aug(orderunit))
         JuMP.@constraint(m, augmentation, sum(P) == 0)
@@ -97,15 +98,13 @@ function SOS_problem_primal(X::GroupRingElem, orderunit::GroupRingElem;
     return m
 end
 
-const SOS_problem = SOS_problem_primal
-
 ###############################################################################
 #
 #  Symmetrized SDP
 #
 ###############################################################################
 
-function SOS_problem(X::GroupRingElem, orderunit::GroupRingElem, data::OrbitData; upper_bound::Float64=Inf)
+function SOS_problem_primal(X::GroupRingElem, orderunit::GroupRingElem, data::OrbitData; upper_bound::Float64=Inf)
     Ns = size.(data.Uπs, 2)
     m = JuMP.Model();
 
@@ -113,7 +112,7 @@ function SOS_problem(X::GroupRingElem, orderunit::GroupRingElem, data::OrbitData
 
     for (k,s) in enumerate(Ns)
         Ps[k] = JuMP.@variable(m, [1:s, 1:s])
-        JuMP.@constraint(m, Ps[k] in PSDCone())
+        JuMP.@SDconstraint(m, Ps[k] >= 0)
     end
 
     if upper_bound < Inf

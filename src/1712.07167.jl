@@ -89,7 +89,7 @@ function approximate_by_SOS(sett::Naive,
     isdir(fullpath(sett)) || mkpath(fullpath(sett))
 
     @info "Creating SDP problem..."
-    SDP_problem = SOS_problem(elt, orderunit, upper_bound=sett.upper_bound)
+    SDP_problem = SOS_problem_primal(elt, orderunit, upper_bound=sett.upper_bound)
     @info Base.repr(SDP_problem)
 
     @info "Logging solver's progress into $solverlog"
@@ -141,7 +141,7 @@ function approximate_by_SOS(sett::Symmetrized,
     orbit_data = decimate(orbit_data)
 
     @info "Creating SDP problem..."
-    SDP_problem, varP = SOS_problem(elt, orderunit, orbit_data, upper_bound=sett.upper_bound)
+    SDP_problem, varP = SOS_problem_primal(elt, orderunit, orbit_data, upper_bound=sett.upper_bound)
     @info Base.repr(SDP_problem)
 
     @info "Logging solver's progress into $solverlog"

@@ -100,7 +100,7 @@ end
     end
 
     function check_positivity(elt, Δ, orbit_data, upper_bound, warm=nothing; with_solver=with_SCS(20_000, accel=10))
-        SDP_problem, varP = PropertyT.SOS_problem(elt, Δ, orbit_data; upper_bound=upper_bound)
+        SDP_problem, varP = PropertyT.SOS_problem_primal(elt, Δ, orbit_data; upper_bound=upper_bound)
 
         status, warm = PropertyT.solve(SDP_problem, with_solver, warm);
         Base.Libc.flush_cstdio()
