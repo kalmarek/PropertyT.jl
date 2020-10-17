@@ -15,7 +15,7 @@
     halfradius = 2
     M = MatrixAlgebra(zz, N)
     S = PropertyT.generating_set(M)
-    E_R, sizes = Groups.generate_balls(S, one(M), radius=2halfradius);
+    E_R, sizes = Groups.wlmetric_ball(S, one(M), radius=2halfradius);
 
     rdict = GroupRings.reverse_dict(E_R)
     pm = GroupRings.create_pm(E_R, rdict, sizes[halfradius]; twisted=false);
@@ -59,7 +59,7 @@ end
     halfradius = 2
     M = SAut(FreeGroup(N))
     S = PropertyT.generating_set(M)
-    E_R, sizes = Groups.generate_balls(S, one(M), radius=2halfradius);
+    E_R, sizes = Groups.wlmetric_ball(S, one(M), radius=2halfradius);
 
     rdict = GroupRings.reverse_dict(E_R)
     pm = GroupRings.create_pm(E_R, rdict, sizes[halfradius]; twisted=false);
