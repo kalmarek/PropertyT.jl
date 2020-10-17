@@ -182,7 +182,9 @@ uuid = "9fa8497b-333b-5362-9e8d-4d0656e87820"
 
 [[GroupRings]]
 deps = ["AbstractAlgebra", "LinearAlgebra", "SparseArrays"]
-path = "/home/kalmar/.julia/dev/GroupRings"
+git-tree-sha1 = "6fc5382d8bc94cd2175c5725b03d0cbba565f1e4"
+repo-rev = "master"
+repo-url = "https://github.com/kalmarek/GroupRings.jl"
 uuid = "0befed6a-bd73-11e8-1e41-a1190947c2f5"
 version = "0.3.4"
 
