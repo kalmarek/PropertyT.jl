@@ -1,17 +1,17 @@
 ###############################################################################
 #
-#  OrbitData
+#  BlockDecomposition
 #
 ###############################################################################
 
-struct OrbitData{T<:AbstractArray{Float64, 2}, GEl<:GroupElem, P<:Generic.Perm}
+struct BlockDecomposition{T<:AbstractArray{Float64, 2}, GEl<:GroupElem, P<:Generic.Perm}
     orbits::Vector{Vector{Int}}
     preps::Dict{GEl, P}
     Uπs::Vector{T}
     dims::Vector{Int}
 end
 
-function OrbitData(RG::GroupRing, autS::Group, verbose=true)
+function BlockDecomposition(RG::GroupRing, autS::Group, verbose=true)
     verbose && @info "Decomposing basis of RG into orbits of" autS
     @time orbs = orbit_decomposition(autS, RG.basis, RG.basis_dict)
     @assert sum(length(o) for o in orbs) == length(RG.basis)
@@ -38,17 +38,17 @@ function OrbitData(RG::GroupRing, autS::Group, verbose=true)
     end
     @assert dot(multiplicities, dimensions) == size(RG.pm,1)
 
-    return OrbitData(orbs, preps, Uπs, dimensions)
+    return BlockDecomposition(orbs, preps, Uπs, dimensions)
 end
 
-function decimate(od::OrbitData, verbose=true)
+function decimate(od::BlockDecomposition, verbose=true)
     nzros = [i for i in 1:length(od.Uπs) if !isempty(od.Uπs[i])]
 
     Us = sparsify!.(od.Uπs, eps(Float64) * 1e4, verbose = verbose)[nzros]
     #dimensions of the corresponding Uπs:
     dims = od.dims[nzros]
 
-    return OrbitData(od.orbits, od.preps, Array{Float64}.(Us), dims)
+    return BlockDecomposition(od.orbits, od.preps, Array{Float64}.(Us), dims)
 end
 
 function orthSVD(M::AbstractMatrix{T}) where {T<:AbstractFloat}

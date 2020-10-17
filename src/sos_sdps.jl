@@ -104,7 +104,7 @@ end
 #
 ###############################################################################
 
-function SOS_problem_primal(X::GroupRingElem, orderunit::GroupRingElem, data::OrbitData; upper_bound::Float64=Inf)
+function SOS_problem_primal(X::GroupRingElem, orderunit::GroupRingElem, data::BlockDecomposition; upper_bound::Float64=Inf)
     Ns = size.(data.Uπs, 2)
     m = JuMP.Model();
 
@@ -137,7 +137,7 @@ end
 
 function addconstraints!(m::JuMP.Model,
     P::Vector{Matrix{JuMP.VariableRef}},
-    X::GroupRingElem, orderunit::GroupRingElem, data::OrbitData)
+    X::GroupRingElem, orderunit::GroupRingElem, data::BlockDecomposition)
 
     orderunit_orb = orbit_spvector(orderunit.coeffs, data.orbits)
     X_orb = orbit_spvector(X.coeffs, data.orbits)
@@ -163,7 +163,7 @@ function addconstraints!(m::JuMP.Model,
     return m
 end
 
-function reconstruct(Ps::Vector{Matrix{F}}, data::OrbitData) where F
+function reconstruct(Ps::Vector{Matrix{F}}, data::BlockDecomposition) where F
     return reconstruct(Ps, data.preps, data.Uπs, data.dims)
 end
 

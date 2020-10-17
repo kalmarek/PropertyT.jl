@@ -16,7 +16,7 @@ import AbstractAlgebra: Group, NCRing
 
 include("laplacians.jl")
 include("RGprojections.jl")
-include("orbitdata.jl")
+include("blockdecomposition.jl")
 include("sos_sdps.jl")
 include("checksolution.jl")
 

@@ -123,7 +123,7 @@ end
         S = PropertyT.generating_set(M)
         Δ = PropertyT.Laplacian(S, halfradius)
         RG = parent(Δ)
-        orbit_data = PropertyT.OrbitData(RG, WreathProduct(SymmetricGroup(2), SymmetricGroup(N)))
+        orbit_data = PropertyT.BlockDecomposition(RG, WreathProduct(SymmetricGroup(2), SymmetricGroup(N)))
         orbit_data = PropertyT.decimate(orbit_data);
 
         @testset "Sq₃ is SOS" begin
@@ -170,7 +170,7 @@ end
         S = PropertyT.generating_set(M)
         Δ = PropertyT.Laplacian(S, halfradius)
         RG = parent(Δ)
-        orbit_data = PropertyT.OrbitData(RG, WreathProduct(SymmetricGroup(2), SymmetricGroup(N)))
+        orbit_data = PropertyT.BlockDecomposition(RG, WreathProduct(SymmetricGroup(2), SymmetricGroup(N)))
         orbit_data = PropertyT.decimate(orbit_data);
 
         @testset "Sq₄ is SOS" begin
@@ -228,7 +228,7 @@ end
     #     S = PropertyT.generating_set(M)
     #     Δ = PropertyT.Laplacian(S, halfradius)
     #     RG = parent(Δ)
-    #     orbit_data = PropertyT.OrbitData(RG, WreathProduct(SymmetricGroup(2), SymmetricGroup(N)))
+    #     orbit_data = PropertyT.BlockDecomposition(RG, WreathProduct(SymmetricGroup(2), SymmetricGroup(N)))
     #     orbit_data = PropertyT.decimate(orbit_data);
     #
     #     @time elt = PropertyT.Adj(RG) + 100PropertyT.Op(RG)
