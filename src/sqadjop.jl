@@ -19,7 +19,7 @@ function Sq(RG::GroupRing, N::Integer)
 
     sq = RG()
     for σ in Alt_N
-        GroupRings.addeq!(sq, *(σ(Δ₂), σ(Δ₂), false))
+        GroupRings.addeq!(sq, *(Δ₂^σ, Δ₂^σ, false))
     end
     return sq÷factorial(N-2)
 end
@@ -30,7 +30,7 @@ function Adj(RG::GroupRing, N::Integer)
     Δ₂ = length(S₂)*one(RG, ℤ) - RG(S₂, ℤ);
 
     Alt_N = [g for g in SymmetricGroup(N) if parity(g) == 0]
-    Δ₂s = Dict(σ=>σ(Δ₂) for σ in Alt_N)
+    Δ₂s = Dict(σ=>Δ₂^σ for σ in Alt_N)
     adj = RG()
 
     for σ in Alt_N
@@ -52,7 +52,7 @@ function Op(RG::GroupRing, N::Integer)
     Δ₂ = length(S₂)*one(RG, ℤ) - RG(S₂, ℤ);
 
     Alt_N = [g for g in SymmetricGroup(N) if parity(g) == 0]
-    Δ₂s = Dict(σ=>σ(Δ₂) for σ in Alt_N)
+    Δ₂s = Dict(σ=>Δ₂^σ for σ in Alt_N)
     op = RG()
 
     for σ in Alt_N
@@ -80,7 +80,7 @@ function SqAdjOp(RG::GroupRing, N::Integer)
     Alt_N = [σ for σ in SymmetricGroup(N) if parity(σ) == 0]
     sq, adj, op = RG(), RG(), RG()
 
-    Δ₂s = Dict(σ=>σ(Δ₂) for σ in Alt_N)
+    Δ₂s = Dict(σ=>Δ₂^σ for σ in Alt_N)
 
     for σ in Alt_N
         GroupRings.addeq!(sq, *(Δ₂s[σ], Δ₂s[σ], false))

@@ -100,7 +100,7 @@ end
     end
 
     function check_positivity(elt, Δ, orbit_data, upper_bound, warm=nothing; with_solver=with_SCS(20_000, accel=10))
-        SDP_problem, varP = PropertyT.SOS_problem(elt, Δ, orbit_data; upper_bound=upper_bound)
+        SDP_problem, varP = PropertyT.SOS_problem_primal(elt, Δ, orbit_data; upper_bound=upper_bound)
 
         status, warm = PropertyT.solve(SDP_problem, with_solver, warm);
         Base.Libc.flush_cstdio()
@@ -123,7 +123,7 @@ end
         S = PropertyT.generating_set(M)
         Δ = PropertyT.Laplacian(S, halfradius)
         RG = parent(Δ)
-        orbit_data = PropertyT.OrbitData(RG, WreathProduct(SymmetricGroup(2), SymmetricGroup(N)))
+        orbit_data = PropertyT.BlockDecomposition(RG, WreathProduct(SymmetricGroup(2), SymmetricGroup(N)))
         orbit_data = PropertyT.decimate(orbit_data);
 
         @testset "Sq₃ is SOS" begin
@@ -170,7 +170,7 @@ end
         S = PropertyT.generating_set(M)
         Δ = PropertyT.Laplacian(S, halfradius)
         RG = parent(Δ)
-        orbit_data = PropertyT.OrbitData(RG, WreathProduct(SymmetricGroup(2), SymmetricGroup(N)))
+        orbit_data = PropertyT.BlockDecomposition(RG, WreathProduct(SymmetricGroup(2), SymmetricGroup(N)))
         orbit_data = PropertyT.decimate(orbit_data);
 
         @testset "Sq₄ is SOS" begin
@@ -228,7 +228,7 @@ end
     #     S = PropertyT.generating_set(M)
     #     Δ = PropertyT.Laplacian(S, halfradius)
     #     RG = parent(Δ)
-    #     orbit_data = PropertyT.OrbitData(RG, WreathProduct(SymmetricGroup(2), SymmetricGroup(N)))
+    #     orbit_data = PropertyT.BlockDecomposition(RG, WreathProduct(SymmetricGroup(2), SymmetricGroup(N)))
     #     orbit_data = PropertyT.decimate(orbit_data);
     #
     #     @time elt = PropertyT.Adj(RG) + 100PropertyT.Op(RG)

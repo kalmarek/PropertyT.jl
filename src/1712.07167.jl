@@ -51,8 +51,8 @@ filename(sett::Settings, ::Type{Val{:solverlog}}; kwargs...) =
 
 filename(sett::Settings, ::Type{Val{:Δ}}; kwargs...) =
     filename(prepath(sett), "delta", "jld"; kwargs...)
-filename(sett::Settings, ::Type{Val{:OrbitData}}; kwargs...) =
-    filename(prepath(sett), "OrbitData", "jld"; kwargs...)
+filename(sett::Settings, ::Type{Val{:BlockDecomposition}}; kwargs...) =
+    filename(prepath(sett), "BlockDecomposition", "jld"; kwargs...)
 
 filename(sett::Settings, ::Type{Val{:solution}}; kwargs...) =
     filename(fullpath(sett), "solution", "jld"; kwargs...)
@@ -89,7 +89,7 @@ function approximate_by_SOS(sett::Naive,
     isdir(fullpath(sett)) || mkpath(fullpath(sett))
 
     @info "Creating SDP problem..."
-    SDP_problem = SOS_problem(elt, orderunit, upper_bound=sett.upper_bound)
+    SDP_problem = SOS_problem_primal(elt, orderunit, upper_bound=sett.upper_bound)
     @info Base.repr(SDP_problem)
 
     @info "Logging solver's progress into $solverlog"
@@ -125,7 +125,7 @@ function approximate_by_SOS(sett::Symmetrized,
     isdir(fullpath(sett)) || mkpath(fullpath(sett))
 
     orbit_data = try
-        orbit_data = load(filename(sett, :OrbitData), "OrbitData")
+        orbit_data = load(filename(sett, :BlockDecomposition), "BlockDecomposition")
         @info "Loaded orbit data."
         orbit_data
     catch ex
@@ -133,15 +133,15 @@ function approximate_by_SOS(sett::Symmetrized,
         GroupRings.hasbasis(parent(orderunit)) ||
             throw("You need to define basis of Group Ring to compute orbit decomposition!")
         @info "Computing orbit and Wedderburn decomposition..."
-        orbit_data = OrbitData(parent(orderunit), sett.autS)
-        save(filename(sett, :OrbitData), "OrbitData", orbit_data)
+        orbit_data = BlockDecomposition(parent(orderunit), sett.autS)
+        save(filename(sett, :BlockDecomposition), "BlockDecomposition", orbit_data)
         orbit_data
     end
 
     orbit_data = decimate(orbit_data)
 
     @info "Creating SDP problem..."
-    SDP_problem, varP = SOS_problem(elt, orderunit, orbit_data, upper_bound=sett.upper_bound)
+    SDP_problem, varP = SOS_problem_primal(elt, orderunit, orbit_data, upper_bound=sett.upper_bound)
     @info Base.repr(SDP_problem)
 
     @info "Logging solver's progress into $solverlog"

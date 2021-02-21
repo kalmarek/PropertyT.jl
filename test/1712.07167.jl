@@ -57,7 +57,7 @@
         NAME = "SL($N,Z)_orbit"
 
         rm(NAME, recursive=true, force=true)
-        sett = PropertyT.Settings(NAME, G, S, autS, with_SCS(2000, accel=20);
+        sett = PropertyT.Settings(NAME, G, S, autS, with_SCS(1000, accel=20);
         upper_bound=1.3, force_compute=false)
 
         @info sett
@@ -70,18 +70,18 @@
         @test λ == PropertyT.spectral_gap(sett)
         @test PropertyT.check_property_T(sett) == false
 
-        sett = PropertyT.Settings(NAME, G, S, autS, with_SCS(15000, accel=20, warm_start=true);
+        sett = PropertyT.Settings(NAME, G, S, autS, with_SCS(7000, accel=20, warm_start=true);
         upper_bound=1.3, force_compute=true)
 
         @info sett
 
-        λ = PropertyT.spectral_gap(sett)
+        @time λ = PropertyT.spectral_gap(sett)
         @test λ > 1.2999
         @test PropertyT.interpret_results(sett, λ) == true
 
         # this should be very fast due to warmstarting:
-        @test λ ≈ PropertyT.spectral_gap(sett) atol=1e-5
-        @test PropertyT.check_property_T(sett) == true
+        @time @test λ ≈ PropertyT.spectral_gap(sett) atol=1e-5
+        @time @test PropertyT.check_property_T(sett) == true
     end
 
     @testset "SAut(F₃)" begin

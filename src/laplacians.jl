@@ -16,7 +16,7 @@ end
 function Laplacian(S::AbstractVector{REl}, halfradius) where REl<:Union{NCRingElem, GroupElem}
     G = parent(first(S))
     @info "Generating metric ball of radius" radius=2halfradius
-    @time E_R, sizes = Groups.generate_balls(S, one(G), radius=2halfradius)
+    @time E_R, sizes = Groups.wlmetric_ball(S, radius=2halfradius)
     @info "Generated balls:" sizes
 
     @info "Creating product matrix..."

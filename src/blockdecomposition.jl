@@ -1,17 +1,17 @@
 ###############################################################################
 #
-#  OrbitData
+#  BlockDecomposition
 #
 ###############################################################################
 
-struct OrbitData{T<:AbstractArray{Float64, 2}, GEl<:GroupElem, P<:Generic.Perm}
+struct BlockDecomposition{T<:AbstractArray{Float64, 2}, GEl<:GroupElem, P<:Generic.Perm}
     orbits::Vector{Vector{Int}}
     preps::Dict{GEl, P}
     Uπs::Vector{T}
     dims::Vector{Int}
 end
 
-function OrbitData(RG::GroupRing, autS::Group, verbose=true)
+function BlockDecomposition(RG::GroupRing, autS::Group; verbose=true)
     verbose && @info "Decomposing basis of RG into orbits of" autS
     @time orbs = orbit_decomposition(autS, RG.basis, RG.basis_dict)
     @assert sum(length(o) for o in orbs) == length(RG.basis)
@@ -38,29 +38,33 @@ function OrbitData(RG::GroupRing, autS::Group, verbose=true)
     end
     @assert dot(multiplicities, dimensions) == size(RG.pm,1)
 
-    return OrbitData(orbs, preps, Uπs, dimensions)
+    return BlockDecomposition(orbs, preps, Uπs, dimensions)
 end
 
-function decimate(od::OrbitData)
-    nzros = [i for i in 1:length(od.Uπs) if size(od.Uπs[i],2) !=0]
+function decimate(od::BlockDecomposition; verbose=true)
+    nzros = [i for i in 1:length(od.Uπs) if !isempty(od.Uπs[i])]
 
-    Us = map(x -> PropertyT.sparsify!(x, eps(Float64)*1e3, verbose=true), od.Uπs[nzros])
-    #dimensions of the corresponding πs:
+    Us = sparsify!.(od.Uπs, eps(Float64) * 1e4, verbose = verbose)[nzros]
+    #dimensions of the corresponding Uπs:
     dims = od.dims[nzros]
 
-    return OrbitData(od.orbits, od.preps, Array{Float64}.(Us), dims);
+    return BlockDecomposition(od.orbits, od.preps, Array{Float64}.(Us), dims)
 end
 
 function orthSVD(M::AbstractMatrix{T}) where {T<:AbstractFloat}
-    M = Matrix(M)
-    fact = svd(M)
-    M_rank = sum(fact.S .> maximum(size(M))*eps(T))
-    return fact.U[:,1:M_rank]
+    fact = svd(convert(Matrix{T}, M))
+    M_rank = sum(fact.S .> maximum(size(M)) * eps(T))
+    return fact.U[:, 1:M_rank]
 end
 
-orbit_decomposition(G::Group, E::AbstractVector, rdict=GroupRings.reverse_dict(E)) = orbit_decomposition(collect(G), E, rdict)
+orbit_decomposition(
+    G::Group,
+    E::AbstractVector,
+    rdict = GroupRings.reverse_dict(E);
+    op = ^,
+) = orbit_decomposition(collect(G), E, rdict; op=op)
 
-function orbit_decomposition(elts::AbstractVector{<:GroupElem}, E::AbstractVector, rdict=GroupRings.reverse_dict(E))
+function orbit_decomposition(elts::AbstractVector{<:GroupElem}, E::AbstractVector, rdict=GroupRings.reverse_dict(E); op=^)
 
     tovisit = trues(size(E));
     orbits = Vector{Vector{Int}}()
@@ -71,7 +75,7 @@ function orbit_decomposition(elts::AbstractVector{<:GroupElem}, E::AbstractVecto
         if tovisit[i]
             g = E[i]
             Threads.@threads for j in eachindex(elts)
-                orbit[j] = rdict[elts[j](g)]
+                orbit[j] = rdict[op(g, elts[j])]
             end
             tovisit[orbit] .= false
             push!(orbits, unique(orbit))
@@ -89,26 +93,25 @@ end
 dens(M::SparseMatrixCSC) = nnz(M)/length(M)
 dens(M::AbstractArray) = count(!iszero, M)/length(M)
 
-function sparsify!(M::SparseMatrixCSC{Tv,Ti}, eps=eps(Tv); verbose=false) where {Tv,Ti}
+function sparsify!(M::SparseMatrixCSC{Tv,Ti}, tol=eps(Tv); verbose=false) where {Tv,Ti}
 
     densM = dens(M)
-    for i in eachindex(M.nzval)
-        if abs(M.nzval[i]) < eps
-            M.nzval[i] = zero(Tv)
-        end
-    end
-    dropzeros!(M)
+    droptol!(M, tol)
 
-    if verbose
-        @info("Sparsified density:", rpad(densM, 20), " → ", rpad(dens(M), 20), " ($(nnz(M)) non-zeros)")
-    end
+    verbose && @info(
+                "Sparsified density:",
+                rpad(densM, 20),
+                " → ",
+                rpad(dens(M), 20),
+                " ($(nnz(M)) non-zeros)"
+            )
 
     return M
 end
 
-function sparsify!(M::AbstractArray{T}, eps=eps(T); verbose=false) where T
+function sparsify!(M::AbstractArray{T}, tol=eps(T); verbose=false) where T
     densM = dens(M)
-    clamp_small!(M, eps)
+    clamp_small!(M, tol)
 
     if verbose
         @info("Sparsifying $(size(M))-matrix... \n $(rpad(densM, 20)) → $(rpad(dens(M),20))), ($(count(!iszero, M)) non-zeros)")
@@ -117,9 +120,9 @@ function sparsify!(M::AbstractArray{T}, eps=eps(T); verbose=false) where T
     return sparse(M)
 end
 
-function clamp_small!(M::AbstractArray{T}, eps=eps(T)) where T
+function clamp_small!(M::AbstractArray{T}, tol=eps(T)) where T
     for n in eachindex(M)
-        if abs(M[n]) < eps
+        if abs(M[n]) < tol
             M[n] = zero(T)
         end
     end
@@ -139,7 +142,7 @@ end
 function perm_repr(g::GroupElem, E::Vector, E_dict)
     p = Vector{Int}(undef, length(E))
     for (i,elt) in enumerate(E)
-        p[i] = E_dict[g(elt)]
+        p[i] = E_dict[elt^g]
     end
     return p
 end
@@ -178,29 +181,33 @@ end
 #
 ###############################################################################
 
-function (g::GroupRingElem)(y::GroupRingElem)
+function Base.:^(y::GroupRingElem, g::GroupRingElem, op = ^)
     res = parent(y)()
     for elt in GroupRings.supp(g)
-        res += g[elt]*elt(y)
+        res += g[elt] * ^(y, elt, op)
     end
     return res
 end
 
-function (g::GroupElem)(y::GroupRingElem)
+function Base.:^(y::GroupRingElem, g::GroupElem, op = ^)
     RG = parent(y)
     result = zero(RG, eltype(y.coeffs))
 
     for (idx, c) in enumerate(y.coeffs)
         if !iszero(c)
-            result[g(RG.basis[idx])] = c
+            result[op(RG.basis[idx], g)] = c
         end
     end
     return result
 end
 
-function (g::GroupElem)(y::GroupRingElem{T, <:SparseVector}) where T
+function Base.:^(
+    y::GroupRingElem{T,<:SparseVector},
+    g::GroupElem,
+    op = ^,
+) where {T}
     RG = parent(y)
-    index = [RG.basis_dict[g(RG.basis[idx])] for idx in y.coeffs.nzind]
+    index = [RG.basis_dict[op(RG.basis[idx], g)] for idx in y.coeffs.nzind]
 
     result = GroupRingElem(sparsevec(index, y.coeffs.nzval, y.coeffs.n), RG)
 
@@ -213,28 +220,29 @@ end
 #
 ###############################################################################
 
-function (p::Generic.Perm)(A::MatAlgElem)
-    length(p.d) == size(A, 1) == size(A,2) || throw("Can't act via $p on matrix of size $(size(A))")
+function Base.:^(A::MatAlgElem, p::Generic.Perm)
+    length(p.d) == size(A, 1) == size(A, 2) ||
+        throw("Can't act via $p on matrix of size $(size(A))")
     result = similar(A)
-    @inbounds for i in 1:size(A, 1)
-        for j in 1:size(A, 2)
-            result[p[i], p[j]] = A[i,j] # action by permuting rows and colums/conjugation
+    @inbounds for i = 1:size(A, 1)
+        for j = 1:size(A, 2)
+            result[p[i], p[j]] = A[i, j] # action by permuting rows and colums/conjugation
         end
     end
     return result
 end
 
-function (g::WreathProductElem{N})(A::MatAlgElem) where N
+function Base.:^(A::MatAlgElem, g::WreathProductElem{N}) where {N}
     # @assert N == size(A,1) == size(A,2)
-    flips = ntuple(i->(g.n[i].d[1]==1 && g.n[i].d[2]==2 ? 1 : -1), N)
+    flips = ntuple(i -> (g.n[i].d[1] == 1 && g.n[i].d[2] == 2 ? 1 : -1), N)
     result = similar(A)
     R = base_ring(parent(A))
     tmp = R(1)
 
-    @inbounds for i = 1:size(A,1)
-        for j = 1:size(A,2)
+    @inbounds for i = 1:size(A, 1)
+        for j = 1:size(A, 2)
             x = A[i, j]
-            if flips[i]*flips[j] == 1
+            if flips[i] * flips[j] == 1
                 result[g.p[i], g.p[j]] = x
             else
                 result[g.p[i], g.p[j]] = -x
@@ -250,7 +258,7 @@ end
 #
 ###############################################################################
 
-function (g::GroupElem)(a::Automorphism)
+function Base.:^(a::Automorphism, g::GroupElem)
     Ag = parent(a)(g)
     Ag_inv = inv(Ag)
     res = append!(Ag, a, Ag_inv)
@@ -261,10 +269,11 @@ end
 
 function (A::AutGroup)(g::WreathProductElem)
     isa(A.objectGroup, FreeGroup) || throw("Not an Aut(Fₙ)")
-    parent(g).P.n == length(A.objectGroup.gens) || throw("No natural embedding of $(parent(g)) into $A")
+    parent(g).P.n == length(A.objectGroup.gens) ||
+        throw("No natural embedding of $(parent(g)) into $A")
     elt = one(A)
     Id = one(parent(g.n.elts[1]))
-    for i in 1:length(g.p.d)
+    for i = 1:length(g.p.d)
         if g.n.elts[i] != Id
             push!(elt, Groups.flip(i))
         end
