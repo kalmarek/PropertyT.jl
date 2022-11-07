@@ -1,260 +1,359 @@
-###############################################################################
-#
-#  Constraints
-#
-###############################################################################
+"""
+    sos_problem_dual(X, [u = zero(X); upper_bound=Inf])
+Formulate the dual to the sum of squares decomposition problem for `X - λ·u`.
 
-function constraints(pm::Matrix{I}, total_length=maximum(pm)) where {I<:Integer}
-    cnstrs = [Vector{I}() for _ in 1:total_length]
-    for i in eachindex(pm)
-        push!(cnstrs[pm[i]], i)
+See also [sos_problem_primal](@ref).
+"""
+function sos_problem_dual(
+    elt::AlgebraElement,
+    order_unit::AlgebraElement=zero(elt);
+    lower_bound=-Inf
+)
+    @assert parent(elt) == parent(order_unit)
+    algebra = parent(elt)
+    mstructure = if StarAlgebras._istwisted(algebra.mstructure)
+        algebra.mstructure
+    else
+        StarAlgebras.MTable{true}(basis(algebra), table_size=size(algebra.mstructure))
+    end
+
+    # 1 variable for every primal constraint
+    # 1 dual variable for every element of basis
+    # Symmetrized:
+    # 1 dual variable for every orbit of G acting on basis
+    model = Model()
+    @variable model y[1:length(basis(algebra))]
+    @constraint model λ_dual dot(order_unit, y) == 1
+    @constraint(model, psd, y[mstructure] in PSDCone())
+
+    if !isinf(lower_bound)
+        throw("Not Implemented yet")
+        @variable model λ_ub_dual
+        @objective model Min dot(elt, y) + lower_bound * λ_ub_dual
+    else
+        @objective model Min dot(elt, y)
+    end
+
+    return model
+end
+
+function constraints(
+    mstr::AbstractMatrix{<:Integer},
+    total_length=maximum(mstr),
+)
+    cnstrs = [Vector{eltype(mstr)}() for _ = 1:total_length]
+    li = LinearIndices(mstr)
+
+    for (idx, val) in pairs(mstr)
+        push!(cnstrs[val], li[idx])
     end
     return cnstrs
 end
 
-function orbit_constraint!(result::SparseMatrixCSC, cnstrs, orbit; val=1.0/length(orbit))
+function constraints(
+    basis::StarAlgebras.AbstractBasis,
+    mstr::AbstractMatrix{<:Integer};
+    augmented::Bool=false,
+    table_size=size(mstr)
+)
+    cnstrs = [signed(eltype(mstr))[] for _ in basis]
+    LI = LinearIndices(table_size)
+
+    for ci in CartesianIndices(table_size)
+        k = LI[ci]
+        a_star_b = basis[mstr[k]]
+        push!(cnstrs[basis[a_star_b]], k)
+        if augmented
+            # (1-a_star)(1-b) = 1 - a_star - b + a_star_b
+
+            i, j = Tuple(ci)
+            a, b = basis[i], basis[j]
+
+            push!(cnstrs[basis[one(a)]], k)
+            push!(cnstrs[basis[star(a)]], -k)
+            push!(cnstrs[basis[b]], -k)
+        end
+    end
+
+    return Dict(
+        basis[i] => ConstraintMatrix(c, table_size..., 1) for (i, c) in pairs(cnstrs)
+    )
+end
+
+function constraints(A::StarAlgebra; augmented::Bool, twisted::Bool)
+    mstructure = if StarAlgebras._istwisted(A.mstructure) == twisted
+        A.mstructure
+    else
+        StarAlgebras.MTable{twisted}(basis(A), table_size=size(A.mstructure))
+    end
+    return constraints(basis(A), mstructure, augmented=augmented)
+end
+
+"""
+    sos_problem_primal(X, [u = zero(X); upper_bound=Inf])
+Formulate sum of squares decomposition problem for `X - λ·u`.
+
+Given element `X` of a star-algebra `A` and an order unit `u` of `Σ²A` the sum
+of squares cone in `A`, fomulate sum of squares decomposition problem:
+
+```
+max:        λ
+subject to: X - λ·u ∈ Σ²A
+```
+
+If `upper_bound` is given a finite value, additionally `λ ≤ upper_bound` will
+be added to the model. This may improve the accuracy of the solution if
+`upper_bound` is less than the optimal `λ`.
+
+The default `u = zero(X)` formulates a simple feasibility problem.
+"""
+function sos_problem_primal(
+    elt::AlgebraElement,
+    order_unit::AlgebraElement=zero(elt);
+    upper_bound=Inf,
+    augmented::Bool=iszero(aug(elt)) && iszero(aug(order_unit))
+)
+    @assert parent(elt) === parent(order_unit)
+
+    N = LinearAlgebra.checksquare(parent(elt).mstructure)
+    model = JuMP.Model()
+    P = JuMP.@variable(model, P[1:N, 1:N], Symmetric)
+    JuMP.@constraint(model, psd, P in PSDCone())
+
+    if iszero(order_unit) && isfinite(upper_bound)
+        @warn "Setting `upper_bound` together with zero `order_unit` has no effect"
+    end
+
+    A = constraints(parent(elt), augmented=augmented, twisted=true)
+
+    if !iszero(order_unit)
+        λ = JuMP.@variable(model, λ)
+        if isfinite(upper_bound)
+            JuMP.@constraint model λ <= upper_bound
+        end
+        JuMP.@objective(model, Max, λ)
+
+        for b in basis(parent(elt))
+            JuMP.@constraint(model, elt(b) - λ * order_unit(b) == dot(A[b], P))
+        end
+    else
+        for b in basis(parent(elt))
+            JuMP.@constraint(model, elt(b) == dot(A[b], P))
+        end
+    end
+
+    return model
+end
+
+function invariant_constraint!(
+    result::AbstractMatrix,
+    basis::StarAlgebras.AbstractBasis,
+    cnstrs::AbstractDict{K,CM},
+    invariant_vec::SparseVector,
+) where {K,CM<:ConstraintMatrix}
     result .= zero(eltype(result))
-    dropzeros!(result)
-    for constraint in cnstrs[orbit]
-        for idx in constraint
-            result[idx] = val
+    for i in SparseArrays.nonzeroinds(invariant_vec)
+        g = basis[i]
+        A = cnstrs[g]
+        for (idx, v) in nzpairs(A)
+            result[idx] += invariant_vec[i] * v
         end
     end
     return result
 end
 
-function orbit_spvector(vect::AbstractVector, orbits)
-    orb_vector = spzeros(length(orbits))
-
-    for (i,o) in enumerate(orbits)
-        k = vect[collect(o)]
-        val = k[1]
-        @assert all(k .== val)
-        orb_vector[i] = val
-    end
-
-    return orb_vector
+function isorth_projection(ds::SymbolicWedderburn.DirectSummand)
+    U = SymbolicWedderburn.image_basis(ds)
+    return isapprox(U * U', I)
 end
 
-###############################################################################
-#
-#  Naive SDP
-#
-###############################################################################
+sos_problem_primal(
+    elt::AlgebraElement,
+    wedderburn::WedderburnDecomposition;
+    kwargs...
+) = sos_problem_primal(elt, zero(elt), wedderburn; kwargs...)
 
-function SOS_problem_dual(elt::GroupRingElem, order_unit::GroupRingElem;
-    lower_bound::Float64=Inf)
-    @assert parent(elt) == parent(order_unit)
+function sos_problem_primal(
+    elt::AlgebraElement,
+    orderunit::AlgebraElement,
+    wedderburn::WedderburnDecomposition;
+    upper_bound=Inf,
+    augmented=iszero(aug(elt)) && iszero(aug(orderunit))
+)
 
-    RG = parent(elt)
-    m = Model()
-
-    y = @variable(m, y[1:length(elt.coeffs)])
-
-    @constraint(m, λ_dual, dot(order_unit.coeffs, y) == 1)
-    @constraint(m, psd, [y[i] for i in RG.pm] in PSDCone())
-
-    if !isinf(lower_bound)
-        @variable(m, λ_ub_dual)
-        expr = dot(elt.coeffs, y) + lower_bound*λ_ub_dual
-        # @constraint m expr >= lower_bound
-        @objective m Min expr
-    else
-        @objective m Min dot(elt.coeffs, y)
+    @assert parent(elt) === parent(orderunit)
+    if any(!isorth_projection, direct_summands(wedderburn))
+        error("Wedderburn decomposition contains a non-orthogonal projection")
     end
 
-    return m
-end
+    feasibility_problem = iszero(orderunit)
 
-function SOS_problem_primal(X::GroupRingElem, orderunit::GroupRingElem;
-    upper_bound::Float64=Inf)
+    model = JuMP.Model()
+    if !feasibility_problem # add λ or not?
+        λ = JuMP.@variable(model, λ)
+        JuMP.@objective(model, Max, λ)
 
-    N = size(parent(X).pm, 1)
-    m = JuMP.Model();
-
-    JuMP.@variable(m, P[1:N, 1:N])
-    # SP = Symmetric(P)
-    JuMP.@SDconstraint(m, sdp, P >= 0)
-
-    if iszero(aug(X)) && iszero(aug(orderunit))
-        JuMP.@constraint(m, augmentation, sum(P) == 0)
-    end
-
-    if upper_bound < Inf
-        λ = JuMP.@variable(m, λ <= upper_bound)
-    else
-        λ = JuMP.@variable(m, λ)
-    end
-
-    cnstrs = constraints(parent(X).pm)
-    @assert length(cnstrs) == length(X.coeffs) == length(orderunit.coeffs)
-
-    x, u = X.coeffs, orderunit.coeffs
-    JuMP.@constraint(m, lincnstr[i=1:length(cnstrs)],
-        x[i] - λ*u[i] == sum(P[cnstrs[i]]))
-
-    JuMP.@objective(m, Max, λ)
-
-    return m
-end
-
-###############################################################################
-#
-#  Symmetrized SDP
-#
-###############################################################################
-
-function SOS_problem_primal(X::GroupRingElem, orderunit::GroupRingElem, data::BlockDecomposition; upper_bound::Float64=Inf)
-    Ns = size.(data.Uπs, 2)
-    m = JuMP.Model();
-
-    Ps = Vector{Matrix{JuMP.VariableRef}}(undef, length(Ns))
-
-    for (k,s) in enumerate(Ns)
-        Ps[k] = JuMP.@variable(m, [1:s, 1:s])
-        JuMP.@SDconstraint(m, Ps[k] >= 0)
-    end
-
-    if upper_bound < Inf
-        λ = JuMP.@variable(m, λ <= upper_bound)
-    else
-        λ = JuMP.@variable(m, λ)
-    end
-
-    @info "Adding $(length(data.orbits)) constraints..."
-    @time addconstraints!(m, Ps, X, orderunit, data)
-
-    JuMP.@objective(m, Max, λ)
-
-    return m, Ps
-end
-
-function constraintLHS!(M, cnstr, Us, Ust, dims, eps=1000*eps(eltype(first(M))))
-    for π in 1:lastindex(Us)
-        M[π] = dims[π].*PropertyT.clamp_small!(Ust[π]*(cnstr*Us[π]), eps)
-    end
-end
-
-function addconstraints!(m::JuMP.Model,
-    P::Vector{Matrix{JuMP.VariableRef}},
-    X::GroupRingElem, orderunit::GroupRingElem, data::BlockDecomposition)
-
-    orderunit_orb = orbit_spvector(orderunit.coeffs, data.orbits)
-    X_orb = orbit_spvector(X.coeffs, data.orbits)
-    UπsT = [U' for U in data.Uπs]
-
-    cnstrs = constraints(parent(X).pm)
-    orb_cnstr = spzeros(Float64, size(parent(X).pm)...)
-
-    M = [Array{Float64}(undef, n,n) for n in size.(UπsT,1)]
-
-    λ = m[:λ]
-
-    for (t, orbit) in enumerate(data.orbits)
-        orbit_constraint!(orb_cnstr, cnstrs, orbit)
-        constraintLHS!(M, orb_cnstr, data.Uπs, UπsT, data.dims)
-
-        x, u = X_orb[t], orderunit_orb[t]
-
-        JuMP.@constraints m begin
-            x - λ*u == sum(dot(M[π], P[π]) for π in eachindex(data.Uπs))
-        end
-    end
-    return m
-end
-
-function reconstruct(Ps::Vector{Matrix{F}}, data::BlockDecomposition) where F
-    return reconstruct(Ps, data.preps, data.Uπs, data.dims)
-end
-
-function reconstruct(Ps::Vector{M},
-    preps::Dict{GEl, P}, Uπs::Vector{U}, dims::Vector{Int}) where
-        {M<:AbstractMatrix, GEl<:GroupElem, P<:Generic.Perm, U<:AbstractMatrix}
-
-    lU = length(Uπs)
-    transfP = [dims[π].*Uπs[π]*Ps[π]*Uπs[π]' for π in 1:lU]
-    tmp = [zeros(Float64, size(first(transfP))) for _ in 1:lU]
-
-    Threads.@threads for π in 1:lU
-        tmp[π] = perm_avg!(tmp[π], transfP[π], values(preps))
-    end
-
-    recP = sum(tmp)./length(preps)
-
-    return recP
-end
-
-function perm_avg!(result, P, perms)
-    lp = length(first(perms).d)
-    for p in perms
-        # result .+= view(P, p.d, p.d)
-        @inbounds for j in 1:lp
-            k = p[j]
-            for i in 1:lp
-                result[i,j] += P[p[i], k]
+        if isfinite(upper_bound)
+            JuMP.@constraint(model, λ <= upper_bound)
+            if feasibility_problem
+                @warn "setting `upper_bound` with zero `orderunit` has no effect"
             end
         end
     end
-    return result
-end
 
-###############################################################################
-#
-#  Low-level solve
-#
-###############################################################################
-
-function setwarmstart!(m::JuMP.Model, warmstart)
-    if solver_name(m) == "SCS"
-        primal, dual, slack = warmstart
-        m.moi_backend.optimizer.model.optimizer.data.primal = primal
-        m.moi_backend.optimizer.model.optimizer.data.dual = dual
-        m.moi_backend.optimizer.model.optimizer.data.slack = slack
-    else
-        @warn "Setting warmstart for $(solver_name(m)) is not implemented! Ignoring..."
+    P = map(direct_summands(wedderburn)) do ds
+        dim = size(ds, 1)
+        P = JuMP.@variable(model, [1:dim, 1:dim], Symmetric)
+        @constraint(model, P in PSDCone())
+        P
     end
-    return m
-end
 
-function getwarmstart(m::JuMP.Model)
-    if solver_name(m) == "SCS"
-        warmstart = (
-            primal = m.moi_backend.optimizer.model.optimizer.data.primal,
-            dual = m.moi_backend.optimizer.model.optimizer.data.dual,
-            slack = m.moi_backend.optimizer.model.optimizer.data.slack
-            )
-    else
-        @warn "Saving warmstart for $(solver_name(m)) is not implemented!"
-        return (primal=Float64[], dual=Float64[], slack=Float64[])
+    begin # preallocating
+        T = eltype(wedderburn)
+        M = zeros.(T, size.(P))
+        M_orb = zeros(T, size(parent(elt).mstructure)...)
+        tmps = SymbolicWedderburn._tmps(wedderburn)
     end
-    return warmstart
+
+    X = convert(Vector{T}, coeffs(elt))
+    U = convert(Vector{T}, coeffs(orderunit))
+
+    # defining constraints based on the multiplicative structure
+    cnstrs = constraints(parent(elt), augmented=augmented, twisted=true)
+
+    @info "Adding $(length(invariant_vectors(wedderburn))) constraints"
+
+    for iv in invariant_vectors(wedderburn)
+        x = dot(X, iv)
+        u = dot(U, iv)
+
+        M_orb = invariant_constraint!(M_orb, basis(parent(elt)), cnstrs, iv)
+
+        M = SymbolicWedderburn.diagonalize!(M, M_orb, wedderburn, tmps)
+        SymbolicWedderburn.zerotol!.(M, atol=1e-12)
+
+        M_dot_P = sum(dot(M[π], P[π]) for π in eachindex(M) if !iszero(M[π]))
+
+        if feasibility_problem
+            JuMP.@constraint(model, x == M_dot_P)
+        else
+            JuMP.@constraint(model, x - λ * u == M_dot_P)
+        end
+    end
+    return model, P
 end
 
-function solve(m::JuMP.Model, with_optimizer::JuMP.OptimizerFactory, warmstart=nothing)
+function reconstruct(Ps, wd::WedderburnDecomposition)
+    N = size(first(direct_summands(wd)), 2)
+    P = zeros(eltype(wd), N, N)
+    return reconstruct!(P, Ps, wd)
+end
 
-    set_optimizer(m, with_optimizer)
+function group_of(wd::WedderburnDecomposition)
+    # this is veeeery hacky... ;)
+    return parent(first(keys(wd.hom.cache)))
+end
+
+# TODO: move to SymbolicWedderburn
+SymbolicWedderburn.action(wd::WedderburnDecomposition) =
+    SymbolicWedderburn.action(wd.hom)
+
+function reconstruct!(
+    res::AbstractMatrix,
+    Ps,
+    wedderburn::WedderburnDecomposition,
+)
+    G = group_of(wedderburn)
+
+    act = SymbolicWedderburn.action(wedderburn)
+
+    @assert act isa SymbolicWedderburn.ByPermutations
+
+    for (π, ds) in pairs(direct_summands(wedderburn))
+        Uπ = SymbolicWedderburn.image_basis(ds)
+
+        # LinearAlgebra.mul!(tmp, Uπ', P[π])
+        # LinearAlgebra.mul!(tmp2, tmp, Uπ)
+        tmp2 = Uπ' * Ps[π] * Uπ
+        if eltype(res) <: AbstractFloat
+            SymbolicWedderburn.zerotol!(tmp2, atol=1e-12)
+        end
+        tmp2 .*= degree(ds)
+
+        @assert size(tmp2) == size(res)
+
+        for g in G
+            p = SymbolicWedderburn.induce(wedderburn.hom, g)
+            for c in axes(res, 2)
+                for r in axes(res, 1)
+                    res[r, c] += tmp2[r^p, c^p]
+                end
+            end
+        end
+    end
+    res ./= order(Int, G)
+
+    return res
+end
+
+##
+# Low-level solve
+
+setwarmstart!(model::JuMP.Model, ::Nothing) = model
+
+function setwarmstart!(model::JuMP.Model, warmstart)
+    constraint_map = Dict(
+        ct => JuMP.all_constraints(model, ct...) for
+        ct in JuMP.list_of_constraint_types(model)
+    )
+
+    JuMP.set_start_value.(JuMP.all_variables(model), warmstart.primal)
+
+    for (ct, idx) in pairs(constraint_map)
+        JuMP.set_start_value.(idx, warmstart.slack[ct])
+        JuMP.set_dual_start_value.(idx, warmstart.dual[ct])
+    end
+    return model
+end
+
+function getwarmstart(model::JuMP.Model)
+    constraint_map = Dict(
+        ct => JuMP.all_constraints(model, ct...) for
+        ct in JuMP.list_of_constraint_types(model)
+    )
+
+    primal = value.(JuMP.all_variables(model))
+
+    slack = Dict(k => value.(v) for (k, v) in constraint_map)
+    duals = Dict(k => JuMP.dual.(v) for (k, v) in constraint_map)
+
+    return (primal=primal, dual=duals, slack=slack)
+end
+
+function solve(m::JuMP.Model, optimizer, warmstart=nothing)
+
+    JuMP.set_optimizer(m, optimizer)
     MOIU.attach_optimizer(m)
 
-    if warmstart != nothing
-        setwarmstart!(m, warmstart)
-    end
+    m = setwarmstart!(m, warmstart)
 
-    optimize!(m)
+    JuMP.optimize!(m)
     Base.Libc.flush_cstdio()
 
-    status = termination_status(m)
+    status = JuMP.termination_status(m)
 
     return status, getwarmstart(m)
 end
 
-function solve(solverlog::String, m::JuMP.Model, with_optimizer::JuMP.OptimizerFactory, warmstart=nothing)
+function solve(solverlog::String, m::JuMP.Model, optimizer, warmstart=nothing)
 
     isdir(dirname(solverlog)) || mkpath(dirname(solverlog))
 
     Base.flush(Base.stdout)
+    Base.Libc.flush_cstdio()
     status, warmstart = open(solverlog, "a+") do logfile
         redirect_stdout(logfile) do
-            status, warmstart = PropertyT.solve(m, with_optimizer, warmstart)
+            status, warmstart = solve(m, optimizer, warmstart)
             status, warmstart
         end
     end

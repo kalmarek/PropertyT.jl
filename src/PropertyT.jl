@@ -5,10 +5,11 @@ using LinearAlgebra
 using SparseArrays
 using Dates
 
-using Groups
-using SymbolicWedderburn
-
 using JuMP
+
+using Groups
+using StarAlgebras
+using SymbolicWedderburn
 
 include("laplacians.jl")
 include("sos_sdps.jl")
