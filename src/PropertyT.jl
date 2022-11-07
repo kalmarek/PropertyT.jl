@@ -5,6 +5,7 @@ using LinearAlgebra
 using SparseArrays
 using Dates
 
+using IntervalArithmetic
 using JuMP
 
 using Groups
@@ -14,7 +15,7 @@ using SymbolicWedderburn
 include("laplacians.jl")
 include("constraint_matrix.jl")
 include("sos_sdps.jl")
-include("checksolution.jl")
+include("certify.jl")
 
 include("1712.07167.jl")
 include("1812.03456.jl")
