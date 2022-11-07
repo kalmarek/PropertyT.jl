@@ -1,101 +1,210 @@
-@testset "actions on Group[Rings]" begin
-    Eij = PropertyT.EltaryMat
-    ssgs(M::MatAlgebra, i, j) = (S = [Eij(M, i, j), Eij(M, j, i)];
-        S = unique([S; inv.(S)]); S)
-
-    function ssgs(A::AutGroup, i, j)
-        rmuls = [Groups.transvection_R(i,j), Groups.transvection_R(j,i)]
-        lmuls = [Groups.transvection_L(i,j), Groups.transvection_L(j,i)]
-        gen_set = A.([rmuls; lmuls])
-        return unique([gen_set; inv.(gen_set)])
-    end
-
-@testset "actions on SL(3,Z) and its group ring" begin
-    N = 3
-    halfradius = 2
-    M = MatrixAlgebra(zz, N)
-    S = PropertyT.generating_set(M)
-    E_R, sizes = Groups.wlmetric_ball(S, one(M), radius=2halfradius);
-
-    rdict = GroupRings.reverse_dict(E_R)
-    pm = GroupRings.create_pm(E_R, rdict, sizes[halfradius]; twisted=false);
-    RG = GroupRing(M, E_R, rdict, pm)
-
-    @testset "correctness of actions" begin
-        Δ = length(S)*RG(1) - sum(RG(s) for s in S)
-        @test Δ == PropertyT.spLaplacian(RG, S)
-
-        elt = S[5]
-        x = RG(1) - RG(elt)
-        elt2 = E_R[rand(sizes[1]:sizes[2])]
-        y = 2RG(elt2) - RG(elt)
-
-        for G in [SymmetricGroup(N), WreathProduct(SymmetricGroup(2), SymmetricGroup(N))]
-            @test all(one(M)^g == one(M) for g in G)
-            @test all(rdict[m^g] <= sizes[1] for g in G for m in S)
-            @test all(m^g*n^g == (m*n)^g for g in G for m in S for n in S)
-
-            @test all(Δ^g == Δ for g in G)
-            @test all(x^g == RG(1) - RG(elt^g) for g in G)
-
-            @test all(2RG(elt2^g) - RG(elt^g) == y^g for g in G)
+function test_action(basis, group, act)
+    action = SymbolicWedderburn.action
+    return @testset "action definition" begin
+        @test all(basis) do b
+            e = one(group)
+            action(act, e, b) == b
         end
-    end
 
-    @testset "small Laplacians" begin
-        for (i,j) in PropertyT.indexing(N)
-            Sij = ssgs(M, i,j)
-            Δij= PropertyT.spLaplacian(RG, Sij)
+        a = let a = rand(basis)
+            while isone(a)
+                a = rand(basis)
+            end
+            @assert !isone(a)
+            a
+        end
 
-            @test all(Δij^p == PropertyT.spLaplacian(RG, ssgs(M, p[i], p[j])) for p in SymmetricGroup(N))
+        g, h = let g_h = rand(group, 2)
+            while any(isone, g_h)
+                g_h = rand(group, 2)
+            end
+            @assert all(!isone, g_h)
+            g_h
+        end
 
-            @test all(Δij^g == PropertyT.spLaplacian(RG, ssgs(M, g.p[i], g.p[j])) for g in WreathProduct(SymmetricGroup(2), SymmetricGroup(N)))
+        action = SymbolicWedderburn.action
+        @test action(act, g, a) in basis
+        @test action(act, h, a) in basis
+        @test action(act, h, action(act, g, a)) == action(act, g * h, a)
+
+        @test all([(g, h) for g in group for h in group]) do (g, h)
+            x = action(act, h, action(act, g, a))
+            y = action(act, g * h, a)
+            x == y
+        end
+
+        if act isa SymbolicWedderburn.ByPermutations
+            @test all(basis) do b
+                action(act, g, b) ∈ basis && action(act, h, b) ∈ basis
+            end
         end
     end
 end
 
-@testset "actions on SAut(F_3) and its group ring" begin
-    N = 3
-    halfradius = 2
-    M = SAut(FreeGroup(N))
-    S = PropertyT.generating_set(M)
-    E_R, sizes = Groups.wlmetric_ball(S, one(M), radius=2halfradius);
+## Testing
 
-    rdict = GroupRings.reverse_dict(E_R)
-    pm = GroupRings.create_pm(E_R, rdict, sizes[halfradius]; twisted=false);
-    RG = GroupRing(M, E_R, rdict, pm)
+@testset "Actions on SL(3,ℤ)" begin
 
+    n = 3
 
-    @testset "correctness of actions" begin
+    SL = MatrixGroups.SpecialLinearGroup{n}(Int8)
+    RSL, S, sizes = PropertyT.group_algebra(SL, halfradius=2, twisted=true)
 
-        Δ = length(S)*RG(1) - sum(RG(s) for s in S)
-        @test Δ == PropertyT.spLaplacian(RG, S)
+    @testset "Permutation action" begin
 
-        elt = S[5]
-        x = RG(1) - RG(elt)
-        elt2 = E_R[rand(sizes[1]:sizes[2])]
-        y = 2RG(elt2) - RG(elt)
+        Γ = PermGroup(perm"(1,2)", Perm(circshift(1:n, -1)))
+        ΓpA = PropertyT.action_by_conjugation(SL, Γ)
 
-        for G in [SymmetricGroup(N), WreathProduct(SymmetricGroup(2), SymmetricGroup(N))]
-            @test all(one(M)^g == one(M) for g in G)
-            @test all(rdict[m^g] <= sizes[1] for g in G for m in S)
-            @test all(m^g*n^g == (m*n)^g for g in G for m in S for n in S)
+        test_action(basis(RSL), Γ, ΓpA)
 
-            @test all(Δ^g == Δ for g in G)
-            @test all(x^g == RG(1) - RG(elt^g) for g in G)
+        @testset "mps is successful" begin
 
-            @test all(2RG(elt2^g) - RG(elt^g) == y^g for g in G)
+            charsΓ =
+                SymbolicWedderburn.Character{
+                    Rational{Int},
+                }.(SymbolicWedderburn.irreducible_characters(Γ))
+
+            RΓ = SymbolicWedderburn._group_algebra(Γ)
+
+            @time mps, simple =
+                SymbolicWedderburn.minimal_projection_system(charsΓ, RΓ)
+            @test all(simple)
+        end
+
+        @testset "Wedderburn decomposition" begin
+            wd = SymbolicWedderburn.WedderburnDecomposition(
+                Rational{Int},
+                Γ,
+                ΓpA,
+                basis(RSL),
+                StarAlgebras.Basis{UInt16}(@view basis(RSL)[1:sizes[2]])
+            )
+
+            @test length(invariant_vectors(wd)) == 918
+            @test SymbolicWedderburn.size.(direct_summands(wd), 1) == [40, 23, 18]
+            @test all(issimple, direct_summands(wd))
         end
     end
 
-    for (i,j) in PropertyT.indexing(N)
-        Sij = ssgs(M, i,j)
-        Δij= PropertyT.spLaplacian(RG, Sij)
+    @testset "Wreath action" begin
 
-        @test all(Δij^p == PropertyT.spLaplacian(RG, ssgs(M, p[i], p[j])) for p in SymmetricGroup(N))
+        Γ = let P = PermGroup(perm"(1,2)", Perm(circshift(1:n, -1)))
+            PropertyT.Constructions.WreathProduct(PermGroup(perm"(1,2)"), P)
+        end
 
-        @test all(Δij^g == PropertyT.spLaplacian(RG, ssgs(M, g.p[i], g.p[j])) for g in WreathProduct(SymmetricGroup(2), SymmetricGroup(N)))
+        ΓpA = PropertyT.action_by_conjugation(SL, Γ)
+
+        test_action(basis(RSL), Γ, ΓpA)
+
+        @testset "mps is successful" begin
+
+            charsΓ =
+                SymbolicWedderburn.Character{
+                    Rational{Int},
+                }.(SymbolicWedderburn.irreducible_characters(Γ))
+
+            RΓ = SymbolicWedderburn._group_algebra(Γ)
+
+            @time mps, simple =
+                SymbolicWedderburn.minimal_projection_system(charsΓ, RΓ)
+            @test all(simple)
+        end
+
+        @testset "Wedderburn decomposition" begin
+            wd = SymbolicWedderburn.WedderburnDecomposition(
+                Rational{Int},
+                Γ,
+                ΓpA,
+                basis(RSL),
+                StarAlgebras.Basis{UInt16}(@view basis(RSL)[1:sizes[2]])
+            )
+
+            @test length(invariant_vectors(wd)) == 247
+            @test SymbolicWedderburn.size.(direct_summands(wd), 1) == [14, 9, 6, 14, 12]
+            @test all(issimple, direct_summands(wd))
+        end
     end
 end
 
+@testset "Actions on SAut(F4)" begin
+
+    n = 4
+
+    SAutFn = SpecialAutomorphismGroup(FreeGroup(n))
+    RSAutFn, S, sizes = PropertyT.group_algebra(SAutFn, halfradius=1, twisted=true)
+
+    @testset "Permutation action" begin
+
+        Γ = PermGroup(perm"(1,2)", Perm(circshift(1:n, -1)))
+        ΓpA = PropertyT.action_by_conjugation(SAutFn, Γ)
+
+        test_action(basis(RSAutFn), Γ, ΓpA)
+
+        @testset "mps is successful" begin
+
+            charsΓ =
+                SymbolicWedderburn.Character{
+                    Rational{Int},
+                }.(SymbolicWedderburn.irreducible_characters(Γ))
+
+            RΓ = SymbolicWedderburn._group_algebra(Γ)
+
+            @time mps, simple =
+                SymbolicWedderburn.minimal_projection_system(charsΓ, RΓ)
+            @test all(simple)
+        end
+
+        @testset "Wedderburn decomposition" begin
+            wd = SymbolicWedderburn.WedderburnDecomposition(
+                Rational{Int},
+                Γ,
+                ΓpA,
+                basis(RSAutFn),
+                StarAlgebras.Basis{UInt16}(@view basis(RSAutFn)[1:sizes[1]])
+            )
+
+            @test length(invariant_vectors(wd)) == 93
+            @test SymbolicWedderburn.size.(direct_summands(wd), 1) == [4, 8, 5, 4]
+            @test all(issimple, direct_summands(wd))
+        end
+    end
+
+    @testset "Wreath action" begin
+
+        Γ = let P = PermGroup(perm"(1,2)", Perm(circshift(1:n, -1)))
+            PropertyT.Constructions.WreathProduct(PermGroup(perm"(1,2)"), P)
+        end
+
+        ΓpA = PropertyT.action_by_conjugation(SAutFn, Γ)
+
+        test_action(basis(RSAutFn), Γ, ΓpA)
+
+        @testset "mps is successful" begin
+
+            charsΓ =
+                SymbolicWedderburn.Character{
+                    Rational{Int},
+                }.(SymbolicWedderburn.irreducible_characters(Γ))
+
+            RΓ = SymbolicWedderburn._group_algebra(Γ)
+
+            @time mps, simple =
+                SymbolicWedderburn.minimal_projection_system(charsΓ, RΓ)
+            @test all(simple)
+        end
+
+        @testset "Wedderburn decomposition" begin
+            wd = SymbolicWedderburn.WedderburnDecomposition(
+                Rational{Int},
+                Γ,
+                ΓpA,
+                basis(RSAutFn),
+                StarAlgebras.Basis{UInt16}(@view basis(RSAutFn)[1:sizes[1]])
+            )
+
+            @test length(invariant_vectors(wd)) == 18
+            @test SymbolicWedderburn.size.(direct_summands(wd), 1) == [1, 1, 2, 2, 1, 2, 2, 1]
+            @test all(issimple, direct_summands(wd))
+        end
+    end
 end
