@@ -3,14 +3,15 @@ module PropertyT
 
 using LinearAlgebra
 using SparseArrays
-using Dates
 
 using IntervalArithmetic
 using JuMP
 
 using Groups
-using StarAlgebras
+import Groups.GroupsCore
 using SymbolicWedderburn
+import SymbolicWedderburn.StarAlgebras
+import SymbolicWedderburn.PermutationGroups
 
 include("constraint_matrix.jl")
 include("sos_sdps.jl")

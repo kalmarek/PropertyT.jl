@@ -1,5 +1,5 @@
 import SymbolicWedderburn.action
-StarAlgebras.star(g::GroupElement) = inv(g)
+StarAlgebras.star(g::Groups.GroupElement) = inv(g)
 
 include("alphabet_permutation.jl")
 

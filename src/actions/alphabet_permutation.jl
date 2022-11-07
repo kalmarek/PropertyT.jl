@@ -1,7 +1,9 @@
 ## action induced from permuting letters of an alphabet
 
+import Groups: Constructions
+
 struct AlphabetPermutation{GEl,I} <: SymbolicWedderburn.ByPermutations
-    perms::Dict{GEl,Perm{I}}
+    perms::Dict{GEl,PermutationGroups.Perm{I}}
 end
 
 function AlphabetPermutation(
@@ -10,14 +12,14 @@ function AlphabetPermutation(
     op,
 )
     return AlphabetPermutation(
-        Dict(γ => inv(Perm([A[op(l, γ)] for l in A])) for γ in Γ),
+        Dict(γ => inv(PermutationGroups.Perm([A[op(l, γ)] for l in A])) for γ in Γ),
     )
 end
 
 function AlphabetPermutation(A::Alphabet, W::Constructions.WreathProduct, op)
     return AlphabetPermutation(
         Dict(
-            w => inv(Perm([A[op(op(l, w.p), w.n)] for l in A])) for
+            w => inv(PermutationGroups.Perm([A[op(op(l, w.p), w.n)] for l in A])) for
             w in W
         ),
     )
@@ -25,7 +27,7 @@ end
 
 function SymbolicWedderburn.action(
     act::AlphabetPermutation,
-    γ::GroupElement,
+    γ::Groups.GroupElement,
     w::Groups.AbstractWord,
 )
     return w^(act.perms[γ])
@@ -33,7 +35,7 @@ end
 
 function SymbolicWedderburn.action(
     act::AlphabetPermutation,
-    γ::GroupElement,
+    γ::Groups.GroupElement,
     g::Groups.AbstractFPGroupElement,
 )
     G = parent(g)

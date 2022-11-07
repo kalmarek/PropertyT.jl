@@ -5,8 +5,8 @@ Formulate the dual to the sum of squares decomposition problem for `X - λ·u`.
 See also [sos_problem_primal](@ref).
 """
 function sos_problem_dual(
-    elt::AlgebraElement,
-    order_unit::AlgebraElement=zero(elt);
+    elt::StarAlgebras.AlgebraElement,
+    order_unit::StarAlgebras.AlgebraElement=zero(elt);
     lower_bound=-Inf
 )
     @assert parent(elt) == parent(order_unit)
@@ -70,7 +70,7 @@ function constraints(
             a, b = basis[i], basis[j]
 
             push!(cnstrs[basis[one(a)]], k)
-            push!(cnstrs[basis[star(a)]], -k)
+            push!(cnstrs[basis[StarAlgebras.star(a)]], -k)
             push!(cnstrs[basis[b]], -k)
         end
     end
@@ -80,7 +80,7 @@ function constraints(
     )
 end
 
-function constraints(A::StarAlgebra; augmented::Bool, twisted::Bool)
+function constraints(A::StarAlgebras.StarAlgebra; augmented::Bool, twisted::Bool)
     mstructure = if StarAlgebras._istwisted(A.mstructure) == twisted
         A.mstructure
     else
@@ -108,10 +108,10 @@ be added to the model. This may improve the accuracy of the solution if
 The default `u = zero(X)` formulates a simple feasibility problem.
 """
 function sos_problem_primal(
-    elt::AlgebraElement,
-    order_unit::AlgebraElement=zero(elt);
+    elt::StarAlgebras.AlgebraElement,
+    order_unit::StarAlgebras.AlgebraElement=zero(elt);
     upper_bound=Inf,
-    augmented::Bool=iszero(aug(elt)) && iszero(aug(order_unit))
+    augmented::Bool=iszero(StarAlgebras.aug(elt)) && iszero(StarAlgebras.aug(order_unit))
 )
     @assert parent(elt) === parent(order_unit)
 
@@ -168,22 +168,25 @@ function isorth_projection(ds::SymbolicWedderburn.DirectSummand)
 end
 
 sos_problem_primal(
-    elt::AlgebraElement,
+    elt::StarAlgebras.AlgebraElement,
     wedderburn::WedderburnDecomposition;
     kwargs...
 ) = sos_problem_primal(elt, zero(elt), wedderburn; kwargs...)
 
 function sos_problem_primal(
-    elt::AlgebraElement,
-    orderunit::AlgebraElement,
+    elt::StarAlgebras.AlgebraElement,
+    orderunit::StarAlgebras.AlgebraElement,
     wedderburn::WedderburnDecomposition;
     upper_bound=Inf,
-    augmented=iszero(aug(elt)) && iszero(aug(orderunit))
+    augmented=iszero(StarAlgebras.aug(elt)) && iszero(StarAlgebras.aug(orderunit)),
+    check_orthogonality=true
 )
 
     @assert parent(elt) === parent(orderunit)
-    if any(!isorth_projection, direct_summands(wedderburn))
-        error("Wedderburn decomposition contains a non-orthogonal projection")
+    if check_orthogonality
+        if any(!isorth_projection, direct_summands(wedderburn))
+            error("Wedderburn decomposition contains a non-orthogonal projection")
+        end
     end
 
     feasibility_problem = iszero(orderunit)
@@ -215,8 +218,8 @@ function sos_problem_primal(
         tmps = SymbolicWedderburn._tmps(wedderburn)
     end
 
-    X = convert(Vector{T}, coeffs(elt))
-    U = convert(Vector{T}, coeffs(orderunit))
+    X = convert(Vector{T}, StarAlgebras.coeffs(elt))
+    U = convert(Vector{T}, StarAlgebras.coeffs(orderunit))
 
     # defining constraints based on the multiplicative structure
     cnstrs = constraints(parent(elt), augmented=augmented, twisted=true)
@@ -278,7 +281,7 @@ function reconstruct!(
         if eltype(res) <: AbstractFloat
             SymbolicWedderburn.zerotol!(tmp2, atol=1e-12)
         end
-        tmp2 .*= degree(ds)
+        tmp2 .*= SymbolicWedderburn.degree(ds)
 
         @assert size(tmp2) == size(res)
 
@@ -291,7 +294,7 @@ function reconstruct!(
             end
         end
     end
-    res ./= order(Int, G)
+    res ./= Groups.order(Int, G)
 
     return res
 end

@@ -1,4 +1,4 @@
-import PermutationGroups.AbstractPerm
+import SymbolicWedderburn.PermutationGroups.AbstractPerm
 
 # move to Groups
 Base.keys(a::Alphabet) = keys(1:length(a))
@@ -15,7 +15,7 @@ isadjacent(σ::AbstractPerm, τ::AbstractPerm, i=1, j=2) =
     (j^σ == i^τ && i^σ ≠ j^τ)    # second σ equal to first τ
 
 function _ncycle(start, length, n=start + length - 1)
-    p = Perm(Int8(n))
+    p = PermutationGroups.Perm(Int8(n))
     @assert n ≥ start + length - 1
     for k in start:start+length-2
         p[k] = k + 1
@@ -24,7 +24,7 @@ function _ncycle(start, length, n=start + length - 1)
     return p
 end
 
-alternating_group(n::Integer) = PermGroup([_ncycle(i, 3) for i in 1:n-2])
+alternating_group(n::Integer) = PermutationGroups.PermGroup([_ncycle(i, 3) for i in 1:n-2])
 
 function small_gens(G::MatrixGroups.SpecialLinearGroup)
     A = alphabet(G)
@@ -46,13 +46,13 @@ function small_gens(G::Groups.AutomorphismGroup{<:FreeGroup})
     return union!(S, inv.(S))
 end
 
-function small_laplacian(RG::StarAlgebra)
+function small_laplacian(RG::StarAlgebras.StarAlgebra)
     G = StarAlgebras.object(RG)
     S₂ = small_gens(G)
     return length(S₂) * one(RG) - sum(RG(s) for s in S₂)
 end
 
-function SqAdjOp(A::StarAlgebra, n::Integer, Δ₂=small_laplacian(A))
+function SqAdjOp(A::StarAlgebras.StarAlgebra, n::Integer, Δ₂=small_laplacian(A))
     @assert parent(Δ₂) === A
 
     alt_n = alternating_group(n)

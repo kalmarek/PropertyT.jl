@@ -34,7 +34,7 @@ function _fma_SOS_thr!(
     return result
 end
 
-function _cnstr_sos!(res::AlgebraElement, Q::AbstractMatrix, cnstrs)
+function _cnstr_sos!(res::StarAlgebras.AlgebraElement, Q::AbstractMatrix, cnstrs)
     StarAlgebras.zero!(res)
     Q² = Q' * Q
     for (g, A_g) in cnstrs
@@ -43,7 +43,7 @@ function _cnstr_sos!(res::AlgebraElement, Q::AbstractMatrix, cnstrs)
     return res
 end
 
-function _augmented_sos!(res::AlgebraElement, Q::AbstractMatrix)
+function _augmented_sos!(res::StarAlgebras.AlgebraElement, Q::AbstractMatrix)
     A = parent(res)
     StarAlgebras.zero!(res)
     Q² = Q' * Q
@@ -64,10 +64,10 @@ function _augmented_sos!(res::AlgebraElement, Q::AbstractMatrix)
     return res
 end
 
-function compute_sos(A::StarAlgebra, Q::AbstractMatrix; augmented::Bool)
+function compute_sos(A::StarAlgebras.StarAlgebra, Q::AbstractMatrix; augmented::Bool)
     if augmented
         z = zeros(eltype(Q), length(basis(A)))
-        res = AlgebraElement(z, A)
+        res = StarAlgebras.AlgebraElement(z, A)
         return _augmented_sos!(res, Q)
         cnstrs = constraints(basis(A), A.mstructure; augmented=true)
         return _cnstr_sos!(res, Q, cnstrs)
@@ -77,11 +77,11 @@ function compute_sos(A::StarAlgebra, Q::AbstractMatrix; augmented::Bool)
 
         _fma_SOS_thr!(z, A.mstructure, Q)
 
-        return AlgebraElement(z, A)
+        return StarAlgebras.AlgebraElement(z, A)
     end
 end
 
-function sufficient_λ(residual::AlgebraElement, λ; halfradius)
+function sufficient_λ(residual::StarAlgebras.AlgebraElement, λ; halfradius)
     L1_norm = norm(residual, 1)
     suff_λ = λ - 2.0^(2ceil(log2(halfradius))) * L1_norm
 
@@ -97,7 +97,7 @@ function sufficient_λ(residual::AlgebraElement, λ; halfradius)
 
     info_strs = [
         "Numerical metrics of the obtained SOS:",
-        "ɛ(elt - λu - ∑ξᵢ*ξᵢ) $eq_sign $(aug(residual))",
+        "ɛ(elt - λu - ∑ξᵢ*ξᵢ) $eq_sign $(StarAlgebras.aug(residual))",
         "‖elt - λu - ∑ξᵢ*ξᵢ‖₁ $eq_sign $(L1_norm)",
         " λ $eq_sign $suff_λ",
     ]
@@ -107,10 +107,10 @@ function sufficient_λ(residual::AlgebraElement, λ; halfradius)
 end
 
 function sufficient_λ(
-    elt::AlgebraElement,
-    order_unit::AlgebraElement,
+    elt::StarAlgebras.AlgebraElement,
+    order_unit::StarAlgebras.AlgebraElement,
     λ,
-    sos::AlgebraElement;
+    sos::StarAlgebras.AlgebraElement;
     halfradius
 )
 
@@ -121,15 +121,15 @@ function sufficient_λ(
 end
 
 function certify_solution(
-    elt::AlgebraElement,
-    orderunit::AlgebraElement,
+    elt::StarAlgebras.AlgebraElement,
+    orderunit::StarAlgebras.AlgebraElement,
     λ,
     Q::AbstractMatrix{<:AbstractFloat};
     halfradius,
-    augmented=iszero(aug(elt)) && iszero(aug(orderunit))
+    augmented=iszero(StarAlgebras.aug(elt)) && iszero(StarAlgebras.aug(orderunit))
 )
 
-    should_we_augment = !augmented && aug(elt) == aug(orderunit) == 0
+    should_we_augment = !augmented && StarAlgebras.aug(elt) == StarAlgebras.aug(orderunit) == 0
 
     Q = should_we_augment ? augment_columns!(Q) : Q
     @time sos = compute_sos(parent(elt), Q, augmented=augmented)

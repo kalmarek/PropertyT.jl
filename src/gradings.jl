@@ -46,7 +46,7 @@ function _groupby(keys::AbstractVector{K}, vals::AbstractVector{V}) where {K,V}
     return d
 end
 
-function laplacians(RG::StarAlgebra, S, grading)
+function laplacians(RG::StarAlgebras.StarAlgebra, S, grading)
     d = _groupby(grading, S)
     Δs = Dict(α => RG(length(Sα)) - sum(RG(s) for s in Sα) for (α, Sα) in d)
     return Δs
@@ -61,7 +61,7 @@ function Adj(rootsystem::AbstractDict, subtype::Symbol)
         +,
         (
             Δα * Δβ for (α, Δα) in rootsystem for (β, Δβ) in rootsystem if
-            PropertyT_new.Roots.classify_sub_root_system(
+            Roots.classify_sub_root_system(
                 roots,
                 first(α),
                 first(β),
