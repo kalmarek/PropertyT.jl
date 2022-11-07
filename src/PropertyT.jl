@@ -19,6 +19,10 @@ include("certify.jl")
 
 include("sqadjop.jl")
 
+include("roots.jl")
+import .Roots
+include("gradings.jl")
+
 include("1712.07167.jl")
 include("1812.03456.jl")
 
