@@ -17,6 +17,8 @@ include("constraint_matrix.jl")
 include("sos_sdps.jl")
 include("certify.jl")
 
+include("sqadjop.jl")
+
 include("1712.07167.jl")
 include("1812.03456.jl")
 

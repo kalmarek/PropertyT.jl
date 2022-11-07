@@ -1,98 +1,80 @@
-isopposite(σ::Generic.Perm, τ::Generic.Perm, i=1, j=2) =
-    σ[i] ≠ τ[i] && σ[i] ≠ τ[j] &&
-    σ[j] ≠ τ[i] && σ[j] ≠ τ[j]
+import PermutationGroups.AbstractPerm
 
-isadjacent(σ::Generic.Perm, τ::Generic.Perm, i=1, j=2) =
-    (σ[i] == τ[i] && σ[j] ≠ τ[j]) || # first equal, second differ
-    (σ[j] == τ[j] && σ[i] ≠ τ[i]) || # second equal, first differ
-    (σ[i] == τ[j] && σ[j] ≠ τ[i]) || # first σ equal to second τ
-    (σ[j] == τ[i] && σ[i] ≠ τ[j])    # second σ equal to first τ
+# move to Groups
+Base.keys(a::Alphabet) = keys(1:length(a))
 
-Base.div(X::GroupRingElem, x::Number) = parent(X)(X.coeffs.÷x)
+## the old 1812.03456 definitions
 
-function Sq(RG::GroupRing, N::Integer)
-    S₂ = generating_set(RG.group, 2)
-    ℤ = Int64
-    Δ₂ = length(S₂)*one(RG, ℤ) - RG(S₂, ℤ);
+isopposite(σ::AbstractPerm, τ::AbstractPerm, i=1, j=2) =
+    i^σ ≠ i^τ && i^σ ≠ j^τ && j^σ ≠ i^τ && j^σ ≠ j^τ
 
-    Alt_N = [g for g in SymmetricGroup(N) if parity(g) == 0]
+isadjacent(σ::AbstractPerm, τ::AbstractPerm, i=1, j=2) =
+    (i^σ == i^τ && j^σ ≠ j^τ) || # first equal, second differ
+    (j^σ == j^τ && i^σ ≠ i^τ) || # second equal, first differ
+    (i^σ == j^τ && j^σ ≠ i^τ) || # first σ equal to second τ
+    (j^σ == i^τ && i^σ ≠ j^τ)    # second σ equal to first τ
 
-    sq = RG()
-    for σ in Alt_N
-        GroupRings.addeq!(sq, *(Δ₂^σ, Δ₂^σ, false))
+function _ncycle(start, length, n=start + length - 1)
+    p = Perm(Int8(n))
+    @assert n ≥ start + length - 1
+    for k in start:start+length-2
+        p[k] = k + 1
     end
-    return sq÷factorial(N-2)
+    p[start+length-1] = start
+    return p
 end
 
-function Adj(RG::GroupRing, N::Integer)
-    S₂ = generating_set(RG.group, 2)
-    ℤ = Int64
-    Δ₂ = length(S₂)*one(RG, ℤ) - RG(S₂, ℤ);
+alternating_group(n::Integer) = PermGroup([_ncycle(i, 3) for i in 1:n-2])
 
-    Alt_N = [g for g in SymmetricGroup(N) if parity(g) == 0]
-    Δ₂s = Dict(σ=>Δ₂^σ for σ in Alt_N)
-    adj = RG()
-
-    for σ in Alt_N
-        for τ in Alt_N
-            if isadjacent(σ, τ)
-                GroupRings.addeq!(adj, *(Δ₂s[σ], Δ₂s[τ], false))
-            end
-        end
+function small_gens(G::MatrixGroups.SpecialLinearGroup)
+    A = alphabet(G)
+    S = map([(1, 2), (2, 1)]) do (i, j)
+        k = findfirst(l -> (l.i == i && l.j == j), A)
+        @assert !isnothing(k)
+        G(Groups.word_type(G)([k]))
     end
-    return adj÷factorial(N-2)^2
+    return union!(S, inv.(S))
 end
 
-function Op(RG::GroupRing, N::Integer)
-    if N < 4
-        return RG()
+function small_gens(G::Groups.AutomorphismGroup{<:FreeGroup})
+    A = alphabet(G)
+    S = map([(:ϱ, 1, 2), (:ϱ, 2, 1), (:λ, 1, 2), (:λ, 2, 1)]) do (id, i, j)
+        k = findfirst(l -> (l.id == id && l.i == i && l.j == j), A)
+        @assert !isnothing(k)
+        G(Groups.word_type(G)([k]))
     end
-    S₂ = generating_set(RG.group, 2)
-    ℤ = Int64
-    Δ₂ = length(S₂)*one(RG, ℤ) - RG(S₂, ℤ);
+    return union!(S, inv.(S))
+end
 
-    Alt_N = [g for g in SymmetricGroup(N) if parity(g) == 0]
-    Δ₂s = Dict(σ=>Δ₂^σ for σ in Alt_N)
-    op = RG()
+function small_laplacian(RG::StarAlgebra)
+    G = StarAlgebras.object(RG)
+    S₂ = small_gens(G)
+    return length(S₂) * one(RG) - sum(RG(s) for s in S₂)
+end
 
-    for σ in Alt_N
-        for τ in Alt_N
+function SqAdjOp(A::StarAlgebra, n::Integer, Δ₂=small_laplacian(A))
+    @assert parent(Δ₂) === A
+
+    alt_n = alternating_group(n)
+    G = StarAlgebras.object(A)
+    act = action_by_conjugation(G, alt_n)
+
+    Δ₂s = Dict(σ => SymbolicWedderburn.action(act, σ, Δ₂) for σ in alt_n)
+
+    sq, adj, op = zero(A), zero(A), zero(A)
+    tmp = zero(A)
+
+    for σ in alt_n
+        StarAlgebras.add!(sq, sq, StarAlgebras.mul!(tmp, Δ₂s[σ], Δ₂s[σ]))
+        for τ in alt_n
             if isopposite(σ, τ)
-                GroupRings.addeq!(op, *(Δ₂s[σ], Δ₂s[τ], false))
-            end
-        end
-    end
-    return op÷factorial(N-2)^2
-end
-
-for Elt in [:Sq, :Adj, :Op]
-    @eval begin
-        $Elt(RG::GroupRing{AutGroup{N}}) where N = $Elt(RG, N)
-        $Elt(RG::GroupRing{<:MatAlgebra}) = $Elt(RG, nrows(RG.group))
-    end
-end
-
-function SqAdjOp(RG::GroupRing, N::Integer)
-    S₂ = generating_set(RG.group, 2)
-    ℤ = Int64
-    Δ₂ = length(S₂)*one(RG, ℤ) - RG(S₂, ℤ);
-
-    Alt_N = [σ for σ in SymmetricGroup(N) if parity(σ) == 0]
-    sq, adj, op = RG(), RG(), RG()
-
-    Δ₂s = Dict(σ=>Δ₂^σ for σ in Alt_N)
-
-    for σ in Alt_N
-        GroupRings.addeq!(sq, *(Δ₂s[σ], Δ₂s[σ], false))
-        for τ in Alt_N
-            if isopposite(σ, τ)
-                GroupRings.addeq!(op, *(Δ₂s[σ], Δ₂s[τ], false))
+                StarAlgebras.add!(op, op, StarAlgebras.mul!(tmp, Δ₂s[σ], Δ₂s[τ]))
             elseif isadjacent(σ, τ)
-                GroupRings.addeq!(adj, *(Δ₂s[σ], Δ₂s[τ], false))
+                StarAlgebras.add!(adj, adj, StarAlgebras.mul!(tmp, Δ₂s[σ], Δ₂s[τ]))
             end
         end
     end
 
-    k = factorial(N-2)
-    return sq÷k, adj÷k^2, op÷k^2
+    k = factorial(n - 2)
+    return sq ÷ k, adj ÷ k^2, op ÷ k^2
 end
