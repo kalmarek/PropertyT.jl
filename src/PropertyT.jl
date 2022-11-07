@@ -12,6 +12,7 @@ using StarAlgebras
 using SymbolicWedderburn
 
 include("laplacians.jl")
+include("constraint_matrix.jl")
 include("sos_sdps.jl")
 include("checksolution.jl")
 
