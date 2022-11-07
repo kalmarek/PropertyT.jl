@@ -1,22 +1,16 @@
 __precompile__()
 module PropertyT
 
-using AbstractAlgebra
 using LinearAlgebra
 using SparseArrays
 using Dates
 
 using Groups
-using GroupRings
+using SymbolicWedderburn
 
-using JLD
 using JuMP
 
-import AbstractAlgebra: Group, NCRing
-
 include("laplacians.jl")
-include("RGprojections.jl")
-include("blockdecomposition.jl")
 include("sos_sdps.jl")
 include("checksolution.jl")
 
