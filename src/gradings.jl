@@ -25,7 +25,6 @@ end
 
 grading(s::MatrixGroups.ElementarySymplectic) = Roots.Root(s)
 grading(e::MatrixGroups.ElementaryMatrix) = Roots.Root(e)
-grading(t::Groups.Transvection) = grading(Groups._abelianize(t))
 
 function grading(g::FPGroupElement)
     if length(word(g)) == 1

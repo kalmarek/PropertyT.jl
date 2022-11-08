@@ -60,10 +60,7 @@ function positive(roots::AbstractVector{<:Root{N}}) where {N}
     return filter(α -> dot(α, pd) > 0.0, roots)
 end
 
-Base.:~(α::AbstractRoot, β::AbstractRoot) = isproportional(α, β)
-⟂(α::AbstractRoot, β::AbstractRoot) = isorthogonal(α, β)
-
-function Base.show(io::IO, r::Root{N}) where {N}
+function Base.show(io::IO, r::Root)
     print(io, "Root$(r.coord)")
 end
 
@@ -73,8 +70,7 @@ function Base.show(io::IO, ::MIME"text/plain", r::Root{N}) where {N}
     print(io, "Root in ℝ^$N of length $l\n", r.coord)
 end
 
-E(N, i::Integer) = Root(ntuple(k -> k == i ? 1 : 0, N))
-𝕖(N, i) = E(N, i)
+𝕖(N, i) = Root(ntuple(k -> k == i ? 1 : 0, N))
 𝕆(N, ::Type{T}) where {T} = Root(ntuple(_ -> zero(T), N))
 
 """
