@@ -1,26 +1,43 @@
 __precompile__()
 module PropertyT
 
-using AbstractAlgebra
 using LinearAlgebra
 using SparseArrays
-using Dates
 
-using Groups
-using GroupRings
-
-using JLD
+using IntervalArithmetic
 using JuMP
 
-import AbstractAlgebra: Group, NCRing
+using Groups
+import Groups.GroupsCore
+using SymbolicWedderburn
+import SymbolicWedderburn.StarAlgebras
+import SymbolicWedderburn.PermutationGroups
 
-include("laplacians.jl")
-include("RGprojections.jl")
-include("blockdecomposition.jl")
+include("constraint_matrix.jl")
 include("sos_sdps.jl")
-include("checksolution.jl")
+include("certify.jl")
 
-include("1712.07167.jl")
-include("1812.03456.jl")
+include("sqadjop.jl")
+
+include("roots.jl")
+import .Roots
+include("gradings.jl")
+
+include("actions/actions.jl")
+
+function group_algebra(G::Groups.Group, S=gens(G); halfradius::Integer, twisted::Bool)
+    S = union!(S, inv.(S))
+    @info "generating wl-metric ball of radius $(2halfradius)"
+    @time E, sizes = Groups.wlmetric_ball_serial(S, radius=2halfradius)
+    @info "sizes = $(sizes)"
+    @info "computing the *-algebra structure for G"
+    @time RG = StarAlgebras.StarAlgebra{twisted}(
+        G,
+        StarAlgebras.Basis{UInt32}(E),
+        (sizes[halfradius], sizes[halfradius]),
+        precompute=false,
+    )
+    return RG, S, sizes
+end
 
 end # module Property(T)

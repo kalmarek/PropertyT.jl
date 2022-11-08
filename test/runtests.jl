@@ -1,18 +1,28 @@
 using Test
-using LinearAlgebra, SparseArrays
-using AbstractAlgebra, Groups, GroupRings
+using LinearAlgebra
+using SparseArrays
+BLAS.set_num_threads(1)
+ENV["OMP_NUM_THREADS"] = 4
+
+using Groups
+using Groups.GroupsCore
+import Groups.MatrixGroups
+
 using PropertyT
-using JLD
+using SymbolicWedderburn
+using SymbolicWedderburn.StarAlgebras
+using SymbolicWedderburn.PermutationGroups
 
-using JuMP, SCS
+include("optimizers.jl")
 
-with_SCS(iters; accel=0, eps=1e-10, warm_start=true) =
-    with_optimizer(SCS.Optimizer,
-    linear_solver=SCS.DirectSolver, max_iters=iters,
-    acceleration_lookback=accel, eps=eps, warm_start=warm_start)
+@testset "PropertyT" begin
 
-include("1703.09680.jl")
-include("actions.jl")
-include("1712.07167.jl")
-include("SOS_correctness.jl")
-include("1812.03456.jl")
+    include("constratint_matrices.jl")
+    include("actions.jl")
+
+    include("1703.09680.jl")
+    include("1712.07167.jl")
+    include("1812.03456.jl")
+
+    include("graded_adj.jl")
+end
