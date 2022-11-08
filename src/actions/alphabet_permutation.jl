@@ -28,17 +28,17 @@ end
 function SymbolicWedderburn.action(
     act::AlphabetPermutation,
     γ::Groups.GroupElement,
-    w::Groups.AbstractWord,
+    g::Groups.AbstractFPGroupElement,
 )
-    return w^(act.perms[γ])
+    G = parent(g)
+    w = SymbolicWedderburn.action(act, γ, word(g))
+    return G(w)
 end
 
 function SymbolicWedderburn.action(
     act::AlphabetPermutation,
     γ::Groups.GroupElement,
-    g::Groups.AbstractFPGroupElement,
+    w::Groups.AbstractWord,
 )
-    G = parent(g)
-    w = word(g)^(act.perms[γ])
-    return G(w)
+    return w^(act.perms[γ])
 end
