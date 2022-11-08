@@ -148,10 +148,21 @@ end
             @test status == JuMP.OPTIMAL
             @test certified
             @test λ_cert > 1585 // 10000
+
+            m, _ = PropertyT.sos_problem_primal(elt, wd)
+            PropertyT.solve(
+                m,
+                scs_optimizer(max_iters=5000, accel=50, alpha=1.9)
+            )
+
+            @test JuMP.termination_status(m) in (JuMP.ALMOST_OPTIMAL, JuMP.OPTIMAL, JuMP.ITERATION_LIMIT)
+            @test abs(JuMP.objective_value(m)) < 1e-3
         end
 
         @testset "Op₃ is empty, so can not be certified" begin
             elt = op
+            @test iszero(op)
+
             UB = Inf
 
             status, certified, λ_cert = check_positivity(

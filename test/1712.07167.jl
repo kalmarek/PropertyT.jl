@@ -134,13 +134,28 @@ end
 
             status, warm = PropertyT.solve(
                 model,
-                scs_optimizer(
+                cosmo_optimizer(
                     eps=1e-10,
                     max_iters=20_000,
+                    accel=50,
+                    alpha=1.9,
+                ),
+            )
+
+            @test status == JuMP.OPTIMAL
+
+            status, _ = PropertyT.solve(
+                model,
+                scs_optimizer(
+                    eps=1e-10,
+                    max_iters=100,
                     accel=-20,
                     alpha=1.2,
                 ),
+                warm
             )
+
+            @test status == JuMP.OPTIMAL
 
             Q = @time let varP = varP
                 Qs = map(varP) do P

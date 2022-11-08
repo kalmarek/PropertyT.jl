@@ -77,6 +77,17 @@ end
         @test status == JuMP.OPTIMAL
         @test certified
         @test λ > 1
+
+        m = PropertyT.sos_problem_dual(elt, unit)
+        PropertyT.solve(m, scs_optimizer(
+            eps=1e-10,
+            max_iters=5_000,
+            accel=50,
+            alpha=1.9,
+        ))
+
+        @test JuMP.termination_status(m) in (JuMP.ALMOST_OPTIMAL, JuMP.OPTIMAL)
+        @test JuMP.objective_value(m) ≈ 1.5 atol = 1e-3
     end
 
     @testset "SAut(F₂)" begin
@@ -95,7 +106,7 @@ end
         status, certified, λ = check_positivity(
             elt,
             unit,
-            upper_bound=0.1,
+            upper_bound=ub,
             halfradius=2,
             optimizer=scs_optimizer(
                 eps=1e-10,
@@ -108,6 +119,32 @@ end
         @test status == JuMP.ALMOST_OPTIMAL
         @test λ < 0
         @test !certified
+
+        @time sos_problem =
+            PropertyT.sos_problem_primal(elt, upper_bound=ub)
+
+        status, _ = PropertyT.solve(
+            sos_problem,
+            cosmo_optimizer(
+                eps=1e-7,
+                max_iters=10_000,
+                accel=0,
+                alpha=1.9,
+            )
+        )
+        @test status == JuMP.OPTIMAL
+        P = JuMP.value.(sos_problem[:P])
+        Q = real.(sqrt(P))
+        certified, λ_cert = PropertyT.certify_solution(
+            elt,
+            zero(elt),
+            0.0,
+            Q,
+            halfradius=2,
+        )
+        @test !certified
+        @test λ_cert < 0
+
     end
 
     @testset "SL(3,Z) has (T)" begin
