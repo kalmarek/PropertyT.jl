@@ -38,19 +38,6 @@ function sos_problem_dual(
 end
 
 function constraints(
-    mstr::AbstractMatrix{<:Integer},
-    total_length=maximum(mstr),
-)
-    cnstrs = [Vector{eltype(mstr)}() for _ = 1:total_length]
-    li = LinearIndices(mstr)
-
-    for (idx, val) in pairs(mstr)
-        push!(cnstrs[val], li[idx])
-    end
-    return cnstrs
-end
-
-function constraints(
     basis::StarAlgebras.AbstractBasis,
     mstr::AbstractMatrix{<:Integer};
     augmented::Bool=false,
