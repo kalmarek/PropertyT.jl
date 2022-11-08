@@ -13,16 +13,6 @@ function Roots.Root(s::MatrixGroups.ElementarySymplectic{N}) where {N}
     end
 end
 
-function Roots.positive(
-    generating_set::AbstractVector{<:MatrixGroups.ElementarySymplectic},
-)
-    r = Roots._positive_direction(Roots.Root(first(generating_set)))
-    pos_gens = [
-        s for s in generating_set if s.val > 0.0 && dot(Roots.Root(s), r) ≥ 0.0
-    ]
-    return pos_gens
-end
-
 grading(s::MatrixGroups.ElementarySymplectic) = Roots.Root(s)
 grading(e::MatrixGroups.ElementaryMatrix) = Roots.Root(e)
 
