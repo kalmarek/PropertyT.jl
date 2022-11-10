@@ -83,7 +83,10 @@ julia> include("test/optimizers.jl");
 
 Now we have everything what we need to solve the problem!
 ```julia
-julia> status, warmstart = PropertyT.solve(opt_problem, scs_optimizer(max_iters=5_000, accel=50, alpha=1.9));
+julia> status, warmstart = PropertyT.solve(
+    opt_problem,
+    scs_optimizer(max_iters=5_000, accel=50, alpha=1.9),
+);
 ------------------------------------------------------------------
                SCS v3.2.1 - Splitting Conic Solver
         (c) Brendan O'Donoghue, Stanford University, 2012
@@ -119,8 +122,12 @@ julia> status
 ALMOST_OPTIMAL::TerminationStatusCode = 7
 ```
 The solver didn't manage to solve the problem but it got quite close! (duality gap is ~`1.63e-6`). Let's try once again this time warmstarting the solver:
-```
-julia> status, warmstart = PropertyT.solve(opt_problem, scs_optimizer(max_iters=10_000, accel=50, alpha=1.9), warmstart);
+```julia
+julia> status, warmstart = PropertyT.solve(
+    opt_problem,
+    scs_optimizer(max_iters=10_000, accel=50, alpha=1.9),
+    warmstart,
+);
 ------------------------------------------------------------------
                SCS v3.2.1 - Splitting Conic Solver
         (c) Brendan O'Donoghue, Stanford University, 2012
