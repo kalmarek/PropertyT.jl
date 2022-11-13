@@ -46,6 +46,28 @@
 
 
     @testset "Symplectic group" begin
+        @testset "Sp2(ℤ)" begin
+            genus = 2
+            halfradius = 1
+
+            SpN = MatrixGroups.SymplecticGroup{2genus}(Int8)
+
+            RSpN, S_sp, sizes_sp = PropertyT.group_algebra(SpN, halfradius=halfradius, twisted=true)
+
+            Δ, Δs = let RG = RSpN, S = S_sp, ψ = identity
+                Δ = RG(length(S)) - sum(RG(s) for s in S)
+                Δs = PropertyT.laplacians(
+                    RG,
+                    S,
+                    x -> (gx = PropertyT.grading(ψ(x)); Set([gx, -gx])),
+                )
+                Δ, Δs
+            end
+
+            sq = sum(Δᵢ^2 for Δᵢ in values(Δs))
+            @test PropertyT.Adj(Δs, :C₂) + sq == Δ^2
+        end
+
         genus = 3
         halfradius = 1
 
