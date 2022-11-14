@@ -79,15 +79,15 @@ end
         @test λ > 1
 
         m = PropertyT.sos_problem_dual(elt, unit)
-        PropertyT.solve(m, scs_optimizer(
-            eps=1e-10,
+        PropertyT.solve(m, cosmo_optimizer(
+            eps=1e-6,
             max_iters=5_000,
             accel=50,
             alpha=1.9,
         ))
 
         @test JuMP.termination_status(m) in (JuMP.ALMOST_OPTIMAL, JuMP.OPTIMAL)
-        @test JuMP.objective_value(m) ≈ 1.5 atol = 1e-3
+        @test JuMP.objective_value(m) ≈ 1.5 atol = 1e-2
     end
 
     @testset "SAut(F₂)" begin

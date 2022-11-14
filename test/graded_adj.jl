@@ -85,7 +85,7 @@
             Δ, Δs
         end
 
-        @testset "Adj correctness: genus=$genus" begin
+        @testset "Adj numerics for genus=$genus" begin
 
             all_subtypes = (
                 :A₁, :C₁, Symbol("A₁×A₁"), Symbol("C₁×C₁"), Symbol("A₁×C₁"), :A₂, :C₂
