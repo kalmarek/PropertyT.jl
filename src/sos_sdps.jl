@@ -216,15 +216,14 @@ function sos_problem_primal(
     P = map(direct_summands(wedderburn)) do ds
         dim = size(ds, 1)
         P = JuMP.@variable(model, [1:dim, 1:dim], Symmetric)
-        @constraint(model, P in PSDCone())
+        JuMP.@constraint(model, P in PSDCone())
         P
     end
 
     begin # preallocating
         T = eltype(wedderburn)
-        M = zeros.(T, size.(P))
+        M = spzeros.(T, size.(P))
         M_orb = zeros(T, size(parent(elt).mstructure)...)
-        tmps = SymbolicWedderburn._tmps(wedderburn)
     end
 
     X = convert(Vector{T}, StarAlgebras.coeffs(elt))
@@ -235,16 +234,27 @@ function sos_problem_primal(
 
     @info "Adding $(length(invariant_vectors(wedderburn))) constraints"
 
-    for iv in invariant_vectors(wedderburn)
+    ds = SymbolicWedderburn.direct_summands(wedderburn)
+    Uπs = SymbolicWedderburn.image_basis.(ds)
+    T = eltype(first(Uπs))
+    degrees = SymbolicWedderburn.degree.(ds)
+
+    for (i, iv) in enumerate(invariant_vectors(wedderburn))
+        # @debug i
+        i % 100 == 0 && print('.')
+        i % 10000 === 0 && print('\n')
+
         x = dot(X, iv)
         u = dot(U, iv)
 
         M_orb = invariant_constraint!(M_orb, basis(parent(elt)), cnstrs, iv)
+        M = SymbolicWedderburn.diagonalize!(M, M_orb, Uπs, degrees)
+        SparseArrays.droptol!.(M, 10 * eps(T) * max(size(M_orb)...))
 
-        M = SymbolicWedderburn.diagonalize!(M, M_orb, wedderburn, tmps)
-        SymbolicWedderburn.zerotol!.(M, atol=1e-12)
-
-        M_dot_P = sum(dot(M[π], P[π]) for π in eachindex(M) if !iszero(M[π]))
+        # @debug [nnz(m) / length(m) for m in M]
+        # spM = sparse.(M)
+        # @time M_dot_P = sum(dot(spM[π], P[π]) for π in eachindex(spM) if !iszero(spM[π]))
+        # @info density = [count(!iszero, m) / sum(length, m) for m in M]
 
         if feasibility_problem
             JuMP.@constraint(model, x == __fast_recursive_dot!(JuMP.AffExpr(), P, M))
