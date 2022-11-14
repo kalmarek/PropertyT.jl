@@ -1,26 +1,43 @@
 ## Particular definitions for actions on Sp(n,ℤ)
 
 function _conj(
-    t::MatrixGroups.ElementarySymplectic{N,T},
+    s::MatrixGroups.ElementarySymplectic{N,T},
     σ::PermutationGroups.AbstractPerm,
 ) where {N,T}
     @assert iseven(N)
-    @assert degree(σ) == N ÷ 2 "Got degree = $(degree(σ)); N = $N"
-    i = mod1(t.i, N ÷ 2)
-    ib = i == t.i ? 0 : N ÷ 2
-    j = mod1(t.j, N ÷ 2)
-    jb = j == t.j ? 0 : N ÷ 2
-    return MatrixGroups.ElementarySymplectic{N}(t.symbol, i^inv(σ) + ib, j^inv(σ) + jb, t.val)
+    @assert PermutationGroups.degree(σ) == N ÷ 2 "Got degree = $(PermutationGroups.degree(σ)); N = $N"
+    n = N ÷ 2
+    @assert 1 ≤ s.i ≤ N
+    @assert 1 ≤ s.j ≤ N
+    if s.symbol == :A
+        @assert 1 ≤ s.i ≤ n
+        @assert 1 ≤ s.j ≤ n
+        i = s.i^inv(σ)
+        j = s.j^inv(σ)
+    else
+        @assert s.symbol == :B
+        @assert xor(s.i > n, s.j > n)
+        if s.i > n
+            i = (s.i - n)^inv(σ) + n
+            j = s.j^inv(σ)
+        elseif s.j > n
+            i = s.i^inv(σ)
+            j = (s.j - n)^inv(σ) + n
+        end
+    end
+    return MatrixGroups.ElementarySymplectic{N}(s.symbol, i, j, s.val)
 end
 
 function _conj(
-    t::MatrixGroups.ElementarySymplectic{N,T},
+    s::MatrixGroups.ElementarySymplectic{N,T},
     x::Groups.Constructions.DirectPowerElement,
 ) where {N,T}
     @assert Groups.order(Int, parent(x).group) == 2
     @assert iseven(N)
-    just_one_flips = xor(isone(x.elts[mod1(t.i, N ÷ 2)]), isone(x.elts[mod1(t.j, N ÷ 2)]))
-    return ifelse(just_one_flips, inv(t), t)
+    n = N ÷ 2
+    i, j = ifelse(s.i <= n, s.i, s.i - n), ifelse(s.j <= n, s.j, s.j - n)
+    just_one_flips = xor(isone(x.elts[i]), isone(x.elts[j]))
+    return ifelse(just_one_flips, inv(s), s)
 end
 
 action_by_conjugation(sln::Groups.MatrixGroups.SymplecticGroup, Σ::Groups.Group) =

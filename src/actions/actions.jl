@@ -4,6 +4,7 @@ StarAlgebras.star(g::Groups.GroupElement) = inv(g)
 include("alphabet_permutation.jl")
 
 include("sln_conjugation.jl")
+include("spn_conjugation.jl")
 include("autfn_conjugation.jl")
 
 function SymbolicWedderburn.action(
