@@ -6,37 +6,20 @@ function check_positivity(elt, unit, wd; upper_bound=Inf, halfradius=2, optimize
     @time status, _ = PropertyT.solve(sos_problem, optimizer)
 
     Q = let Ps = Ps
-        flPs = [real.(sqrt(JuMP.value.(P))) for P in Ps]
-        PropertyT.reconstruct(flPs, wd)
+        Qs = [real.(sqrt(JuMP.value.(P))) for P in Ps]
+        PropertyT.reconstruct(Qs, wd)
     end
 
     λ = JuMP.value(sos_problem[:λ])
 
-    sos = let RG = parent(elt), Q = Q
-        z = zeros(eltype(Q), length(basis(RG)))
-        res = AlgebraElement(z, RG)
-        cnstrs = PropertyT.constraints(basis(RG), RG.mstructure, augmented=true)
-        PropertyT._cnstr_sos!(res, Q, cnstrs)
-    end
-
-    residual = elt - λ * unit - sos
-    λ_fl = PropertyT.sufficient_λ(residual, λ, halfradius=2)
-
-    λ_fl < 0 && return status, false, λ_fl
-
-    sos = let RG = parent(elt), Q = [PropertyT.IntervalArithmetic.@interval(q) for q in Q]
-        z = zeros(eltype(Q), length(basis(RG)))
-        res = AlgebraElement(z, RG)
-        cnstrs = PropertyT.constraints(basis(RG), RG.mstructure, augmented=true)
-        PropertyT._cnstr_sos!(res, Q, cnstrs)
-    end
-
-    λ_int = PropertyT.IntervalArithmetic.@interval(λ)
-
-    residual_int = elt - λ_int * unit - sos
-    λ_int = PropertyT.sufficient_λ(residual_int, λ_int, halfradius=2)
-
-    return status, λ_int > 0, PropertyT.IntervalArithmetic.inf(λ_int)
+    certified, λ_cert = PropertyT.certify_solution(
+        elt,
+        unit,
+        λ,
+        Q,
+        halfradius=2
+    )
+    return status, certified, λ_cert
 end
 
 @testset "1712.07167 Examples" begin
