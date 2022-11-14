@@ -182,13 +182,17 @@ function __fast_recursive_dot!(
     return res
 end
 
+import ProgressMeter
+__show_itrs(n, total) = () -> [(Symbol("constraint"), "$n/$total")]
+
 function sos_problem_primal(
     elt::StarAlgebras.AlgebraElement,
     orderunit::StarAlgebras.AlgebraElement,
     wedderburn::WedderburnDecomposition;
     upper_bound=Inf,
     augmented=iszero(StarAlgebras.aug(elt)) && iszero(StarAlgebras.aug(orderunit)),
-    check_orthogonality=true
+    check_orthogonality=true,
+    show_progress=false
 )
 
     @assert parent(elt) === parent(orderunit)
@@ -222,7 +226,7 @@ function sos_problem_primal(
 
     begin # preallocating
         T = eltype(wedderburn)
-        M = spzeros.(T, size.(P))
+        Ms = spzeros.(T, size.(P))
         M_orb = zeros(T, size(parent(elt).mstructure)...)
     end
 
@@ -232,36 +236,40 @@ function sos_problem_primal(
     # defining constraints based on the multiplicative structure
     cnstrs = constraints(parent(elt), augmented=augmented, twisted=true)
 
-    @info "Adding $(length(invariant_vectors(wedderburn))) constraints"
-
-    ds = SymbolicWedderburn.direct_summands(wedderburn)
-    Uπs = SymbolicWedderburn.image_basis.(ds)
-    T = eltype(first(Uπs))
-    degrees = SymbolicWedderburn.degree.(ds)
+    prog = ProgressMeter.Progress(
+        length(invariant_vectors(wedderburn)),
+        dt=1,
+        desc="Adding constraints... ",
+        enabled=show_progress,
+        barlen=60,
+        showspeed=true
+    )
 
     for (i, iv) in enumerate(invariant_vectors(wedderburn))
-        # @debug i
-        i % 100 == 0 && print('.')
-        i % 10000 === 0 && print('\n')
+        ProgressMeter.next!(prog, showvalues=__show_itrs(i, prog.n))
 
         x = dot(X, iv)
         u = dot(U, iv)
 
         M_orb = invariant_constraint!(M_orb, basis(parent(elt)), cnstrs, iv)
-        M = SymbolicWedderburn.diagonalize!(M, M_orb, Uπs, degrees)
-        SparseArrays.droptol!.(M, 10 * eps(T) * max(size(M_orb)...))
+        Ms = SymbolicWedderburn.diagonalize!(Ms, M_orb, wedderburn)
+        SparseArrays.droptol!.(Ms, 10 * eps(T) * max(size(M_orb)...))
 
-        # @debug [nnz(m) / length(m) for m in M]
-        # spM = sparse.(M)
-        # @time M_dot_P = sum(dot(spM[π], P[π]) for π in eachindex(spM) if !iszero(spM[π]))
-        # @info density = [count(!iszero, m) / sum(length, m) for m in M]
+        # @info [nnz(m) / length(m) for m in Ms]
 
         if feasibility_problem
-            JuMP.@constraint(model, x == __fast_recursive_dot!(JuMP.AffExpr(), P, M))
+            JuMP.@constraint(
+                model,
+                x == __fast_recursive_dot!(JuMP.AffExpr(), P, Ms)
+            )
         else
-            JuMP.@constraint(model, x - λ * u == __fast_recursive_dot!(JuMP.AffExpr(), P, M))
+            JuMP.@constraint(
+                model,
+                x - λ * u == __fast_recursive_dot!(JuMP.AffExpr(), P, Ms)
+            )
         end
     end
+    ProgressMeter.finish!(prog)
     return model, P
 end
 
