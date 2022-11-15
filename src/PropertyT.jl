@@ -15,6 +15,7 @@ import SymbolicWedderburn.PermutationGroups
 
 include("constraint_matrix.jl")
 include("sos_sdps.jl")
+include("solve.jl")
 include("certify.jl")
 
 include("sqadjop.jl")
