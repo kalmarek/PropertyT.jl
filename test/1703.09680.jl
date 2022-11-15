@@ -1,20 +1,3 @@
-function check_positivity(elt, unit; upper_bound=Inf, halfradius=2, optimizer)
-    @time sos_problem =
-        PropertyT.sos_problem_primal(elt, unit, upper_bound=upper_bound)
-
-    status, _ = PropertyT.solve(sos_problem, optimizer)
-    P = JuMP.value.(sos_problem[:P])
-    Q = real.(sqrt(P))
-    certified, λ_cert = PropertyT.certify_solution(
-        elt,
-        unit,
-        JuMP.objective_value(sos_problem),
-        Q,
-        halfradius=halfradius,
-    )
-    return status, certified, λ_cert
-end
-
 @testset "1703.09680 Examples" begin
 
     @testset "SL(2,Z)" begin
