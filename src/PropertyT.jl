@@ -1,4 +1,3 @@
-__precompile__()
 module PropertyT
 
 using LinearAlgebra
@@ -16,6 +15,7 @@ import SymbolicWedderburn.PermutationGroups
 include("constraint_matrix.jl")
 include("sos_sdps.jl")
 include("solve.jl")
+include("reconstruct.jl")
 include("certify.jl")
 
 include("sqadjop.jl")
