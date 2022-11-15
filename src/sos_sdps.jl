@@ -226,7 +226,7 @@ function sos_problem_primal(
 
     begin # preallocating
         T = eltype(wedderburn)
-        Ms = spzeros.(T, size.(P))
+        Ms = [spzeros.(T, size(p)...) for p in P]
         M_orb = zeros(T, size(parent(elt).mstructure)...)
     end
 
