@@ -39,7 +39,6 @@ function solve(m::JuMP.Model, optimizer, warmstart=nothing)
     m = setwarmstart!(m, warmstart)
 
     JuMP.optimize!(m)
-    Base.Libc.flush_cstdio()
 
     status = JuMP.termination_status(m)
 
@@ -55,6 +54,7 @@ function solve(solverlog::String, m::JuMP.Model, optimizer, warmstart=nothing)
     status, warmstart = open(solverlog, "a+") do logfile
         redirect_stdout(logfile) do
             status, warmstart = solve(m, optimizer, warmstart)
+            Base.Libc.flush_cstdio()
             status, warmstart
         end
     end

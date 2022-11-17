@@ -29,7 +29,7 @@ include("actions/actions.jl")
 function group_algebra(G::Groups.Group, S=gens(G); halfradius::Integer, twisted::Bool)
     S = union!(S, inv.(S))
     @info "generating wl-metric ball of radius $(2halfradius)"
-    @time E, sizes = Groups.wlmetric_ball_serial(S, radius=2halfradius)
+    @time E, sizes = Groups.wlmetric_ball(S, radius=2halfradius)
     @info "sizes = $(sizes)"
     @info "computing the *-algebra structure for G"
     @time RG = StarAlgebras.StarAlgebra{twisted}(
