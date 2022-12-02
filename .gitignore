@@ -2,7 +2,3 @@
 *.jl.*.cov
 *.jl.mem
 Manifest.toml
-test/SL*
-test/oSL*
-test/SAut*
-test/oSAut*

@@ -160,13 +160,39 @@ sos_problem_primal(
     kwargs...
 ) = sos_problem_primal(elt, zero(elt), wedderburn; kwargs...)
 
+function __fast_recursive_dot!(
+    res::JuMP.AffExpr,
+    Ps::AbstractArray{<:AbstractMatrix{<:JuMP.VariableRef}},
+    Ms::AbstractArray{<:AbstractSparseMatrix};
+)
+    @assert length(Ps) == length(Ms)
+
+    for (A, P) in zip(Ms, Ps)
+        iszero(Ms) && continue
+        rows = rowvals(A)
+        vals = nonzeros(A)
+        for cidx in axes(A, 2)
+            for i in nzrange(A, cidx)
+                ridx = rows[i]
+                val = vals[i]
+                JuMP.add_to_expression!(res, P[ridx, cidx], val)
+            end
+        end
+    end
+    return res
+end
+
+import ProgressMeter
+__show_itrs(n, total) = () -> [(Symbol("constraint"), "$n/$total")]
+
 function sos_problem_primal(
     elt::StarAlgebras.AlgebraElement,
     orderunit::StarAlgebras.AlgebraElement,
     wedderburn::WedderburnDecomposition;
     upper_bound=Inf,
     augmented=iszero(StarAlgebras.aug(elt)) && iszero(StarAlgebras.aug(orderunit)),
-    check_orthogonality=true
+    check_orthogonality=true,
+    show_progress=false
 )
 
     @assert parent(elt) === parent(orderunit)
@@ -194,15 +220,14 @@ function sos_problem_primal(
     P = map(direct_summands(wedderburn)) do ds
         dim = size(ds, 1)
         P = JuMP.@variable(model, [1:dim, 1:dim], Symmetric)
-        @constraint(model, P in PSDCone())
+        JuMP.@constraint(model, P in PSDCone())
         P
     end
 
     begin # preallocating
         T = eltype(wedderburn)
-        M = zeros.(T, size.(P))
+        Ms = [spzeros.(T, size(p)...) for p in P]
         M_orb = zeros(T, size(parent(elt).mstructure)...)
-        tmps = SymbolicWedderburn._tmps(wedderburn)
     end
 
     X = convert(Vector{T}, StarAlgebras.coeffs(elt))
@@ -211,142 +236,39 @@ function sos_problem_primal(
     # defining constraints based on the multiplicative structure
     cnstrs = constraints(parent(elt), augmented=augmented, twisted=true)
 
-    @info "Adding $(length(invariant_vectors(wedderburn))) constraints"
+    prog = ProgressMeter.Progress(
+        length(invariant_vectors(wedderburn)),
+        dt=1,
+        desc="Adding constraints... ",
+        enabled=show_progress,
+        barlen=60,
+        showspeed=true
+    )
 
-    for iv in invariant_vectors(wedderburn)
+    for (i, iv) in enumerate(invariant_vectors(wedderburn))
+        ProgressMeter.next!(prog, showvalues=__show_itrs(i, prog.n))
+
         x = dot(X, iv)
         u = dot(U, iv)
 
         M_orb = invariant_constraint!(M_orb, basis(parent(elt)), cnstrs, iv)
+        Ms = SymbolicWedderburn.diagonalize!(Ms, M_orb, wedderburn)
+        SparseArrays.droptol!.(Ms, 10 * eps(T) * max(size(M_orb)...))
 
-        M = SymbolicWedderburn.diagonalize!(M, M_orb, wedderburn, tmps)
-        SymbolicWedderburn.zerotol!.(M, atol=1e-12)
-
-        M_dot_P = sum(dot(M[π], P[π]) for π in eachindex(M) if !iszero(M[π]))
+        # @info [nnz(m) / length(m) for m in Ms]
 
         if feasibility_problem
-            JuMP.@constraint(model, x == M_dot_P)
+            JuMP.@constraint(
+                model,
+                x == __fast_recursive_dot!(JuMP.AffExpr(), P, Ms)
+            )
         else
-            JuMP.@constraint(model, x - λ * u == M_dot_P)
+            JuMP.@constraint(
+                model,
+                x - λ * u == __fast_recursive_dot!(JuMP.AffExpr(), P, Ms)
+            )
         end
     end
+    ProgressMeter.finish!(prog)
     return model, P
-end
-
-function reconstruct(Ps, wd::WedderburnDecomposition)
-    N = size(first(direct_summands(wd)), 2)
-    P = zeros(eltype(wd), N, N)
-    return reconstruct!(P, Ps, wd)
-end
-
-function group_of(wd::WedderburnDecomposition)
-    # this is veeeery hacky... ;)
-    return parent(first(keys(wd.hom.cache)))
-end
-
-# TODO: move to SymbolicWedderburn
-SymbolicWedderburn.action(wd::WedderburnDecomposition) =
-    SymbolicWedderburn.action(wd.hom)
-
-function reconstruct!(
-    res::AbstractMatrix,
-    Ps,
-    wedderburn::WedderburnDecomposition,
-)
-    G = group_of(wedderburn)
-
-    act = SymbolicWedderburn.action(wedderburn)
-
-    @assert act isa SymbolicWedderburn.ByPermutations
-
-    for (π, ds) in pairs(direct_summands(wedderburn))
-        Uπ = SymbolicWedderburn.image_basis(ds)
-
-        # LinearAlgebra.mul!(tmp, Uπ', P[π])
-        # LinearAlgebra.mul!(tmp2, tmp, Uπ)
-        tmp2 = Uπ' * Ps[π] * Uπ
-        if eltype(res) <: AbstractFloat
-            SymbolicWedderburn.zerotol!(tmp2, atol=1e-12)
-        end
-        tmp2 .*= SymbolicWedderburn.degree(ds)
-
-        @assert size(tmp2) == size(res)
-
-        for g in G
-            p = SymbolicWedderburn.induce(wedderburn.hom, g)
-            for c in axes(res, 2)
-                for r in axes(res, 1)
-                    res[r, c] += tmp2[r^p, c^p]
-                end
-            end
-        end
-    end
-    res ./= Groups.order(Int, G)
-
-    return res
-end
-
-##
-# Low-level solve
-
-setwarmstart!(model::JuMP.Model, ::Nothing) = model
-
-function setwarmstart!(model::JuMP.Model, warmstart)
-    constraint_map = Dict(
-        ct => JuMP.all_constraints(model, ct...) for
-        ct in JuMP.list_of_constraint_types(model)
-    )
-
-    JuMP.set_start_value.(JuMP.all_variables(model), warmstart.primal)
-
-    for (ct, idx) in pairs(constraint_map)
-        JuMP.set_start_value.(idx, warmstart.slack[ct])
-        JuMP.set_dual_start_value.(idx, warmstart.dual[ct])
-    end
-    return model
-end
-
-function getwarmstart(model::JuMP.Model)
-    constraint_map = Dict(
-        ct => JuMP.all_constraints(model, ct...) for
-        ct in JuMP.list_of_constraint_types(model)
-    )
-
-    primal = value.(JuMP.all_variables(model))
-
-    slack = Dict(k => value.(v) for (k, v) in constraint_map)
-    duals = Dict(k => JuMP.dual.(v) for (k, v) in constraint_map)
-
-    return (primal=primal, dual=duals, slack=slack)
-end
-
-function solve(m::JuMP.Model, optimizer, warmstart=nothing)
-
-    JuMP.set_optimizer(m, optimizer)
-    MOIU.attach_optimizer(m)
-
-    m = setwarmstart!(m, warmstart)
-
-    JuMP.optimize!(m)
-    Base.Libc.flush_cstdio()
-
-    status = JuMP.termination_status(m)
-
-    return status, getwarmstart(m)
-end
-
-function solve(solverlog::String, m::JuMP.Model, optimizer, warmstart=nothing)
-
-    isdir(dirname(solverlog)) || mkpath(dirname(solverlog))
-
-    Base.flush(Base.stdout)
-    Base.Libc.flush_cstdio()
-    status, warmstart = open(solverlog, "a+") do logfile
-        redirect_stdout(logfile) do
-            status, warmstart = solve(m, optimizer, warmstart)
-            status, warmstart
-        end
-    end
-
-    return status, warmstart
 end

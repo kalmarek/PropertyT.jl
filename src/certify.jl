@@ -5,80 +5,50 @@ function augment_columns!(Q::AbstractMatrix)
     return Q
 end
 
-function _fma_SOS_thr!(
-    result::AbstractVector{T},
-    mstructure::AbstractMatrix{<:Integer},
-    Q::AbstractMatrix{T},
-    acc_matrix=zeros(T, size(mstructure)...),
-) where {T}
+function __sos_via_sqr!(
+    res::StarAlgebras.AlgebraElement,
+    P::AbstractMatrix;
+    augmented::Bool
+)
+    StarAlgebras.zero!(res)
+    A = parent(res)
+    b = basis(A)
+    @assert size(A.mstructure) == size(P)
+    e = b[one(b[1])]
 
-    s1, s2 = size(mstructure)
-
-    @inbounds for k = 1:s2
-        let k = k, s1 = s1, s2 = s2, Q = Q, acc_matrix = acc_matrix
-            Threads.@threads for j = 1:s2
-                for i = 1:s1
-                    @inbounds acc_matrix[i, j] =
-                        muladd(Q[i, k], Q[j, k], acc_matrix[i, j])
-                end
+    for i in axes(A.mstructure, 1)
+        x = StarAlgebras._istwisted(A.mstructure) ? StarAlgebras.star(b[i]) : b[i]
+        for j in axes(A.mstructure, 2)
+            p = P[i, j]
+            xy = b[A.mstructure[i, j]]
+            # either result += P[x,y]*(x*y)
+            res[xy] += p
+            if augmented
+                # or result += P[x,y]*(1-x)*(1-y) == P[x,y]*(2-x-y+xy)
+                y = b[j]
+                res[e] += p
+                res[x] -= p
+                res[y] -= p
             end
         end
     end
 
-    @inbounds for j = 1:s2
-        for i = 1:s1
-            result[mstructure[i, j]] += acc_matrix[i, j]
-        end
-    end
-
-    return result
+    return res
 end
 
-function _cnstr_sos!(res::StarAlgebras.AlgebraElement, Q::AbstractMatrix, cnstrs)
+function __sos_via_cnstr!(res::StarAlgebras.AlgebraElement, Q²::AbstractMatrix, cnstrs)
     StarAlgebras.zero!(res)
-    Q² = Q' * Q
     for (g, A_g) in cnstrs
         res[g] = dot(A_g, Q²)
     end
     return res
 end
 
-function _augmented_sos!(res::StarAlgebras.AlgebraElement, Q::AbstractMatrix)
-    A = parent(res)
-    StarAlgebras.zero!(res)
-    Q² = Q' * Q
-
-    N = LinearAlgebra.checksquare(A.mstructure)
-    augmented_basis = [A(1) - A(b) for b in @view basis(A)[1:N]]
-    tmp = zero(res)
-
-    for (j, y) in enumerate(augmented_basis)
-        for (i, x) in enumerate(augmented_basis)
-            # res += Q²[i, j] * x * y
-
-            StarAlgebras.mul!(tmp, x, y)
-            StarAlgebras.mul!(tmp, tmp, Q²[i, j])
-            StarAlgebras.add!(res, res, tmp)
-        end
-    end
-    return res
-end
-
 function compute_sos(A::StarAlgebras.StarAlgebra, Q::AbstractMatrix; augmented::Bool)
-    if augmented
-        z = zeros(eltype(Q), length(basis(A)))
-        res = StarAlgebras.AlgebraElement(z, A)
-        return _augmented_sos!(res, Q)
-        cnstrs = constraints(basis(A), A.mstructure; augmented=true)
-        return _cnstr_sos!(res, Q, cnstrs)
-    else
-        @assert size(A.mstructure) == size(Q)
-        z = zeros(eltype(Q), length(basis(A)))
-
-        _fma_SOS_thr!(z, A.mstructure, Q)
-
-        return StarAlgebras.AlgebraElement(z, A)
-    end
+    Q² = Q' * Q
+    res = StarAlgebras.AlgebraElement(zeros(eltype(Q²), length(basis(A))), A)
+    res = __sos_via_sqr!(res, Q², augmented=augmented)
+    return res
 end
 
 function sufficient_λ(residual::StarAlgebras.AlgebraElement, λ; halfradius)
@@ -159,7 +129,7 @@ function certify_solution(
         true, compute_sos(parent(elt), Q_int, augmented=augmented)
     end
 
-    @info "Checking in $(eltype(sos_int)) arithmetic with" λ
+    @info "Checking in $(eltype(sos_int)) arithmetic with" λ_int
 
     λ_certified =
         sufficient_λ(elt, orderunit, λ_int, sos_int, halfradius=halfradius)

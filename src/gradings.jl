@@ -6,7 +6,8 @@ Roots.Root(e::MatrixGroups.ElementaryMatrix{N}) where {N} =
 function Roots.Root(s::MatrixGroups.ElementarySymplectic{N}) where {N}
     if s.symbol === :A
         return Roots.𝕖(N ÷ 2, s.i) - Roots.𝕖(N ÷ 2, s.j)
-    else#if s.symbol === :B
+    else
+        @assert s.symbol === :B
         n = N ÷ 2
         i, j = ifelse(s.i <= n, s.i, s.i - n), ifelse(s.j <= n, s.j, s.j - n)
         return (-1)^(s.i > s.j) * (Roots.𝕖(n, i) + Roots.𝕖(n, j))

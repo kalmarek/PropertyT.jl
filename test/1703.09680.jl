@@ -1,20 +1,3 @@
-function check_positivity(elt, unit; upper_bound=Inf, halfradius=2, optimizer)
-    @time sos_problem =
-        PropertyT.sos_problem_primal(elt, unit, upper_bound=upper_bound)
-
-    status, _ = PropertyT.solve(sos_problem, optimizer)
-    P = JuMP.value.(sos_problem[:P])
-    Q = real.(sqrt(P))
-    certified, λ_cert = PropertyT.certify_solution(
-        elt,
-        unit,
-        JuMP.objective_value(sos_problem),
-        Q,
-        halfradius=halfradius,
-    )
-    return status, certified, λ_cert
-end
-
 @testset "1703.09680 Examples" begin
 
     @testset "SL(2,Z)" begin
@@ -79,15 +62,15 @@ end
         @test λ > 1
 
         m = PropertyT.sos_problem_dual(elt, unit)
-        PropertyT.solve(m, scs_optimizer(
-            eps=1e-10,
+        PropertyT.solve(m, cosmo_optimizer(
+            eps=1e-6,
             max_iters=5_000,
             accel=50,
             alpha=1.9,
         ))
 
         @test JuMP.termination_status(m) in (JuMP.ALMOST_OPTIMAL, JuMP.OPTIMAL)
-        @test JuMP.objective_value(m) ≈ 1.5 atol = 1e-3
+        @test JuMP.objective_value(m) ≈ 1.5 atol = 1e-2
     end
 
     @testset "SAut(F₂)" begin

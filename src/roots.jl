@@ -48,10 +48,8 @@ function isorthogonal(α::AbstractRoot{N}, β::AbstractRoot{M}) where {N,M}
 end
 
 function _positive_direction(α::Root{N}) where {N}
-    last = -1 / √2^(N - 1)
-    return Root{N,Float64}(
-        SVector(ntuple(i -> ifelse(i == N, last, (√2)^-i), N)),
-    )
+    v = α.coord + 1 / (N * 100) * rand(N)
+    return Root{N,Float64}(v / norm(v, 2))
 end
 
 function positive(roots::AbstractVector{<:Root{N}}) where {N}
