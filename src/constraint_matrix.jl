@@ -50,10 +50,15 @@ ConstraintMatrix(nzeros::AbstractArray{<:Integer}, n, m, val::T) where {T} =
 
 Base.size(cm::ConstraintMatrix) = cm.size
 
-__get_positive(cm::ConstraintMatrix, idx::Integer) =
-    convert(eltype(cm), cm.val * length(searchsorted(cm.pos, idx)))
-__get_negative(cm::ConstraintMatrix, idx::Integer) =
-    convert(eltype(cm), cm.val * length(searchsorted(cm.neg, idx)))
+function __get_positive(cm::ConstraintMatrix, idx::Integer)
+    return convert(eltype(cm), cm.val * length(searchsorted(cm.pos, idx)))
+end
+function __get_negative(cm::ConstraintMatrix, idx::Integer)
+    return convert(
+        eltype(cm),
+        cm.val * length(searchsorted(cm.neg, idx; rev = true)),
+    )
+end
 
 Base.@propagate_inbounds function Base.getindex(
     cm::ConstraintMatrix,
