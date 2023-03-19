@@ -6,8 +6,8 @@ See also [sos_problem_primal](@ref).
 """
 function sos_problem_dual(
     elt::StarAlgebras.AlgebraElement,
-    order_unit::StarAlgebras.AlgebraElement=zero(elt);
-    lower_bound=-Inf
+    order_unit::StarAlgebras.AlgebraElement = zero(elt);
+    lower_bound = -Inf,
 )
     @assert parent(elt) == parent(order_unit)
     algebra = parent(elt)
@@ -55,9 +55,10 @@ The default `u = zero(X)` formulates a simple feasibility problem.
 """
 function sos_problem_primal(
     elt::StarAlgebras.AlgebraElement,
-    order_unit::StarAlgebras.AlgebraElement=zero(elt);
-    upper_bound=Inf,
-    augmented::Bool=iszero(StarAlgebras.aug(elt)) && iszero(StarAlgebras.aug(order_unit))
+    order_unit::StarAlgebras.AlgebraElement = zero(elt);
+    upper_bound = Inf,
+    augmented::Bool = iszero(StarAlgebras.aug(elt)) &&
+                      iszero(StarAlgebras.aug(order_unit)),
 )
     @assert parent(elt) === parent(order_unit)
 
@@ -113,11 +114,13 @@ function isorth_projection(ds::SymbolicWedderburn.DirectSummand)
     return isapprox(U * U', I)
 end
 
-sos_problem_primal(
+function sos_problem_primal(
     elt::StarAlgebras.AlgebraElement,
     wedderburn::WedderburnDecomposition;
-    kwargs...
-) = sos_problem_primal(elt, zero(elt), wedderburn; kwargs...)
+    kwargs...,
+)
+    return sos_problem_primal(elt, zero(elt), wedderburn; kwargs...)
+end
 
 function __fast_recursive_dot!(
     res::JuMP.AffExpr,
@@ -157,16 +160,18 @@ function sos_problem_primal(
     elt::StarAlgebras.AlgebraElement,
     orderunit::StarAlgebras.AlgebraElement,
     wedderburn::WedderburnDecomposition;
-    upper_bound=Inf,
-    augmented=iszero(StarAlgebras.aug(elt)) && iszero(StarAlgebras.aug(orderunit)),
-    check_orthogonality=true,
-    show_progress=false
+    upper_bound = Inf,
+    augmented = iszero(StarAlgebras.aug(elt)) &&
+        iszero(StarAlgebras.aug(orderunit)),
+    check_orthogonality = true,
+    show_progress = false,
 )
-
     @assert parent(elt) === parent(orderunit)
     if check_orthogonality
         if any(!isorth_projection, direct_summands(wedderburn))
-            error("Wedderburn decomposition contains a non-orthogonal projection")
+            error(
+                "Wedderburn decomposition contains a non-orthogonal projection",
+            )
         end
     end
 
@@ -189,7 +194,7 @@ function sos_problem_primal(
         dim = size(ds, 1)
         P = JuMP.@variable(model, [1:dim, 1:dim], Symmetric)
         JuMP.@constraint(model, P in PSDCone())
-        P
+        return P
     end
 
     begin # preallocating
@@ -205,16 +210,16 @@ function sos_problem_primal(
     cnstrs = constraints(parent(elt); augmented = augmented)
 
     prog = ProgressMeter.Progress(
-        length(invariant_vectors(wedderburn)),
-        dt=1,
-        desc="Adding constraints... ",
-        enabled=show_progress,
-        barlen=60,
-        showspeed=true
+        length(invariant_vectors(wedderburn));
+        dt = 1,
+        desc = "Adding constraints: ",
+        enabled = show_progress,
+        barlen = 60,
+        showspeed = true,
     )
 
     for (i, iv) in enumerate(invariant_vectors(wedderburn))
-        ProgressMeter.next!(prog, showvalues=__show_itrs(i, prog.n))
+        ProgressMeter.next!(prog; showvalues = __show_itrs(i, prog.n))
 
         x = dot(X, iv)
         u = dot(U, iv)

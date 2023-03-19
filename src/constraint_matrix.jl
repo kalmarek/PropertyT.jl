@@ -28,7 +28,12 @@ struct ConstraintMatrix{T,I} <: AbstractMatrix{T}
     size::Tuple{Int,Int}
     val::T
 
-    function ConstraintMatrix{T}(nzeros::AbstractArray{<:Integer}, n, m, val) where {T}
+    function ConstraintMatrix{T}(
+        nzeros::AbstractArray{<:Integer},
+        n,
+        m,
+        val,
+    ) where {T}
         @assert n ≥ 1
         @assert m ≥ 1
 
@@ -45,8 +50,14 @@ struct ConstraintMatrix{T,I} <: AbstractMatrix{T}
     end
 end
 
-ConstraintMatrix(nzeros::AbstractArray{<:Integer}, n, m, val::T) where {T} =
-    ConstraintMatrix{T}(nzeros, n, m, val)
+function ConstraintMatrix(
+    nzeros::AbstractArray{<:Integer},
+    n,
+    m,
+    val::T,
+) where {T}
+    return ConstraintMatrix{T}(nzeros, n, m, val)
+end
 
 Base.size(cm::ConstraintMatrix) = cm.size
 
@@ -80,7 +91,7 @@ Base.eltype(::Type{NZPairsIter{T}}) where {T} = Pair{Int,T}
 Base.IteratorSize(::Type{<:NZPairsIter}) = Base.SizeUnknown()
 
 # TODO: iterate over (idx=>val) pairs combining vals
-function Base.iterate(itr::NZPairsIter, state::Tuple{Int,Int}=(1, 1))
+function Base.iterate(itr::NZPairsIter, state::Tuple{Int,Int} = (1, 1))
     k = iterate(itr.m.pos, state[1])
     isnothing(k) && return iterate(itr, state[2])
     idx, st = k

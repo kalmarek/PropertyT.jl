@@ -35,7 +35,11 @@ function __sos_via_sqr!(
     return res
 end
 
-function __sos_via_cnstr!(res::StarAlgebras.AlgebraElement, Q²::AbstractMatrix, cnstrs)
+function __sos_via_cnstr!(
+    res::StarAlgebras.AlgebraElement,
+    Q²::AbstractMatrix,
+    cnstrs,
+)
     StarAlgebras.zero!(res)
     for (g, A_g) in cnstrs
         res[g] = dot(A_g, Q²)
@@ -43,10 +47,14 @@ function __sos_via_cnstr!(res::StarAlgebras.AlgebraElement, Q²::AbstractMatrix,
     return res
 end
 
-function compute_sos(A::StarAlgebras.StarAlgebra, Q::AbstractMatrix; augmented::Bool)
+function compute_sos(
+    A::StarAlgebras.StarAlgebra,
+    Q::AbstractMatrix;
+    augmented::Bool,
+)
     Q² = Q' * Q
     res = StarAlgebras.AlgebraElement(zeros(eltype(Q²), length(basis(A))), A)
-    res = __sos_via_sqr!(res, Q², augmented=augmented)
+    res = __sos_via_sqr!(res, Q²; augmented = augmented)
     return res
 end
 
@@ -80,13 +88,12 @@ function sufficient_λ(
     order_unit::StarAlgebras.AlgebraElement,
     λ,
     sos::StarAlgebras.AlgebraElement;
-    halfradius
+    halfradius,
 )
-
     @assert parent(elt) === parent(order_unit) == parent(sos)
     residual = (elt - λ * order_unit) - sos
 
-    return sufficient_λ(residual, λ; halfradius=halfradius)
+    return sufficient_λ(residual, λ; halfradius = halfradius)
 end
 
 function certify_solution(
@@ -95,17 +102,18 @@ function certify_solution(
     λ,
     Q::AbstractMatrix{<:AbstractFloat};
     halfradius,
-    augmented=iszero(StarAlgebras.aug(elt)) && iszero(StarAlgebras.aug(orderunit))
+    augmented = iszero(StarAlgebras.aug(elt)) &&
+        iszero(StarAlgebras.aug(orderunit)),
 )
-
-    should_we_augment = !augmented && StarAlgebras.aug(elt) == StarAlgebras.aug(orderunit) == 0
+    should_we_augment =
+        !augmented && StarAlgebras.aug(elt) == StarAlgebras.aug(orderunit) == 0
 
     Q = should_we_augment ? augment_columns!(Q) : Q
-    @time sos = compute_sos(parent(elt), Q, augmented=augmented)
+    @time sos = compute_sos(parent(elt), Q; augmented = augmented)
 
     @info "Checking in $(eltype(sos)) arithmetic with" λ
 
-    λ_flpoint = sufficient_λ(elt, orderunit, λ, sos, halfradius=halfradius)
+    λ_flpoint = sufficient_λ(elt, orderunit, λ, sos; halfradius = halfradius)
 
     if λ_flpoint ≤ 0
         return false, λ_flpoint
@@ -122,16 +130,16 @@ function certify_solution(
         check_augmented || @error(
             "Augmentation failed! The following numbers are not certified!"
         )
-        sos_int = compute_sos(parent(elt), Q_int; augmented=augmented)
+        sos_int = compute_sos(parent(elt), Q_int; augmented = augmented)
         check_augmented, sos_int
     else
-        true, compute_sos(parent(elt), Q_int, augmented=augmented)
+        true, compute_sos(parent(elt), Q_int; augmented = augmented)
     end
 
     @info "Checking in $(eltype(sos_int)) arithmetic with" λ_int
 
     λ_certified =
-        sufficient_λ(elt, orderunit, λ_int, sos_int, halfradius=halfradius)
+        sufficient_λ(elt, orderunit, λ_int, sos_int; halfradius = halfradius)
 
-    return check && inf(λ_certified) > 0.0, inf(λ_certified)
+    return check && inf(λ_certified) > 0.0, λ_certified
 end

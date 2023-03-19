@@ -30,7 +30,7 @@ Base.:*(r::Root, a::Number) = a * r
 
 Base.length(r::AbstractRoot) = norm(r, 2)
 
-LinearAlgebra.norm(r::Root, p::Real=2) = norm(r.coord, p)
+LinearAlgebra.norm(r::Root, p::Real = 2) = norm(r.coord, p)
 LinearAlgebra.dot(r::Root, s::Root) = dot(r.coord, s.coord)
 
 cos_angle(a, b) = dot(a, b) / (norm(a) * norm(b))
@@ -38,13 +38,13 @@ cos_angle(a, b) = dot(a, b) / (norm(a) * norm(b))
 function isproportional(α::AbstractRoot{N}, β::AbstractRoot{M}) where {N,M}
     N == M || return false
     val = abs(cos_angle(α, β))
-    return isapprox(val, one(val), atol=eps(one(val)))
+    return isapprox(val, one(val); atol = eps(one(val)))
 end
 
 function isorthogonal(α::AbstractRoot{N}, β::AbstractRoot{M}) where {N,M}
     N == M || return false
     val = cos_angle(α, β)
-    return isapprox(val, zero(val), atol=eps(one(val)))
+    return isapprox(val, zero(val); atol = eps(one(val)))
 end
 
 function _positive_direction(α::Root{N}) where {N}
@@ -53,19 +53,18 @@ function _positive_direction(α::Root{N}) where {N}
 end
 
 function positive(roots::AbstractVector{<:Root{N}}) where {N}
-    # return those roots for which dot(α, Root([½, ¼, …])) > 0.0
     pd = _positive_direction(first(roots))
     return filter(α -> dot(α, pd) > 0.0, roots)
 end
 
 function Base.show(io::IO, r::Root)
-    print(io, "Root$(r.coord)")
+    return print(io, "Root$(r.coord)")
 end
 
 function Base.show(io::IO, ::MIME"text/plain", r::Root{N}) where {N}
     lngth² = sum(x -> x^2, r.coord)
     l = isinteger(sqrt(lngth²)) ? "$(sqrt(lngth²))" : "√$(lngth²)"
-    print(io, "Root in ℝ^$N of length $l\n", r.coord)
+    return print(io, "Root in ℝ^$N of length $l\n", r.coord)
 end
 
 𝕖(N, i) = Root(ntuple(k -> k == i ? 1 : 0, N))
@@ -139,10 +138,11 @@ struct Plane{R<:Root}
     vectors::Vector{R}
 end
 
-Plane(α::R, β::R) where {R<:Root} =
-    Plane(α, β, [a * α + b * β for a in -3:3 for b in -3:3])
+function Plane(α::Root, β::Root)
+    return Plane(α, β, [a * α + b * β for a in -3:3 for b in -3:3])
+end
 
-function Base.in(r::R, plane::Plane{R}) where {R}
+function Base.in(r::Root, plane::Plane)
     return any(isproportional(r, v) for v in plane.vectors)
 end
 
