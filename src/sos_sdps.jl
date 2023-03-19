@@ -12,7 +12,7 @@ function sos_problem_dual(
     @assert parent(elt) == parent(order_unit)
     algebra = parent(elt)
     moment_matrix = let m = algebra.mstructure
-        [m[-i, j] for i in axes(m, 1) for j in axes(m, 2)]
+        [m[-i, j] for i in axes(m, 1), j in axes(m, 2)]
     end
 
     # 1 variable for every primal constraint
@@ -20,16 +20,16 @@ function sos_problem_dual(
     # Symmetrized:
     # 1 dual variable for every orbit of G acting on basis
     model = Model()
-    @variable model y[1:length(basis(algebra))]
-    @constraint model λ_dual dot(order_unit, y) == 1
-    @constraint(model, psd, y[moment_matrix] in PSDCone())
+    JuMP.@variable(model, y[1:length(basis(algebra))])
+    JuMP.@constraint(model, λ_dual, dot(order_unit, y) == 1)
+    JuMP.@constraint(model, psd, y[moment_matrix] in PSDCone())
 
     if !isinf(lower_bound)
         throw("Not Implemented yet")
-        @variable model λ_ub_dual
-        @objective model Min dot(elt, y) + lower_bound * λ_ub_dual
+        JuMP.@variable(model, λ_ub_dual)
+        JuMP.@objective(model, Min, dot(elt, y) + lower_bound * λ_ub_dual)
     else
-        @objective model Min dot(elt, y)
+        JuMP.@objective(model, Min, dot(elt, y))
     end
 
     return model
