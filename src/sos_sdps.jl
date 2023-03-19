@@ -225,8 +225,14 @@ function sos_problem_primal(
         u = dot(U, iv)
 
         M_orb = invariant_constraint!(M_orb, basis(parent(elt)), cnstrs, iv)
-        Ms = SymbolicWedderburn.diagonalize!(Ms, M_orb, wedderburn)
-        SparseArrays.droptol!.(Ms, 10 * eps(T) * max(size(M_orb)...))
+
+        Ms = SymbolicWedderburn.diagonalize!(
+            Ms,
+            M_orb,
+            wedderburn;
+            trace_preserving = true,
+        )
+        # SparseArrays.droptol!.(Ms, 10 * eps(T) * max(size(M_orb)...))
 
         # @info [nnz(m) / length(m) for m in Ms]
 
