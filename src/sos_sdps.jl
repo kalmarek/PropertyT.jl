@@ -11,10 +11,8 @@ function sos_problem_dual(
 )
     @assert parent(elt) == parent(order_unit)
     algebra = parent(elt)
-    mstructure = if StarAlgebras._istwisted(algebra.mstructure)
-        algebra.mstructure
-    else
-        StarAlgebras.MTable{true}(basis(algebra), table_size=size(algebra.mstructure))
+    moment_matrix = let m = algebra.mstructure
+        [m[-i, j] for i in axes(m, 1) for j in axes(m, 2)]
     end
 
     # 1 variable for every primal constraint
@@ -24,7 +22,7 @@ function sos_problem_dual(
     model = Model()
     @variable model y[1:length(basis(algebra))]
     @constraint model λ_dual dot(order_unit, y) == 1
-    @constraint(model, psd, y[mstructure] in PSDCone())
+    @constraint(model, psd, y[moment_matrix] in PSDCone())
 
     if !isinf(lower_bound)
         throw("Not Implemented yet")
@@ -35,45 +33,6 @@ function sos_problem_dual(
     end
 
     return model
-end
-
-function constraints(
-    basis::StarAlgebras.AbstractBasis,
-    mstr::AbstractMatrix{<:Integer};
-    augmented::Bool=false,
-    table_size=size(mstr)
-)
-    cnstrs = [signed(eltype(mstr))[] for _ in basis]
-    LI = LinearIndices(table_size)
-
-    for ci in CartesianIndices(table_size)
-        k = LI[ci]
-        a_star_b = basis[mstr[k]]
-        push!(cnstrs[basis[a_star_b]], k)
-        if augmented
-            # (1-a_star)(1-b) = 1 - a_star - b + a_star_b
-
-            i, j = Tuple(ci)
-            a, b = basis[i], basis[j]
-
-            push!(cnstrs[basis[one(a)]], k)
-            push!(cnstrs[basis[StarAlgebras.star(a)]], -k)
-            push!(cnstrs[basis[b]], -k)
-        end
-    end
-
-    return Dict(
-        basis[i] => ConstraintMatrix(c, table_size..., 1) for (i, c) in pairs(cnstrs)
-    )
-end
-
-function constraints(A::StarAlgebras.StarAlgebra; augmented::Bool, twisted::Bool)
-    mstructure = if StarAlgebras._istwisted(A.mstructure) == twisted
-        A.mstructure
-    else
-        StarAlgebras.MTable{twisted}(basis(A), table_size=size(A.mstructure))
-    end
-    return constraints(basis(A), mstructure, augmented=augmented)
 end
 
 """
@@ -111,7 +70,7 @@ function sos_problem_primal(
         @warn "Setting `upper_bound` together with zero `order_unit` has no effect"
     end
 
-    A = constraints(parent(elt), augmented=augmented, twisted=true)
+    A = constraints(parent(elt); augmented = augmented)
 
     if !iszero(order_unit)
         λ = JuMP.@variable(model, λ)
@@ -135,9 +94,9 @@ end
 function invariant_constraint!(
     result::AbstractMatrix,
     basis::StarAlgebras.AbstractBasis,
-    cnstrs::AbstractDict{K,CM},
+    cnstrs::AbstractDict{K,<:ConstraintMatrix},
     invariant_vec::SparseVector,
-) where {K,CM<:ConstraintMatrix}
+) where {K}
     result .= zero(eltype(result))
     for i in SparseArrays.nonzeroinds(invariant_vec)
         g = basis[i]
@@ -234,7 +193,7 @@ function sos_problem_primal(
     U = convert(Vector{T}, StarAlgebras.coeffs(orderunit))
 
     # defining constraints based on the multiplicative structure
-    cnstrs = constraints(parent(elt), augmented=augmented, twisted=true)
+    cnstrs = constraints(parent(elt); augmented = augmented)
 
     prog = ProgressMeter.Progress(
         length(invariant_vectors(wedderburn)),

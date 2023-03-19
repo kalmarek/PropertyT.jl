@@ -8,26 +8,25 @@ end
 function __sos_via_sqr!(
     res::StarAlgebras.AlgebraElement,
     P::AbstractMatrix;
-    augmented::Bool
+    augmented::Bool,
+    id = (b = basis(parent(res)); b[one(first(b))]),
 )
-    StarAlgebras.zero!(res)
     A = parent(res)
-    b = basis(A)
-    @assert size(A.mstructure) == size(P)
-    e = b[one(b[1])]
+    mstr = A.mstructure
+    @assert size(mstr) == size(P)
 
-    for i in axes(A.mstructure, 1)
-        x = StarAlgebras._istwisted(A.mstructure) ? StarAlgebras.star(b[i]) : b[i]
-        for j in axes(A.mstructure, 2)
+    StarAlgebras.zero!(res)
+    for j in axes(mstr, 2)
+        for i in axes(mstr, 1)
             p = P[i, j]
-            xy = b[A.mstructure[i, j]]
-            # either result += P[x,y]*(x*y)
-            res[xy] += p
+            x_star_y = mstr[-i, j]
+            res[x_star_y] += p
+            # either result += P[x,y]*(x'*y)
             if augmented
-                # or result += P[x,y]*(1-x)*(1-y) == P[x,y]*(2-x-y+xy)
-                y = b[j]
-                res[e] += p
-                res[x] -= p
+                # or result += P[x,y]*(1-x)'*(1-y) == P[x,y]*(1-x'-y+x'y)
+                res[id] += p
+                x_star, y = mstr[-i, id], j
+                res[x_star] -= p
                 res[y] -= p
             end
         end

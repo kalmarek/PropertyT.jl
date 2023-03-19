@@ -26,13 +26,13 @@ include("gradings.jl")
 
 include("actions/actions.jl")
 
-function group_algebra(G::Groups.Group, S=gens(G); halfradius::Integer, twisted::Bool)
+function group_algebra(G::Groups.Group, S = gens(G); halfradius::Integer)
     S = union!(S, inv.(S))
     @info "generating wl-metric ball of radius $(2halfradius)"
     @time E, sizes = Groups.wlmetric_ball(S, radius=2halfradius)
     @info "sizes = $(sizes)"
     @info "computing the *-algebra structure for G"
-    @time RG = StarAlgebras.StarAlgebra{twisted}(
+    @time RG = StarAlgebras.StarAlgebra(
         G,
         StarAlgebras.Basis{UInt32}(E),
         (sizes[halfradius], sizes[halfradius]),

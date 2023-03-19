@@ -132,3 +132,50 @@ function LinearAlgebra.dot(cm::ConstraintMatrix, m::AbstractMatrix{T}) where {T}
     neg = isempty(cm.neg) ? zero(first(m)) : sum(@view m[cm.neg])
     return convert(eltype(cm), cm.val) * (pos - neg)
 end
+
+function constraints(A::StarAlgebras.StarAlgebra; augmented::Bool)
+    return constraints(basis(A), A.mstructure; augmented = augmented)
+end
+
+function constraints(
+    basis::StarAlgebras.AbstractBasis,
+    mstr::StarAlgebras.MultiplicativeStructure;
+    augmented = false,
+)
+    cnstrs = _constraints(
+        mstr;
+        augmented = augmented,
+        num_constraints = length(basis),
+        id = basis[one(first(basis))],
+    )
+
+    return Dict(
+        basis[i] => ConstraintMatrix(c, size(mstr)..., 1) for
+        (i, c) in pairs(cnstrs)
+    )
+end
+
+function _constraints(
+    mstr::StarAlgebras.MultiplicativeStructure;
+    augmented::Bool = false,
+    num_constraints = maximum(mstr),
+    id,
+)
+    cnstrs = [signed(eltype(mstr))[] for _ in 1:num_constraints]
+    LI = LinearIndices(size(mstr))
+
+    for ci in CartesianIndices(size(mstr))
+        k = LI[ci]
+        i, j = Tuple(ci)
+        a_star_b = mstr[-i, j]
+        push!(cnstrs[a_star_b], k)
+        if augmented
+            # (1-a)'(1-b) = 1 - a' - b + a'b
+            push!(cnstrs[id], k)
+            a_star, b = mstr[-i, id], j
+            push!(cnstrs[a_star], -k)
+            push!(cnstrs[b], -k)
+        end
+    end
+    return cnstrs
+end
