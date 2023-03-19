@@ -21,8 +21,9 @@ using SparseArrays
     @testset "Sq, Adj, Op in SL(4,Z)" begin
         N = 4
         G = MatrixGroups.SpecialLinearGroup{N}(Int8)
+        @info "running tests for" G
 
-        RG, S, sizes = PropertyT.group_algebra(G, halfradius=2, twisted=true)
+        RG, S, sizes = PropertyT.group_algebra(G; halfradius = 2)
 
         Δ = let RG = RG, S = S
             RG(length(S)) - sum(RG(s) for s in S)
@@ -39,6 +40,7 @@ using SparseArrays
             basis(RG),
             StarAlgebras.Basis{UInt16}(@view basis(RG)[1:sizes[2]]),
         )
+        @info wd
         ivs = SymbolicWedderburn.invariant_vectors(wd)
 
         sq, adj, op = PropertyT.SqAdjOp(RG, N)
@@ -82,7 +84,7 @@ using SparseArrays
     @testset "SAut(F₃)" begin
         n = 3
         G = SpecialAutomorphismGroup(FreeGroup(n))
-        RG, S, sizes = PropertyT.group_algebra(G, halfradius=2, twisted=true)
+        RG, S, sizes = PropertyT.group_algebra(G; halfradius = 2)
         sq, adj, op = PropertyT.SqAdjOp(RG, n)
 
         @test sq(one(G)) == 216
@@ -98,7 +100,8 @@ end
         n = 3
 
         G = MatrixGroups.SpecialLinearGroup{n}(Int8)
-        RG, S, sizes = PropertyT.group_algebra(G, halfradius=2, twisted=true)
+        @info "running tests for" G
+        RG, S, sizes = PropertyT.group_algebra(G; halfradius = 2)
 
         Δ = RG(length(S)) - sum(RG(s) for s in S)
 
@@ -113,6 +116,7 @@ end
             basis(RG),
             StarAlgebras.Basis{UInt16}(@view basis(RG)[1:sizes[2]]),
         )
+        @info wd
 
         sq, adj, op = PropertyT.SqAdjOp(RG, n)
 
@@ -123,10 +127,10 @@ end
             status, certified, λ_cert = check_positivity(
                 elt,
                 Δ,
-                wd,
-                upper_bound=UB,
-                halfradius=2,
-                optimizer=cosmo_optimizer(accel=50, alpha=1.9)
+                wd;
+                upper_bound = UB,
+                halfradius = 2,
+                optimizer = cosmo_optimizer(; accel = 50, alpha = 1.9),
             )
             @test status == JuMP.OPTIMAL
             @test certified
@@ -140,10 +144,10 @@ end
             status, certified, λ_cert = check_positivity(
                 elt,
                 Δ,
-                wd,
-                upper_bound=UB,
-                halfradius=2,
-                optimizer=cosmo_optimizer(accel=50, alpha=1.9)
+                wd;
+                upper_bound = UB,
+                halfradius = 2,
+                optimizer = cosmo_optimizer(; accel = 50, alpha = 1.9),
             )
             @test status == JuMP.OPTIMAL
             @test certified
@@ -152,10 +156,11 @@ end
             m, _ = PropertyT.sos_problem_primal(elt, wd)
             PropertyT.solve(
                 m,
-                scs_optimizer(max_iters=5000, accel=50, alpha=1.9)
+                scs_optimizer(; max_iters = 5000, accel = 50, alpha = 1.9),
             )
 
-            @test JuMP.termination_status(m) in (JuMP.ALMOST_OPTIMAL, JuMP.OPTIMAL, JuMP.ITERATION_LIMIT)
+            @test JuMP.termination_status(m) in
+                  (JuMP.ALMOST_OPTIMAL, JuMP.OPTIMAL, JuMP.ITERATION_LIMIT)
             @test abs(JuMP.objective_value(m)) < 1e-3
         end
 
@@ -168,10 +173,10 @@ end
             status, certified, λ_cert = check_positivity(
                 elt,
                 Δ,
-                wd,
-                upper_bound=UB,
-                halfradius=2,
-                optimizer=cosmo_optimizer(accel=50, alpha=1.9)
+                wd;
+                upper_bound = UB,
+                halfradius = 2,
+                optimizer = cosmo_optimizer(; accel = 50, alpha = 1.9),
             )
             @test status == JuMP.OPTIMAL
             @test !certified
@@ -183,7 +188,8 @@ end
         n = 4
 
         G = MatrixGroups.SpecialLinearGroup{n}(Int8)
-        RG, S, sizes = PropertyT.group_algebra(G, halfradius=2, twisted=true)
+        @info "running tests for" G
+        RG, S, sizes = PropertyT.group_algebra(G; halfradius = 2)
 
         Δ = RG(length(S)) - sum(RG(s) for s in S)
 
@@ -198,6 +204,7 @@ end
             basis(RG),
             StarAlgebras.Basis{UInt16}(@view basis(RG)[1:sizes[2]]),
         )
+        @info wd
 
         sq, adj, op = PropertyT.SqAdjOp(RG, n)
 
@@ -208,10 +215,10 @@ end
             status, certified, λ_cert = check_positivity(
                 elt,
                 Δ,
-                wd,
-                upper_bound=UB,
-                halfradius=2,
-                optimizer=cosmo_optimizer(accel=50, alpha=1.9)
+                wd;
+                upper_bound = UB,
+                halfradius = 2,
+                optimizer = cosmo_optimizer(; accel = 50, alpha = 1.9),
             )
             @test status == JuMP.OPTIMAL
             @test certified
@@ -225,10 +232,10 @@ end
             status, certified, λ_cert = check_positivity(
                 elt,
                 Δ,
-                wd,
-                upper_bound=UB,
-                halfradius=2,
-                optimizer=cosmo_optimizer(accel=50, alpha=1.9)
+                wd;
+                upper_bound = UB,
+                halfradius = 2,
+                optimizer = cosmo_optimizer(; accel = 50, alpha = 1.9),
             )
             @test status == JuMP.OPTIMAL
             @test certified
@@ -242,10 +249,10 @@ end
             status, certified, λ_cert = check_positivity(
                 elt,
                 Δ,
-                wd,
-                upper_bound=UB,
-                halfradius=2,
-                optimizer=cosmo_optimizer(accel=50, alpha=1.9)
+                wd;
+                upper_bound = UB,
+                halfradius = 2,
+                optimizer = cosmo_optimizer(; accel = 50, alpha = 1.9),
             )
             @test status == JuMP.OPTIMAL
             @test !certified

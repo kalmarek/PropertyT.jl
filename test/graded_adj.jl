@@ -1,10 +1,9 @@
 @testset "Adj via grading" begin
-
     @testset "SL(n,Z) & Aut(F₄)" begin
         n = 4
         halfradius = 1
         SL = MatrixGroups.SpecialLinearGroup{n}(Int8)
-        RSL, S, sizes = PropertyT.group_algebra(SL, halfradius=halfradius, twisted=true)
+        RSL, S, sizes = PropertyT.group_algebra(SL; halfradius = halfradius)
 
         Δ = RSL(length(S)) - sum(RSL(s) for s in S)
 
@@ -22,10 +21,9 @@
         @test PropertyT.Adj(Δs, :A₂) == adj
         @test PropertyT.Adj(Δs, Symbol("A₁×A₁")) == op
 
-
         halfradius = 1
         G = SpecialAutomorphismGroup(FreeGroup(n))
-        RG, S, sizes = PropertyT.group_algebra(G, halfradius=halfradius, twisted=true)
+        RG, S, sizes = PropertyT.group_algebra(G; halfradius = halfradius)
 
         Δ = RG(length(S)) - sum(RG(s) for s in S)
 
@@ -44,7 +42,6 @@
         @test PropertyT.Adj(Δs, Symbol("A₁×A₁")) == op
     end
 
-
     @testset "Symplectic group" begin
         @testset "Sp2(ℤ)" begin
             genus = 2
@@ -52,7 +49,8 @@
 
             SpN = MatrixGroups.SymplecticGroup{2genus}(Int8)
 
-            RSpN, S_sp, sizes_sp = PropertyT.group_algebra(SpN, halfradius=halfradius, twisted=true)
+            RSpN, S_sp, sizes_sp =
+                PropertyT.group_algebra(SpN; halfradius = halfradius)
 
             Δ, Δs = let RG = RSpN, S = S_sp, ψ = identity
                 Δ = RG(length(S)) - sum(RG(s) for s in S)
@@ -73,7 +71,8 @@
 
         SpN = MatrixGroups.SymplecticGroup{2genus}(Int8)
 
-        RSpN, S_sp, sizes_sp = PropertyT.group_algebra(SpN, halfradius=halfradius, twisted=true)
+        RSpN, S_sp, sizes_sp =
+            PropertyT.group_algebra(SpN; halfradius = halfradius)
 
         Δ, Δs = let RG = RSpN, S = S_sp, ψ = identity
             Δ = RG(length(S)) - sum(RG(s) for s in S)
@@ -86,9 +85,14 @@
         end
 
         @testset "Adj numerics for genus=$genus" begin
-
             all_subtypes = (
-                :A₁, :C₁, Symbol("A₁×A₁"), Symbol("C₁×C₁"), Symbol("A₁×C₁"), :A₂, :C₂
+                :A₁,
+                :C₁,
+                Symbol("A₁×A₁"),
+                Symbol("C₁×C₁"),
+                Symbol("A₁×C₁"),
+                :A₂,
+                :C₂,
             )
 
             @test PropertyT.Adj(Δs, :A₂)[one(SpN)] == 384
@@ -101,8 +105,8 @@
                     @test isinteger(PropertyT.Adj(Δs, subtype)[one(SpN)] / 16)
                 end
             end
-            @test sum(PropertyT.Adj(Δs, subtype) for subtype in all_subtypes) == Δ^2
+            @test sum(PropertyT.Adj(Δs, subtype) for subtype in all_subtypes) ==
+                  Δ^2
         end
     end
 end
-

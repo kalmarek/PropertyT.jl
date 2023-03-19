@@ -25,5 +25,6 @@ if haskey(ENV, "FULL_TEST") || haskey(ENV, "CI")
         include("1812.03456.jl")
 
         include("graded_adj.jl")
+        include("Chevalley.jl")
     end
 end
