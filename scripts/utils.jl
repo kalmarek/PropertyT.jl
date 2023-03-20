@@ -11,12 +11,13 @@ function get_solution(model)
     return solution
 end
 
-function get_solution(model, wd, varP; logdir)
+function get_solution(model, wd, varP)
     λ = JuMP.value(model[:λ])
 
     Qs = [real.(sqrt(JuMP.value.(P))) for P in varP]
     Q = PropertyT.reconstruct(Qs, wd)
     solution = Dict(:λ => λ, :Q => Q)
+
     return solution
 end
 
@@ -42,22 +43,23 @@ function solve_in_loop(model::JuMP.Model, args...; logdir, optimizer, data)
             # logstream = current_logger().logger.stream
             # v = @ccall setvbuf(logstream.handle::Ptr{Cvoid}, C_NULL::Ptr{Cvoid}, 1::Cint, 0::Cint)::Cint
             # @warn v
-            status, warm = @time PropertyT.solve(log_file, model, optimizer, warm)
+            status, warm =
+                @time PropertyT.solve(log_file, model, optimizer, warm)
 
-            solution = get_solution(model, args...; logdir=logdir)
-            solution[:warm] = warm
-
+            solution = get_solution(model, args...)
             serialize(joinpath(logdir, "solution_$date.sjl"), solution)
             serialize(joinpath(logdir, "solution.sjl"), solution)
 
-            flag, λ_cert = open(log_file, append=true) do io
+            solution[:warm] = warm
+
+            flag, λ_cert = open(log_file; append = true) do io
                 with_logger(SimpleLogger(io)) do
-                    PropertyT.certify_solution(
+                    return PropertyT.certify_solution(
                         data.elt,
                         data.unit,
                         solution[:λ],
-                        solution[:Q],
-                        halfradius=data.halfradius,
+                        solution[:Q];
+                        halfradius = data.halfradius,
                     )
                 end
             end
@@ -69,7 +71,9 @@ function solve_in_loop(model::JuMP.Model, args...; logdir, optimizer, data)
             @info "Certification done with λ = $certified_λ"
             return certified_λ
         else
-            rel_change = abs(certified_λ - old_lambda) / (abs(certified_λ) + abs(old_lambda))
+            rel_change =
+                abs(certified_λ - old_lambda) /
+                (abs(certified_λ) + abs(old_lambda))
             @info "Certification failed with λ = $λ" certified_λ rel_change
         end
 

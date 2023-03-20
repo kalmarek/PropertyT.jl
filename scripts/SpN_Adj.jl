@@ -24,8 +24,7 @@ const GENUS = 2N
 
 G = MatrixGroups.SymplecticGroup{GENUS}(Int8)
 
-RG, S, sizes =
-    @time PropertyT.group_algebra(G, halfradius=HALFRADIUS, twisted=true)
+RG, S, sizes = @time PropertyT.group_algebra(G, halfradius = HALFRADIUS)
 
 wd = let RG = RG, N = N
     G = StarAlgebras.object(RG)
@@ -42,6 +41,8 @@ wd = let RG = RG, N = N
         basis(RG),
         StarAlgebras.Basis{UInt16}(@view basis(RG)[1:sizes[HALFRADIUS]]),
     )
+    @info wdfl
+    wdfl
 end
 
 Δ = RG(length(S)) - sum(RG(s) for s in S)
@@ -58,23 +59,22 @@ unit = Δ
 @time model, varP = PropertyT.sos_problem_primal(
     elt,
     unit,
-    wd,
-    upper_bound=UPPER_BOUND,
-    augmented=true,
-    show_progress=true
+    wd;
+    upper_bound = UPPER_BOUND,
+    augmented = true,
+    show_progress = true,
 )
 
 solve_in_loop(
     model,
     wd,
-    varP,
-    logdir="./log/Sp($N,Z)/r=$HALFRADIUS/Adj_C₂-InfΔ",
-    optimizer=cosmo_optimizer(
-        eps=1e-10,
-        max_iters=20_000,
-        accel=50,
-        alpha=1.95,
+    varP;
+    logdir = "./log/Sp($N,Z)/r=$HALFRADIUS/Adj_C₂-InfΔ",
+    optimizer = cosmo_optimizer(;
+        eps = 1e-10,
+        max_iters = 20_000,
+        accel = 50,
+        alpha = 1.95,
     ),
-    data=(elt=elt, unit=unit, halfradius=HALFRADIUS)
+    data = (elt = elt, unit = unit, halfradius = HALFRADIUS),
 )
-
