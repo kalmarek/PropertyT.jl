@@ -68,19 +68,19 @@ function solve_in_loop(model::JuMP.Model, args...; logdir, optimizer, data)
         end
 
         if flag == true && certified_λ ≥ 0
-            @info "Certification done with λ = $certified_λ"
+            @info "Certification done with λ = $certified_λ" certified_λ rel_change status
             return certified_λ
         else
             rel_change =
                 abs(certified_λ - old_lambda) /
                 (abs(certified_λ) + abs(old_lambda))
-            @info "Certification failed with λ = $λ" certified_λ rel_change
+            @info "Certification failed with λ = $λ" certified_λ rel_change status
         end
 
         old_lambda = certified_λ
 
         if rel_change < 1e-9
-            @info "No progress detected, breaking"
+            @info "No progress detected, breaking" certified_λ rel_change status
             break
         end
     end

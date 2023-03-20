@@ -23,7 +23,7 @@ const UPPER_BOUND = parsed_args["upper_bound"]
 include(joinpath(@__DIR__, "./G₂_gens.jl"))
 
 G, roots, Weyl = G₂_roots_weyl()
-@info "Running Adj² - λ·Δ sum of squares decomposition for G₂"
+@info "Running Δ² - λ·Δ sum of squares decomposition for G₂"
 
 @info "computing group algebra structure"
 RG, S, sizes = @time PropertyT.group_algebra(G, halfradius = HALFRADIUS)
@@ -45,32 +45,8 @@ wd = let Σ = Weyl, RG = RG
 end
 @info wd
 
-function desubscriptify(symbol::Symbol)
-    digits = [
-        Int(l) - 0x2080 for
-        l in reverse(string(symbol)) if 0 ≤ Int(l) - 0x2080 ≤ 9
-    ]
-    res = 0
-    for (i, d) in enumerate(digits)
-        res += 10^(i - 1) * d
-    end
-    return res
-end
-
-function PropertyT.grading(g::MatrixGroups.MatrixElt, roots = roots)
-    id = desubscriptify(g.id)
-    return roots[id]
-end
-
 Δ = RG(length(S)) - sum(RG(s) for s in S)
-Δs = PropertyT.laplacians(
-    RG,
-    S,
-    x -> (gx = PropertyT.grading(x); Set([gx, -gx])),
-)
-
-elt = PropertyT.Adj(Δs)
-@assert elt == Δ^2 - PropertyT.Sq(Δs)
+elt = Δ^2
 unit = Δ
 
 @time model, varP = PropertyT.sos_problem_primal(
@@ -79,21 +55,43 @@ unit = Δ
     wd;
     upper_bound = UPPER_BOUND,
     augmented = true,
-    show_progress = true,
+    show_progress = false,
 )
-
 warm = nothing
+status = JuMP.OPTIMIZE_NOT_CALLED
 
-solve_in_loop(
-    model,
-    wd,
-    varP;
-    logdir = "./log/G2/r=$HALFRADIUS/Adj-InfΔ",
-    optimizer = scs_optimizer(;
-        eps = 1e-10,
-        max_iters = 50_000,
-        accel = 50,
-        alpha = 1.95,
-    ),
-    data = (elt = elt, unit = unit, halfradius = HALFRADIUS),
-)
+while status ≠ JuMP.OPTIMAL
+    @time status, warm = PropertyT.solve(
+        model,
+        scs_optimizer(;
+            eps = 1e-10,
+            max_iters = 20_000,
+            accel = 50,
+            alpha = 1.95,
+        ),
+        warm,
+    )
+
+    @info "reconstructing the solution"
+    Q = @time let wd = wd, Ps = [JuMP.value.(P) for P in varP]
+        Qs = real.(sqrt.(Ps))
+        PropertyT.reconstruct(Qs, wd)
+    end
+
+    @info "certifying the solution"
+    @time certified, λ = PropertyT.certify_solution(
+        elt,
+        unit,
+        JuMP.objective_value(model),
+        Q;
+        halfradius = HALFRADIUS,
+        augmented = true,
+    )
+end
+
+if certified && λ > 0
+    Κ(λ, S) = round(sqrt(2λ / length(S)), Base.RoundDown; digits = 5)
+    @info "Certified result: G₂ has property (T):" N λ Κ(λ, S)
+else
+    @info "Could NOT certify the result:" certified λ
+end
