@@ -194,6 +194,10 @@ function sos_problem_primal(
         end
     end
 
+    id_one = findfirst(invariant_vectors(wedderburn)) do v
+        b = basis(parent(elt))
+        return sparsevec([b[one(first(b))]], [1 // 1], length(v)) == v
+    end
     feasibility_problem = iszero(orderunit)
 
     model = JuMP.Model()
@@ -240,6 +244,8 @@ function sos_problem_primal(
 
     for (i, iv) in enumerate(invariant_vectors(wedderburn))
         ProgressMeter.next!(prog; showvalues = __show_itrs(i, prog.n))
+        augmented && i == id_one && continue
+        # i == 500 && break
 
         x = dot(X, iv)
         u = dot(U, iv)
