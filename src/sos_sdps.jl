@@ -198,8 +198,19 @@ function sos_problem_primal(
         b = basis(parent(elt))
         return sparsevec([b[one(first(b))]], [1 // 1], length(v)) == v
     end
+
+    prog = ProgressMeter.Progress(
+        length(invariant_vectors(wedderburn));
+        dt = 1,
+        desc = "Adding constraints: ",
+        enabled = show_progress,
+        barlen = 60,
+        showspeed = true,
+    )
+
     feasibility_problem = iszero(orderunit)
 
+    # problem creation starts here
     model = JuMP.Model()
     if !feasibility_problem # add λ or not?
         λ = JuMP.@variable(model, λ)
@@ -221,27 +232,19 @@ function sos_problem_primal(
         return P
     end
 
-    begin # preallocating
+    begin # Ms are preallocated for the constraints loop
         T = eltype(wedderburn)
-        Ms = [spzeros.(T, size(p)...) for p in P]
-        M_orb = zeros(T, size(parent(elt).mstructure)...)
+        Ms = [spzeros.(T, size(p)...) for p in Ps]
+        _eps = 10 * eps(T) * max(size(parent(elt).mstructure)...)
     end
 
-    X = convert(Vector{T}, StarAlgebras.coeffs(elt))
-    U = convert(Vector{T}, StarAlgebras.coeffs(orderunit))
+    X = StarAlgebras.coeffs(elt)
+    U = StarAlgebras.coeffs(orderunit)
 
     # defining constraints based on the multiplicative structure
     cnstrs = constraints(parent(elt); augmented = augmented)
 
-    prog = ProgressMeter.Progress(
-        length(invariant_vectors(wedderburn));
-        dt = 1,
-        desc = "Adding constraints: ",
-        enabled = show_progress,
-        barlen = 60,
-        showspeed = true,
-    )
-
+    # adding linear constraints: one per orbit
     for (i, iv) in enumerate(invariant_vectors(wedderburn))
         ProgressMeter.next!(prog; showvalues = __show_itrs(i, prog.n))
         augmented && i == id_one && continue
