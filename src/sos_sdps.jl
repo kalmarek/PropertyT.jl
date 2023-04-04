@@ -99,7 +99,7 @@ function invariant_constraint!(
     invariant_vec::SparseVector,
 ) where {K}
     result .= zero(eltype(result))
-    for i in SparseArrays.nonzeroinds(invariant_vec)
+    @inbounds for i in SparseArrays.nonzeroinds(invariant_vec)
         g = basis[i]
         A = cnstrs[g]
         for (idx, v) in nzpairs(A)
@@ -107,6 +107,25 @@ function invariant_constraint!(
         end
     end
     return result
+end
+
+function invariant_constraint(basis, cnstrs, invariant_vec)
+    I = UInt32[]
+    J = UInt32[]
+    V = Float64[]
+    _M = first(values(cnstrs))
+    CI = CartesianIndices(_M)
+    @inbounds for i in SparseArrays.nonzeroinds(invariant_vec)
+        g = basis[i]
+        A = cnstrs[g]
+        for (idx, v) in nzpairs(A)
+            ci = CI[idx]
+            push!(I, ci[1])
+            push!(J, ci[2])
+            push!(V, invariant_vec[i] * v)
+        end
+    end
+    return sparse(I, J, V, size(_M)...)
 end
 
 function isorth_projection(ds::SymbolicWedderburn.DirectSummand)
@@ -190,7 +209,8 @@ function sos_problem_primal(
         end
     end
 
-    P = map(direct_summands(wedderburn)) do ds
+    # semidefinite constraints as described by wedderburn
+    Ps = map(direct_summands(wedderburn)) do ds
         dim = size(ds, 1)
         P = JuMP.@variable(model, [1:dim, 1:dim], Symmetric)
         JuMP.@constraint(model, P in PSDCone())
@@ -224,24 +244,23 @@ function sos_problem_primal(
         x = dot(X, iv)
         u = dot(U, iv)
 
-        M_orb = invariant_constraint!(M_orb, basis(parent(elt)), cnstrs, iv)
+        spM_orb = invariant_constraint(basis(parent(elt)), cnstrs, iv)
 
         Ms = SymbolicWedderburn.diagonalize!(
             Ms,
-            M_orb,
+            spM_orb,
             wedderburn;
             trace_preserving = true,
         )
-        # SparseArrays.droptol!.(Ms, 10 * eps(T) * max(size(M_orb)...))
-
-        # @info [nnz(m) / length(m) for m in Ms]
-
+        for M in Ms
+            SparseArrays.droptol!(M, _eps)
+        end
         if feasibility_problem
-            JuMP.@constraint(model, x == _dot(P, Ms))
+            JuMP.@constraint(model, x == _dot(Ps, Ms))
         else
-            JuMP.@constraint(model, x - λ * u == _dot(P, Ms))
+            JuMP.@constraint(model, x - λ * u == _dot(Ps, Ms))
         end
     end
     ProgressMeter.finish!(prog)
-    return model, P
+    return model, Ps
 end
