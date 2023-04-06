@@ -44,6 +44,8 @@ function cosmo_optimizer(;
         "decompose" => decompose,
         "eps_abs" => eps,
         "eps_rel" => eps,
+        "eps_prim_inf" => eps,
+        "eps_dual_inf" => eps,
         "max_iter" => max_iters,
         "verbose" => verbose,
         "verbose_timing" => verbose_timing,
