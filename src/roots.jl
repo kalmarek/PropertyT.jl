@@ -7,73 +7,48 @@ export Root, isproportional, isorthogonal, ~, ⟂
 
 abstract type AbstractRoot{N,T} end
 
-struct Root{N,T} <: AbstractRoot{N,T}
-    coord::SVector{N,T}
-end
-
-Root(a) = Root(SVector(a...))
-
-function Base.:(==)(r::Root{N}, s::Root{M}) where {M,N}
-    M == N || return false
-    r.coord == s.coord || return false
-    return true
-end
-
-Base.hash(r::Root, h::UInt) = hash(r.coord, hash(Root, h))
-
-Base.:+(r::Root{N,T}, s::Root{N,T}) where {N,T} = Root{N,T}(r.coord + s.coord)
-Base.:-(r::Root{N,T}, s::Root{N,T}) where {N,T} = Root{N,T}(r.coord - s.coord)
-Base.:-(r::Root{N}) where {N} = Root(-r.coord)
-
-Base.:*(a::Number, r::Root) = Root(a * r.coord)
-Base.:*(r::Root, a::Number) = a * r
-
-Base.length(r::AbstractRoot) = norm(r, 2)
-
-LinearAlgebra.norm(r::Root, p::Real = 2) = norm(r.coord, p)
-LinearAlgebra.dot(r::Root, s::Root) = dot(r.coord, s.coord)
+ℓ₂length(r::AbstractRoot) = norm(r, 2)
+ambient_dim(r::AbstractRoot) = length(r)
+Base.:*(r::AbstractRoot, a::Number) = a * r
 
 cos_angle(a, b) = dot(a, b) / (norm(a) * norm(b))
 
-function isproportional(α::AbstractRoot{N}, β::AbstractRoot{M}) where {N,M}
-    N == M || return false
+function isproportional(α::AbstractRoot, β::AbstractRoot)
+    ambient_dim(α) == ambient_dim(β) || return false
     val = abs(cos_angle(α, β))
     return isapprox(val, one(val); atol = eps(one(val)))
 end
 
-function isorthogonal(α::AbstractRoot{N}, β::AbstractRoot{M}) where {N,M}
-    N == M || return false
+function isorthogonal(α::AbstractRoot, β::AbstractRoot)
+    ambient_dim(α) == ambient_dim(β) || return false
     val = cos_angle(α, β)
     return isapprox(val, zero(val); atol = eps(one(val)))
 end
 
-function _positive_direction(α::Root{N}) where {N}
-    v = α.coord + 1 / (N * 100) * rand(N)
-    return Root{N,Float64}(v / norm(v, 2))
-end
-
-function positive(roots::AbstractVector{<:Root{N}}) where {N}
+function positive(roots::AbstractVector{<:AbstractRoot})
+    isempty(roots) && return empty(roots)
     pd = _positive_direction(first(roots))
     return filter(α -> dot(α, pd) > 0.0, roots)
 end
 
-function Base.show(io::IO, r::Root)
-    return print(io, "Root$(r.coord)")
+function Base.show(io::IO, r::AbstractRoot)
+    return print(io, "Root $(r.coord)")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", r::Root{N}) where {N}
-    lngth² = sum(x -> x^2, r.coord)
-    l = isinteger(sqrt(lngth²)) ? "$(sqrt(lngth²))" : "√$(lngth²)"
+function Base.show(io::IO, ::MIME"text/plain", r::AbstractRoot)
+    l₂l = ℓ₂length(r)
+    l = isinteger(l₂l) ? "$(l₂l)" : "√$(l₂l^2)"
     return print(io, "Root in ℝ^$N of length $l\n", r.coord)
 end
 
-𝕖(N, i) = Root(ntuple(k -> k == i ? 1 : 0, N))
-𝕆(N, ::Type{T}) where {T} = Root(ntuple(_ -> zero(T), N))
-
-reflection(α::Root, β::Root) = β - Int(2dot(α, β) / dot(α, α)) * α
-function cartan(α, β)
+function reflection(α::AbstractRoot, β::AbstractRoot)
+    return β - Int(2dot(α, β) // dot(α, α)) * α
+end
+function cartan(α::AbstractRoot, β::AbstractRoot)
+    ambient_dim(α) == ambient_dim(β) || throw("incompatible ambient dimensions")
     return [
-        length(reflection(a, b) - b) / length(a) for a in (α, β), b in (α, β)
+        ℓ₂length(reflection(a, b) - b) / ℓ₂length(a) for a in (α, β),
+        b in (α, β)
     ]
 end
 
@@ -124,7 +99,10 @@ function classify_root_system(
     end
 end
 
-function proportional_root_from_system(Ω::AbstractVector{<:Root}, α::Root)
+function proportional_root_from_system(
+    Ω::AbstractVector{<:AbstractRoot},
+    α::AbstractRoot,
+)
     k = findfirst(v -> isproportional(α, v), Ω)
     if isnothing(k)
         error("Line L_α not contained in root system Ω:\n α = $α\n Ω = $Ω")
@@ -132,31 +110,31 @@ function proportional_root_from_system(Ω::AbstractVector{<:Root}, α::Root)
     return Ω[k]
 end
 
-struct Plane{R<:Root}
+struct Plane{R<:AbstractRoot}
     v1::R
     v2::R
     vectors::Vector{R}
 end
 
-function Plane(α::Root, β::Root)
+function Plane(α::AbstractRoot, β::AbstractRoot)
     return Plane(α, β, [a * α + b * β for a in -3:3 for b in -3:3])
 end
 
-function Base.in(r::Root, plane::Plane)
+function Base.in(r::AbstractRoot, plane::Plane)
     return any(isproportional(r, v) for v in plane.vectors)
 end
 
-function _islong(α::Root, Ω)
-    lα = length(α)
-    return any(r -> lα - length(r) > eps(lα), Ω)
+function _islong(α::AbstractRoot, Ω)
+    lα = ℓ₂length(α)
+    return any(r -> lα - ℓ₂length(r) > eps(lα), Ω)
 end
 
 function classify_sub_root_system(
-    Ω::AbstractVector{<:Root{N}},
-    α::Root{N},
-    β::Root{N},
+    Ω::AbstractVector{<:AbstractRoot{N}},
+    α::AbstractRoot{N},
+    β::AbstractRoot{N},
 ) where {N}
-    @assert 1 ≤ length(unique(length, Ω)) ≤ 2
+    @assert 1 ≤ length(unique(ℓ₂length, Ω)) ≤ 2
     v = proportional_root_from_system(Ω, α)
     w = proportional_root_from_system(Ω, β)
 
@@ -197,4 +175,45 @@ function classify_sub_root_system(
     throw("Unknown root system: $subsystem")
 end
 
+## concrete implementation:
+struct Root{N,T} <: AbstractRoot{N,T}
+    coord::SVector{N,T}
+end
+
+Root(a) = Root(SVector(a...))
+
+# convienience constructors
+𝕖(N, i) = Root(ntuple(k -> k == i ? 1 : 0, N))
+𝕆(N, ::Type{T}) where {T} = Root(ntuple(_ -> zero(T), N))
+
+function Base.:(==)(r::Root{N}, s::Root{M}) where {M,N}
+    M == N || return false
+    r.coord == s.coord || return false
+    return true
+end
+
+Base.hash(r::Root, h::UInt) = hash(r.coord, hash(Root, h))
+
+function Base.:+(r::Root, s::Root)
+    ambient_dim(r) == ambient_dim(s) || throw("incompatible ambient dimensions")
+    return Root(r.coord + s.coord)
+end
+
+function Base.:-(r::Root, s::Root)
+    ambient_dim(r) == ambient_dim(s) || throw("incompatible ambient dimensions")
+    return Root(r.coord - s.coord)
+end
+Base.:-(r::Root) = Root(-r.coord)
+
+Base.:*(a::Number, r::Root) = Root(a * r.coord)
+
+Base.length(r::Root) = length(r.coord)
+
+LinearAlgebra.norm(r::Root, p::Real = 2) = norm(r.coord, p)
+LinearAlgebra.dot(r::Root, s::Root) = dot(r.coord, s.coord)
+
+function _positive_direction(α::Root{N}) where {N}
+    v = α.coord + 1 / (N * 100) * rand(N)
+    return Root{N,Float64}(v / norm(v, 2))
+end
 end # of module Roots

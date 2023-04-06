@@ -22,7 +22,7 @@ end
 @testset "Exceptional root systems" begin
     @testset "F4" begin
         F4 = let Σ = PermutationGroups.PermGroup(perm"(1,2,3,4)", perm"(1,2)")
-            long = let x = (1.0, 1.0, 0.0, 0.0)
+            long = let x = (1, 1, 0, 0) .// 1
                 PropertyT.Roots.Root.(
                     union(
                         (x^g for g in Σ),
@@ -32,14 +32,14 @@ end
                 )
             end
 
-            short = let x = (1.0, 0.0, 0.0, 0.0)
+            short = let x = (1, 0, 0, 0) .// 1
                 PropertyT.Roots.Root.(
                     union((x^g for g in Σ), ((-1 .* x)^g for g in Σ))
                 )
             end
 
             signs = collect(Iterators.product(fill([-1, +1], 4)...))
-            halfs = let x = 1 / 2 .* (1.0, 1.0, 1.0, 1.0)
+            halfs = let x = (1, 1, 1, 1) .// 2
                 PropertyT.Roots.Root.(union(x .* sgn for sgn in signs))
             end
 
@@ -49,15 +49,15 @@ end
         @test length(F4) == 48
 
         a = F4[1]
-        @test isapprox(length(a), sqrt(2))
+        @test isapprox(PropertyT.Roots.ℓ₂length(a), sqrt(2))
         b = F4[6]
-        @test isapprox(length(b), sqrt(2))
+        @test isapprox(PropertyT.Roots.ℓ₂length(b), sqrt(2))
         c = a + b
-        @test isapprox(length(c), 2.0)
+        @test isapprox(PropertyT.Roots.ℓ₂length(c), 2.0)
         @test PropertyT.Roots.classify_root_system(b, c, (false, true)) == :C₂
 
-        long = F4[findfirst(r -> length(r) == sqrt(2), F4)]
-        short = F4[findfirst(r -> length(r) == 1.0, F4)]
+        long = F4[findfirst(r -> PropertyT.Roots.ℓ₂length(r) == sqrt(2), F4)]
+        short = F4[findfirst(r -> PropertyT.Roots.ℓ₂length(r) == 1.0, F4)]
 
         subtypes = Set([:C₂, :A₂, Symbol("A₁×C₁")])
 
@@ -94,7 +94,7 @@ end
                     perm"(1,2,3,4,5,6,7,8)",
                     perm"(1,2)",
                 )
-                long = let x = (1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+                long = let x = (1, 1, 0, 0, 0, 0, 0, 0) .// 1
                     PropertyT.Roots.Root.(
                         union(
                             (x^g for g in Σ),
@@ -108,7 +108,7 @@ end
                     p for p in Iterators.product(fill([-1, +1], 8)...) if
                     iseven(count(==(-1), p))
                 )
-                halfs = let x = 1 / 2 .* ntuple(i -> 1.0, 8)
+                halfs = let x = (1, 1, 1, 1, 1, 1, 1, 1) .// 2
                     rts = unique(PropertyT.Roots.Root(x .* sgn) for sgn in signs)
                 end
 
@@ -119,7 +119,7 @@ end
 
         @testset "E8" begin
             @test length(E8) == 240
-            @test all(r -> length(r) ≈ sqrt(2), E8)
+            @test all(r -> PropertyT.Roots.ℓ₂length(r) ≈ sqrt(2), E8)
 
             let Ω = E8, α = first(Ω)
                 counts = countmap([
