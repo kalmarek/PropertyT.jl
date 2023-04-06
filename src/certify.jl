@@ -1,3 +1,6 @@
+import IntervalArithmetic
+import IntervalMatrices
+
 function augment_columns!(Q::AbstractMatrix)
     for c in eachcol(Q)
         c .-= sum(c) ./ length(c)
@@ -63,7 +66,7 @@ function sufficient_λ(residual::StarAlgebras.AlgebraElement, λ; halfradius)
     suff_λ = λ - 2.0^(2ceil(log2(halfradius))) * L1_norm
 
     eq_sign = let T = eltype(residual)
-        if T <: Interval
+        if T <: IntervalArithmetic.Interval
             "∈"
         elseif T <: Union{Rational,Integer}
             "="
@@ -119,8 +122,10 @@ function certify_solution(
         return false, λ_flpoint
     end
 
-    λ_int = @interval(λ)
-    Q_int = [@interval(q) for q in Q]
+    λ_int = IntervalArithmetic.@interval(λ)
+    Q_int = IntervalMatrices.IntervalMatrix([
+        IntervalArithmetic.@interval(q) for q in Q
+    ])
 
     check, sos_int = @time if should_we_augment
         @info("Projecting columns of Q to the augmentation ideal...")
@@ -141,5 +146,5 @@ function certify_solution(
     λ_certified =
         sufficient_λ(elt, orderunit, λ_int, sos_int; halfradius = halfradius)
 
-    return check && inf(λ_certified) > 0.0, λ_certified
+    return check && IntervalArithmetic.inf(λ_certified) > 0.0, λ_certified
 end

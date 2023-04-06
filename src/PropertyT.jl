@@ -3,7 +3,6 @@ module PropertyT
 using LinearAlgebra
 using SparseArrays
 
-using IntervalArithmetic
 using JuMP
 
 using Groups
