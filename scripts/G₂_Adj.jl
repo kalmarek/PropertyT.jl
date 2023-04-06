@@ -1,6 +1,6 @@
 using LinearAlgebra
 BLAS.set_num_threads(8)
-
+using MKL_jll
 ENV["OMP_NUM_THREADS"] = 4
 
 using Groups
@@ -84,16 +84,59 @@ unit = Δ
 
 warm = nothing
 
-solve_in_loop(
-    model,
-    wd,
-    varP;
-    logdir = "./log/G2/r=$HALFRADIUS/Adj-InfΔ",
-    optimizer = scs_optimizer(;
-        eps = 1e-10,
-        max_iters = 50_000,
-        accel = 50,
-        alpha = 1.95,
-    ),
-    data = (elt = elt, unit = unit, halfradius = HALFRADIUS),
-)
+let status = JuMP.OPTIMIZE_NOT_CALLED, warm = warm, eps = 1e-9
+    certified, λ = false, 0.0
+    while status ≠ JuMP.OPTIMAL
+        @time status, warm = PropertyT.solve(
+            model,
+            scs_optimizer(;
+                linear_solver = SCS.MKLDirectSolver,
+                eps = eps,
+                max_iters = 100_000,
+                accel = 50,
+                alpha = 1.95,
+            ),
+            warm,
+        )
+
+        @info "reconstructing the solution"
+        Q = @time let wd = wd, Ps = [JuMP.value.(P) for P in varP], eps = eps
+            PropertyT.__droptol!.(Ps, 100eps)
+            Qs = real.(sqrt.(Ps))
+            PropertyT.__droptol!.(Qs, eps)
+
+            PropertyT.reconstruct(Qs, wd)
+        end
+
+        @info "certifying the solution"
+        @time certified, λ = PropertyT.certify_solution(
+            elt,
+            unit,
+            JuMP.objective_value(model),
+            Q;
+            halfradius = HALFRADIUS,
+            augmented = true,
+        )
+    end
+
+    if certified && λ > 0
+        Κ(λ, S) = round(sqrt(2λ / length(S)), Base.RoundDown; digits = 5)
+        @info "Certified result: $G has property (T):" N λ Κ(λ, S)
+    else
+        @info "Could NOT certify the result:" certified λ
+    end
+end
+
+# solve_in_loop(
+#     model,
+#     wd,
+#     varP;
+#     logdir = "./log/G2/r=$HALFRADIUS/Adj-InfΔ",
+#     optimizer = scs_optimizer(;
+#         eps = 1e-10,
+#         max_iters = 50_000,
+#         accel = 50,
+#         alpha = 1.95,
+#     ),
+#     data = (elt = elt, unit = unit, halfradius = HALFRADIUS),
+# )
