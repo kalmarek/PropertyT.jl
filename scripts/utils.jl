@@ -11,11 +11,17 @@ function get_solution(model)
     return solution
 end
 
-function get_solution(model, wd, varP)
+function get_solution(model, wd, varP, eps = 1e-10)
     λ = JuMP.value(model[:λ])
 
-    Qs = [real.(sqrt(JuMP.value.(P))) for P in varP]
-    Q = PropertyT.reconstruct(Qs, wd)
+    @info "reconstructing the solution"
+    Q = @time let wd = wd, Ps = [JuMP.value.(P) for P in varP], eps = eps
+        PropertyT.__droptol!.(Ps, 100eps)
+        Qs = real.(sqrt.(Ps))
+        PropertyT.__droptol!.(Qs, eps)
+        PropertyT.reconstruct(Qs, wd)
+    end
+
     solution = Dict(:λ => λ, :Q => Q)
 
     return solution
