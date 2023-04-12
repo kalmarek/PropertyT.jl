@@ -81,14 +81,13 @@ function solve_in_loop(model::JuMP.Model, args...; logdir, optimizer, data)
                 abs(certified_λ - old_lambda) /
                 (abs(certified_λ) + abs(old_lambda))
             @info "Certification failed with λ = $λ" certified_λ rel_change status
+            if rel_change < 1e-9
+                @info "No progress detected, breaking" certified_λ rel_change status
+                break
+            end
         end
 
         old_lambda = certified_λ
-
-        if rel_change < 1e-9
-            @info "No progress detected, breaking" certified_λ rel_change status
-            break
-        end
     end
 
     return status == JuMP.OPTIMAL ? old_lambda : NaN
