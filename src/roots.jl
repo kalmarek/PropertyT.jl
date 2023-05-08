@@ -5,7 +5,7 @@ using LinearAlgebra
 
 export Root, isproportional, isorthogonal, ~, ⟂
 
-abstract type AbstractRoot{N,T} end
+abstract type AbstractRoot{N,T} end # <: AbstractVector{T} ?
 
 ℓ₂length(r::AbstractRoot) = norm(r, 2)
 ambient_dim(r::AbstractRoot) = length(r)
@@ -37,8 +37,8 @@ end
 
 function Base.show(io::IO, ::MIME"text/plain", r::AbstractRoot)
     l₂l = ℓ₂length(r)
-    l = isinteger(l₂l) ? "$(l₂l)" : "√$(l₂l^2)"
-    return print(io, "Root in ℝ^$N of length $l\n", r.coord)
+    l = round(Int, l₂l) ≈ l₂l ? "$(round(Int, l₂l))" : "√$(round(Int, l₂l^2))"
+    return print(io, "Root in ℝ^$(length(r)) of length $l\n", r.coord)
 end
 
 function reflection(α::AbstractRoot, β::AbstractRoot)
