@@ -69,7 +69,7 @@ solve_in_loop(
     model,
     wd,
     varP;
-    logdir = "./log/Sp($N,Z)/r=$HALFRADIUS/Adj_C₂-InfΔ",
+    logdir = "./log/Sp($N,Z)/r=$HALFRADIUS/Adj_C₂-$(UPPER_BOUND)Δ",
     optimizer = cosmo_optimizer(;
         eps = 1e-10,
         max_iters = 20_000,

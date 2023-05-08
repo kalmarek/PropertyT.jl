@@ -74,7 +74,7 @@ function solve_in_loop(model::JuMP.Model, args...; logdir, optimizer, data)
         end
 
         if flag == true && certified_λ ≥ 0
-            @info "Certification done with λ = $certified_λ" certified_λ rel_change status
+            @info "Certification done with λ = $certified_λ" certified_λ status
             return certified_λ
         else
             rel_change =

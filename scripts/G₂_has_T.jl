@@ -59,6 +59,7 @@ unit = Δ
 )
 warm = nothing
 status = JuMP.OPTIMIZE_NOT_CALLED
+certified, λ = false, nothing
 
 while status ≠ JuMP.OPTIMAL
     @time status, warm = PropertyT.solve(
