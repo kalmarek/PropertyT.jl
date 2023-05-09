@@ -1,11 +1,12 @@
 @testset "Quick tests" begin
-
     @testset "SL(2,F₇)" begin
         N = 2
         p = 7
         halfradius = 3
-        G = MatrixGroups.SpecialLinearGroup{N}(SymbolicWedderburn.Characters.FiniteFields.GF{p})
-        RG, S, sizes = PropertyT.group_algebra(G, halfradius=3, twisted=true)
+        G = MatrixGroups.SpecialLinearGroup{N}(
+            SymbolicWedderburn.Characters.FiniteFields.GF{p},
+        )
+        RG, S, sizes = PropertyT.group_algebra(G; halfradius = 3)
 
         Δ = let RG = RG, S = S
             RG(length(S)) - sum(RG(s) for s in S)
@@ -18,15 +19,15 @@
         @testset "standard formulation" begin
             status, certified, λ_cert = check_positivity(
                 elt,
-                unit,
-                upper_bound=ub,
-                halfradius=2,
-                optimizer=cosmo_optimizer(
-                    eps=1e-7,
-                    max_iters=5_000,
-                    accel=50,
-                    alpha=1.95,
-                )
+                unit;
+                upper_bound = ub,
+                halfradius = 2,
+                optimizer = cosmo_optimizer(;
+                    eps = 1e-7,
+                    max_iters = 5_000,
+                    accel = 50,
+                    alpha = 1.95,
+                ),
             )
 
             @test status == JuMP.OPTIMAL
@@ -34,14 +35,18 @@
             @test λ_cert > 5857 // 10000
 
             m = PropertyT.sos_problem_dual(elt, unit)
-            PropertyT.solve(m, cosmo_optimizer(
-                eps=1e-7,
-                max_iters=10_000,
-                accel=50,
-                alpha=1.95,
-            ))
+            PropertyT.solve(
+                m,
+                cosmo_optimizer(;
+                    eps = 1e-7,
+                    max_iters = 10_000,
+                    accel = 50,
+                    alpha = 1.95,
+                ),
+            )
 
-            @test JuMP.termination_status(m) in (JuMP.ALMOST_OPTIMAL, JuMP.OPTIMAL)
+            @test JuMP.termination_status(m) in
+                  (JuMP.ALMOST_OPTIMAL, JuMP.OPTIMAL)
             @test JuMP.objective_value(m) ≈ λ_cert atol = 1e-2
         end
 
@@ -55,20 +60,22 @@
                 Σ,
                 act,
                 basis(RG),
-                StarAlgebras.Basis{UInt16}(@view basis(RG)[1:sizes[halfradius]]),
+                StarAlgebras.Basis{UInt16}(
+                    @view basis(RG)[1:sizes[halfradius]]
+                ),
             )
 
             status, certified, λ_cert = check_positivity(
                 elt,
                 unit,
-                wd,
-                upper_bound=ub,
-                halfradius=2,
-                optimizer=cosmo_optimizer(
-                    eps=1e-7,
-                    max_iters=10_000,
-                    accel=50,
-                    alpha=1.9,
+                wd;
+                upper_bound = ub,
+                halfradius = 2,
+                optimizer = cosmo_optimizer(;
+                    eps = 1e-7,
+                    max_iters = 10_000,
+                    accel = 50,
+                    alpha = 1.9,
                 ),
             )
 

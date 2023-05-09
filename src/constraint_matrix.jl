@@ -28,7 +28,12 @@ struct ConstraintMatrix{T,I} <: AbstractMatrix{T}
     size::Tuple{Int,Int}
     val::T
 
-    function ConstraintMatrix{T}(nzeros::AbstractArray{<:Integer}, n, m, val) where {T}
+    function ConstraintMatrix{T}(
+        nzeros::AbstractArray{<:Integer},
+        n,
+        m,
+        val,
+    ) where {T}
         @assert n ≥ 1
         @assert m ≥ 1
 
@@ -45,15 +50,26 @@ struct ConstraintMatrix{T,I} <: AbstractMatrix{T}
     end
 end
 
-ConstraintMatrix(nzeros::AbstractArray{<:Integer}, n, m, val::T) where {T} =
-    ConstraintMatrix{T}(nzeros, n, m, val)
+function ConstraintMatrix(
+    nzeros::AbstractArray{<:Integer},
+    n,
+    m,
+    val::T,
+) where {T}
+    return ConstraintMatrix{T}(nzeros, n, m, val)
+end
 
 Base.size(cm::ConstraintMatrix) = cm.size
 
-__get_positive(cm::ConstraintMatrix, idx::Integer) =
-    convert(eltype(cm), cm.val * length(searchsorted(cm.pos, idx)))
-__get_negative(cm::ConstraintMatrix, idx::Integer) =
-    convert(eltype(cm), cm.val * length(searchsorted(cm.neg, idx)))
+function __get_positive(cm::ConstraintMatrix, idx::Integer)
+    return convert(eltype(cm), cm.val * length(searchsorted(cm.pos, idx)))
+end
+function __get_negative(cm::ConstraintMatrix, idx::Integer)
+    return convert(
+        eltype(cm),
+        cm.val * length(searchsorted(cm.neg, idx; rev = true)),
+    )
+end
 
 Base.@propagate_inbounds function Base.getindex(
     cm::ConstraintMatrix,
@@ -67,26 +83,29 @@ Base.@propagate_inbounds function Base.getindex(
     return pos - neg
 end
 
-struct NZPairsIter{T}
-    m::ConstraintMatrix{T}
+struct NZPairsIter{T,I}
+    m::ConstraintMatrix{T,I}
 end
 
 Base.eltype(::Type{NZPairsIter{T}}) where {T} = Pair{Int,T}
 Base.IteratorSize(::Type{<:NZPairsIter}) = Base.SizeUnknown()
 
 # TODO: iterate over (idx=>val) pairs combining vals
-function Base.iterate(itr::NZPairsIter, state::Tuple{Int,Int}=(1, 1))
+function Base.iterate(
+    itr::NZPairsIter,
+    state::Tuple{Int,Nothing} = (1, nothing),
+)
     k = iterate(itr.m.pos, state[1])
-    isnothing(k) && return iterate(itr, state[2])
+    isnothing(k) && return iterate(itr, (nothing, 1))
     idx, st = k
-    return idx => itr.m.val, (st, 1)
+    return idx => itr.m.val, (st, nothing)
 end
 
-function Base.iterate(itr::NZPairsIter, state::Int)
-    k = iterate(itr.m.neg, state[1])
+function Base.iterate(itr::NZPairsIter, state::Tuple{Nothing,Int})
+    k = iterate(itr.m.neg, state[2])
     isnothing(k) && return nothing
     idx, st = k
-    return idx => -itr.m.val, st
+    return idx => -itr.m.val, (nothing, st)
 end
 
 """
@@ -126,4 +145,51 @@ function LinearAlgebra.dot(cm::ConstraintMatrix, m::AbstractMatrix{T}) where {T}
     pos = isempty(cm.pos) ? zero(first(m)) : sum(@view m[cm.pos])
     neg = isempty(cm.neg) ? zero(first(m)) : sum(@view m[cm.neg])
     return convert(eltype(cm), cm.val) * (pos - neg)
+end
+
+function constraints(A::StarAlgebras.StarAlgebra; augmented::Bool)
+    return constraints(basis(A), A.mstructure; augmented = augmented)
+end
+
+function constraints(
+    basis::StarAlgebras.AbstractBasis,
+    mstr::StarAlgebras.MultiplicativeStructure;
+    augmented = false,
+)
+    cnstrs = _constraints(
+        mstr;
+        augmented = augmented,
+        num_constraints = length(basis),
+        id = basis[one(first(basis))],
+    )
+
+    return Dict(
+        basis[i] => ConstraintMatrix(c, size(mstr)..., 1) for
+        (i, c) in pairs(cnstrs)
+    )
+end
+
+function _constraints(
+    mstr::StarAlgebras.MultiplicativeStructure;
+    augmented::Bool = false,
+    num_constraints = maximum(mstr),
+    id,
+)
+    cnstrs = [signed(eltype(mstr))[] for _ in 1:num_constraints]
+    LI = LinearIndices(size(mstr))
+
+    for ci in CartesianIndices(size(mstr))
+        k = LI[ci]
+        i, j = Tuple(ci)
+        a_star_b = mstr[-i, j]
+        push!(cnstrs[a_star_b], k)
+        if augmented
+            # (1-a)'(1-b) = 1 - a' - b + a'b
+            push!(cnstrs[id], k)
+            a_star, b = mstr[-i, id], j
+            push!(cnstrs[a_star], -k)
+            push!(cnstrs[b], -k)
+        end
+    end
+    return cnstrs
 end

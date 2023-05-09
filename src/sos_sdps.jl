@@ -6,15 +6,13 @@ See also [sos_problem_primal](@ref).
 """
 function sos_problem_dual(
     elt::StarAlgebras.AlgebraElement,
-    order_unit::StarAlgebras.AlgebraElement=zero(elt);
-    lower_bound=-Inf
+    order_unit::StarAlgebras.AlgebraElement = zero(elt);
+    lower_bound = -Inf,
 )
     @assert parent(elt) == parent(order_unit)
     algebra = parent(elt)
-    mstructure = if StarAlgebras._istwisted(algebra.mstructure)
-        algebra.mstructure
-    else
-        StarAlgebras.MTable{true}(basis(algebra), table_size=size(algebra.mstructure))
+    moment_matrix = let m = algebra.mstructure
+        [m[-i, j] for i in axes(m, 1), j in axes(m, 2)]
     end
 
     # 1 variable for every primal constraint
@@ -22,58 +20,19 @@ function sos_problem_dual(
     # Symmetrized:
     # 1 dual variable for every orbit of G acting on basis
     model = Model()
-    @variable model y[1:length(basis(algebra))]
-    @constraint model λ_dual dot(order_unit, y) == 1
-    @constraint(model, psd, y[mstructure] in PSDCone())
+    JuMP.@variable(model, y[1:length(basis(algebra))])
+    JuMP.@constraint(model, λ_dual, dot(order_unit, y) == 1)
+    JuMP.@constraint(model, psd, y[moment_matrix] in PSDCone())
 
     if !isinf(lower_bound)
         throw("Not Implemented yet")
-        @variable model λ_ub_dual
-        @objective model Min dot(elt, y) + lower_bound * λ_ub_dual
+        JuMP.@variable(model, λ_ub_dual)
+        JuMP.@objective(model, Min, dot(elt, y) + lower_bound * λ_ub_dual)
     else
-        @objective model Min dot(elt, y)
+        JuMP.@objective(model, Min, dot(elt, y))
     end
 
     return model
-end
-
-function constraints(
-    basis::StarAlgebras.AbstractBasis,
-    mstr::AbstractMatrix{<:Integer};
-    augmented::Bool=false,
-    table_size=size(mstr)
-)
-    cnstrs = [signed(eltype(mstr))[] for _ in basis]
-    LI = LinearIndices(table_size)
-
-    for ci in CartesianIndices(table_size)
-        k = LI[ci]
-        a_star_b = basis[mstr[k]]
-        push!(cnstrs[basis[a_star_b]], k)
-        if augmented
-            # (1-a_star)(1-b) = 1 - a_star - b + a_star_b
-
-            i, j = Tuple(ci)
-            a, b = basis[i], basis[j]
-
-            push!(cnstrs[basis[one(a)]], k)
-            push!(cnstrs[basis[StarAlgebras.star(a)]], -k)
-            push!(cnstrs[basis[b]], -k)
-        end
-    end
-
-    return Dict(
-        basis[i] => ConstraintMatrix(c, table_size..., 1) for (i, c) in pairs(cnstrs)
-    )
-end
-
-function constraints(A::StarAlgebras.StarAlgebra; augmented::Bool, twisted::Bool)
-    mstructure = if StarAlgebras._istwisted(A.mstructure) == twisted
-        A.mstructure
-    else
-        StarAlgebras.MTable{twisted}(basis(A), table_size=size(A.mstructure))
-    end
-    return constraints(basis(A), mstructure, augmented=augmented)
 end
 
 """
@@ -96,9 +55,10 @@ The default `u = zero(X)` formulates a simple feasibility problem.
 """
 function sos_problem_primal(
     elt::StarAlgebras.AlgebraElement,
-    order_unit::StarAlgebras.AlgebraElement=zero(elt);
-    upper_bound=Inf,
-    augmented::Bool=iszero(StarAlgebras.aug(elt)) && iszero(StarAlgebras.aug(order_unit))
+    order_unit::StarAlgebras.AlgebraElement = zero(elt);
+    upper_bound = Inf,
+    augmented::Bool = iszero(StarAlgebras.aug(elt)) &&
+                      iszero(StarAlgebras.aug(order_unit)),
 )
     @assert parent(elt) === parent(order_unit)
 
@@ -111,7 +71,7 @@ function sos_problem_primal(
         @warn "Setting `upper_bound` together with zero `order_unit` has no effect"
     end
 
-    A = constraints(parent(elt), augmented=augmented, twisted=true)
+    A = constraints(parent(elt); augmented = augmented)
 
     if !iszero(order_unit)
         λ = JuMP.@variable(model, λ)
@@ -135,11 +95,11 @@ end
 function invariant_constraint!(
     result::AbstractMatrix,
     basis::StarAlgebras.AbstractBasis,
-    cnstrs::AbstractDict{K,CM},
+    cnstrs::AbstractDict{K,<:ConstraintMatrix},
     invariant_vec::SparseVector,
-) where {K,CM<:ConstraintMatrix}
+) where {K}
     result .= zero(eltype(result))
-    for i in SparseArrays.nonzeroinds(invariant_vec)
+    @inbounds for i in SparseArrays.nonzeroinds(invariant_vec)
         g = basis[i]
         A = cnstrs[g]
         for (idx, v) in nzpairs(A)
@@ -149,25 +109,47 @@ function invariant_constraint!(
     return result
 end
 
+function invariant_constraint(basis, cnstrs, invariant_vec)
+    I = UInt32[]
+    J = UInt32[]
+    V = Float64[]
+    _M = first(values(cnstrs))
+    CI = CartesianIndices(_M)
+    @inbounds for i in SparseArrays.nonzeroinds(invariant_vec)
+        g = basis[i]
+        A = cnstrs[g]
+        for (idx, v) in nzpairs(A)
+            ci = CI[idx]
+            push!(I, ci[1])
+            push!(J, ci[2])
+            push!(V, invariant_vec[i] * v)
+        end
+    end
+    return sparse(I, J, V, size(_M)...)
+end
+
 function isorth_projection(ds::SymbolicWedderburn.DirectSummand)
     U = SymbolicWedderburn.image_basis(ds)
     return isapprox(U * U', I)
 end
 
-sos_problem_primal(
+function sos_problem_primal(
     elt::StarAlgebras.AlgebraElement,
     wedderburn::WedderburnDecomposition;
-    kwargs...
-) = sos_problem_primal(elt, zero(elt), wedderburn; kwargs...)
+    kwargs...,
+)
+    return sos_problem_primal(elt, zero(elt), wedderburn; kwargs...)
+end
 
 function __fast_recursive_dot!(
     res::JuMP.AffExpr,
     Ps::AbstractArray{<:AbstractMatrix{<:JuMP.VariableRef}},
-    Ms::AbstractArray{<:AbstractSparseMatrix};
+    Ms::AbstractArray{<:AbstractSparseMatrix},
+    weights,
 )
     @assert length(Ps) == length(Ms)
 
-    for (A, P) in zip(Ms, Ps)
+    for (w, A, P) in zip(weights, Ms, Ps)
         iszero(Ms) && continue
         rows = rowvals(A)
         vals = nonzeros(A)
@@ -175,11 +157,19 @@ function __fast_recursive_dot!(
             for i in nzrange(A, cidx)
                 ridx = rows[i]
                 val = vals[i]
-                JuMP.add_to_expression!(res, P[ridx, cidx], val)
+                JuMP.add_to_expression!(res, P[ridx, cidx], w * val)
             end
         end
     end
     return res
+end
+
+function _dot(
+    Ps::AbstractArray{<:AbstractMatrix{<:JuMP.VariableRef}},
+    Ms::AbstractArray{<:AbstractMatrix{T}},
+    weights = Iterators.repeated(one(T), length(Ms)),
+) where {T}
+    return __fast_recursive_dot!(JuMP.AffExpr(), Ps, Ms, weights)
 end
 
 import ProgressMeter
@@ -189,21 +179,38 @@ function sos_problem_primal(
     elt::StarAlgebras.AlgebraElement,
     orderunit::StarAlgebras.AlgebraElement,
     wedderburn::WedderburnDecomposition;
-    upper_bound=Inf,
-    augmented=iszero(StarAlgebras.aug(elt)) && iszero(StarAlgebras.aug(orderunit)),
-    check_orthogonality=true,
-    show_progress=false
+    upper_bound = Inf,
+    augmented = iszero(StarAlgebras.aug(elt)) &&
+        iszero(StarAlgebras.aug(orderunit)),
+    check_orthogonality = true,
+    show_progress = false,
 )
-
     @assert parent(elt) === parent(orderunit)
     if check_orthogonality
         if any(!isorth_projection, direct_summands(wedderburn))
-            error("Wedderburn decomposition contains a non-orthogonal projection")
+            error(
+                "Wedderburn decomposition contains a non-orthogonal projection",
+            )
         end
     end
 
+    id_one = findfirst(invariant_vectors(wedderburn)) do v
+        b = basis(parent(elt))
+        return sparsevec([b[one(first(b))]], [1 // 1], length(v)) == v
+    end
+
+    prog = ProgressMeter.Progress(
+        length(invariant_vectors(wedderburn));
+        dt = 1,
+        desc = "Adding constraints: ",
+        enabled = show_progress,
+        barlen = 60,
+        showspeed = true,
+    )
+
     feasibility_problem = iszero(orderunit)
 
+    # problem creation starts here
     model = JuMP.Model()
     if !feasibility_problem # add λ or not?
         λ = JuMP.@variable(model, λ)
@@ -217,58 +224,52 @@ function sos_problem_primal(
         end
     end
 
-    P = map(direct_summands(wedderburn)) do ds
+    # semidefinite constraints as described by wedderburn
+    Ps = map(direct_summands(wedderburn)) do ds
         dim = size(ds, 1)
         P = JuMP.@variable(model, [1:dim, 1:dim], Symmetric)
         JuMP.@constraint(model, P in PSDCone())
-        P
+        return P
     end
 
-    begin # preallocating
+    begin # Ms are preallocated for the constraints loop
         T = eltype(wedderburn)
-        Ms = [spzeros.(T, size(p)...) for p in P]
-        M_orb = zeros(T, size(parent(elt).mstructure)...)
+        Ms = [spzeros.(T, size(p)...) for p in Ps]
+        _eps = 10 * eps(T) * max(size(parent(elt).mstructure)...)
     end
 
-    X = convert(Vector{T}, StarAlgebras.coeffs(elt))
-    U = convert(Vector{T}, StarAlgebras.coeffs(orderunit))
+    X = StarAlgebras.coeffs(elt)
+    U = StarAlgebras.coeffs(orderunit)
 
     # defining constraints based on the multiplicative structure
-    cnstrs = constraints(parent(elt), augmented=augmented, twisted=true)
+    cnstrs = constraints(parent(elt); augmented = augmented)
 
-    prog = ProgressMeter.Progress(
-        length(invariant_vectors(wedderburn)),
-        dt=1,
-        desc="Adding constraints... ",
-        enabled=show_progress,
-        barlen=60,
-        showspeed=true
-    )
-
+    # adding linear constraints: one per orbit
     for (i, iv) in enumerate(invariant_vectors(wedderburn))
-        ProgressMeter.next!(prog, showvalues=__show_itrs(i, prog.n))
+        ProgressMeter.next!(prog; showvalues = __show_itrs(i, prog.n))
+        augmented && i == id_one && continue
+        # i == 500 && break
 
         x = dot(X, iv)
         u = dot(U, iv)
 
-        M_orb = invariant_constraint!(M_orb, basis(parent(elt)), cnstrs, iv)
-        Ms = SymbolicWedderburn.diagonalize!(Ms, M_orb, wedderburn)
-        SparseArrays.droptol!.(Ms, 10 * eps(T) * max(size(M_orb)...))
+        spM_orb = invariant_constraint(basis(parent(elt)), cnstrs, iv)
 
-        # @info [nnz(m) / length(m) for m in Ms]
-
+        Ms = SymbolicWedderburn.diagonalize!(
+            Ms,
+            spM_orb,
+            wedderburn;
+            trace_preserving = true,
+        )
+        for M in Ms
+            SparseArrays.droptol!(M, _eps)
+        end
         if feasibility_problem
-            JuMP.@constraint(
-                model,
-                x == __fast_recursive_dot!(JuMP.AffExpr(), P, Ms)
-            )
+            JuMP.@constraint(model, x == _dot(Ps, Ms))
         else
-            JuMP.@constraint(
-                model,
-                x - λ * u == __fast_recursive_dot!(JuMP.AffExpr(), P, Ms)
-            )
+            JuMP.@constraint(model, x - λ * u == _dot(Ps, Ms))
         end
     end
     ProgressMeter.finish!(prog)
-    return model, P
+    return model, Ps
 end

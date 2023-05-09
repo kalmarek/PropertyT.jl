@@ -1,5 +1,4 @@
 import SymbolicWedderburn.action
-StarAlgebras.star(g::Groups.GroupElement) = inv(g)
 
 include("alphabet_permutation.jl")
 
@@ -10,7 +9,7 @@ include("autfn_conjugation.jl")
 function SymbolicWedderburn.action(
     act::SymbolicWedderburn.ByPermutations,
     g::Groups.GroupElement,
-    α::StarAlgebras.AlgebraElement
+    α::StarAlgebras.AlgebraElement,
 )
     res = StarAlgebras.zero!(similar(α))
     B = basis(parent(α))

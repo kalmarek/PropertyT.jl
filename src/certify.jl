@@ -1,3 +1,6 @@
+import IntervalArithmetic
+import IntervalMatrices
+
 function augment_columns!(Q::AbstractMatrix)
     for c in eachcol(Q)
         c .-= sum(c) ./ length(c)
@@ -8,26 +11,25 @@ end
 function __sos_via_sqr!(
     res::StarAlgebras.AlgebraElement,
     P::AbstractMatrix;
-    augmented::Bool
+    augmented::Bool,
+    id = (b = basis(parent(res)); b[one(first(b))]),
 )
-    StarAlgebras.zero!(res)
     A = parent(res)
-    b = basis(A)
-    @assert size(A.mstructure) == size(P)
-    e = b[one(b[1])]
+    mstr = A.mstructure
+    @assert size(mstr) == size(P)
 
-    for i in axes(A.mstructure, 1)
-        x = StarAlgebras._istwisted(A.mstructure) ? StarAlgebras.star(b[i]) : b[i]
-        for j in axes(A.mstructure, 2)
+    StarAlgebras.zero!(res)
+    for j in axes(mstr, 2)
+        for i in axes(mstr, 1)
             p = P[i, j]
-            xy = b[A.mstructure[i, j]]
-            # either result += P[x,y]*(x*y)
-            res[xy] += p
+            x_star_y = mstr[-i, j]
+            res[x_star_y] += p
+            # either result += P[x,y]*(x'*y)
             if augmented
-                # or result += P[x,y]*(1-x)*(1-y) == P[x,y]*(2-x-y+xy)
-                y = b[j]
-                res[e] += p
-                res[x] -= p
+                # or result += P[x,y]*(1-x)'*(1-y) == P[x,y]*(1-x'-y+x'y)
+                res[id] += p
+                x_star, y = mstr[-i, id], j
+                res[x_star] -= p
                 res[y] -= p
             end
         end
@@ -36,7 +38,11 @@ function __sos_via_sqr!(
     return res
 end
 
-function __sos_via_cnstr!(res::StarAlgebras.AlgebraElement, Q²::AbstractMatrix, cnstrs)
+function __sos_via_cnstr!(
+    res::StarAlgebras.AlgebraElement,
+    Q²::AbstractMatrix,
+    cnstrs,
+)
     StarAlgebras.zero!(res)
     for (g, A_g) in cnstrs
         res[g] = dot(A_g, Q²)
@@ -44,10 +50,14 @@ function __sos_via_cnstr!(res::StarAlgebras.AlgebraElement, Q²::AbstractMatrix,
     return res
 end
 
-function compute_sos(A::StarAlgebras.StarAlgebra, Q::AbstractMatrix; augmented::Bool)
+function compute_sos(
+    A::StarAlgebras.StarAlgebra,
+    Q::AbstractMatrix;
+    augmented::Bool,
+)
     Q² = Q' * Q
     res = StarAlgebras.AlgebraElement(zeros(eltype(Q²), length(basis(A))), A)
-    res = __sos_via_sqr!(res, Q², augmented=augmented)
+    res = __sos_via_sqr!(res, Q²; augmented = augmented)
     return res
 end
 
@@ -56,7 +66,7 @@ function sufficient_λ(residual::StarAlgebras.AlgebraElement, λ; halfradius)
     suff_λ = λ - 2.0^(2ceil(log2(halfradius))) * L1_norm
 
     eq_sign = let T = eltype(residual)
-        if T <: Interval
+        if T <: IntervalArithmetic.Interval
             "∈"
         elseif T <: Union{Rational,Integer}
             "="
@@ -81,13 +91,12 @@ function sufficient_λ(
     order_unit::StarAlgebras.AlgebraElement,
     λ,
     sos::StarAlgebras.AlgebraElement;
-    halfradius
+    halfradius,
 )
-
     @assert parent(elt) === parent(order_unit) == parent(sos)
     residual = (elt - λ * order_unit) - sos
 
-    return sufficient_λ(residual, λ; halfradius=halfradius)
+    return sufficient_λ(residual, λ; halfradius = halfradius)
 end
 
 function certify_solution(
@@ -96,24 +105,27 @@ function certify_solution(
     λ,
     Q::AbstractMatrix{<:AbstractFloat};
     halfradius,
-    augmented=iszero(StarAlgebras.aug(elt)) && iszero(StarAlgebras.aug(orderunit))
+    augmented = iszero(StarAlgebras.aug(elt)) &&
+        iszero(StarAlgebras.aug(orderunit)),
 )
-
-    should_we_augment = !augmented && StarAlgebras.aug(elt) == StarAlgebras.aug(orderunit) == 0
+    should_we_augment =
+        !augmented && StarAlgebras.aug(elt) == StarAlgebras.aug(orderunit) == 0
 
     Q = should_we_augment ? augment_columns!(Q) : Q
-    @time sos = compute_sos(parent(elt), Q, augmented=augmented)
+    @time sos = compute_sos(parent(elt), Q; augmented = augmented)
 
     @info "Checking in $(eltype(sos)) arithmetic with" λ
 
-    λ_flpoint = sufficient_λ(elt, orderunit, λ, sos, halfradius=halfradius)
+    λ_flpoint = sufficient_λ(elt, orderunit, λ, sos; halfradius = halfradius)
 
     if λ_flpoint ≤ 0
         return false, λ_flpoint
     end
 
-    λ_int = @interval(λ)
-    Q_int = [@interval(q) for q in Q]
+    λ_int = IntervalArithmetic.@interval(λ)
+    Q_int = IntervalMatrices.IntervalMatrix([
+        IntervalArithmetic.@interval(q) for q in Q
+    ])
 
     check, sos_int = @time if should_we_augment
         @info("Projecting columns of Q to the augmentation ideal...")
@@ -123,16 +135,16 @@ function certify_solution(
         check_augmented || @error(
             "Augmentation failed! The following numbers are not certified!"
         )
-        sos_int = compute_sos(parent(elt), Q_int; augmented=augmented)
+        sos_int = compute_sos(parent(elt), Q_int; augmented = augmented)
         check_augmented, sos_int
     else
-        true, compute_sos(parent(elt), Q_int, augmented=augmented)
+        true, compute_sos(parent(elt), Q_int; augmented = augmented)
     end
 
     @info "Checking in $(eltype(sos_int)) arithmetic with" λ_int
 
     λ_certified =
-        sufficient_λ(elt, orderunit, λ_int, sos_int, halfradius=halfradius)
+        sufficient_λ(elt, orderunit, λ_int, sos_int; halfradius = halfradius)
 
-    return check && inf(λ_certified) > 0.0, inf(λ_certified)
+    return check && IntervalArithmetic.inf(λ_certified) > 0.0, λ_certified
 end

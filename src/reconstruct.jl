@@ -7,33 +7,28 @@ end
 
 function reconstruct(
     Ms::AbstractVector{<:AbstractMatrix},
-    wbdec::WedderburnDecomposition;
-    atol=eps(real(eltype(wbdec))) * 10__outer_dim(wbdec)
+    wbdec::WedderburnDecomposition,
 )
     n = __outer_dim(wbdec)
     res = sum(zip(Ms, SymbolicWedderburn.direct_summands(wbdec))) do (M, ds)
         res = similar(M, n, n)
-        reconstruct!(res, M, ds, __group_of(wbdec), wbdec.hom, atol=atol)
+        res = _reconstruct!(res, M, ds)
+        return res
     end
+    res = average!(zero(res), res, __group_of(wbdec), wbdec.hom)
     return res
 end
 
-function reconstruct!(
+function _reconstruct!(
     res::AbstractMatrix,
     M::AbstractMatrix,
     ds::SymbolicWedderburn.DirectSummand,
-    G,
-    hom;
-    atol=eps(real(eltype(ds))) * 10max(size(res)...)
 )
     res .= zero(eltype(res))
-    U = SymbolicWedderburn.image_basis(ds)
-    d = SymbolicWedderburn.degree(ds)
-    tmp = (U' * M * U) .* d
-
-    res = average!(res, tmp, G, hom)
-    if eltype(res) <: AbstractFloat
-        __droptol!(res, atol) # TODO: is this really necessary?!
+    if !iszero(M)
+        U = SymbolicWedderburn.image_basis(ds)
+        d = SymbolicWedderburn.degree(ds)
+        res = (U' * M * U) .* d
     end
     return res
 end
@@ -52,18 +47,22 @@ function average!(
     res::AbstractMatrix,
     M::AbstractMatrix,
     G::Groups.Group,
-    hom::SymbolicWedderburn.InducedActionHomomorphism{<:SymbolicWedderburn.ByPermutations}
+    hom::SymbolicWedderburn.InducedActionHomomorphism{
+        <:SymbolicWedderburn.ByPermutations,
+    },
 )
+    res .= zero(eltype(res))
     @assert size(M) == size(res)
+    o = Groups.order(Int, G)
     for g in G
-        gext = SymbolicWedderburn.induce(hom, g)
+        p = SymbolicWedderburn.induce(hom, g)
         Threads.@threads for c in axes(res, 2)
             for r in axes(res, 1)
-                res[r, c] += M[r^gext, c^gext]
+                if !iszero(M[r, c])
+                    res[r^p, c^p] += M[r, c] / o
+                end
             end
         end
     end
-    o = Groups.order(Int, G)
-    res ./= o
     return res
 end

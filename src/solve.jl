@@ -7,12 +7,15 @@ function setwarmstart!(model::JuMP.Model, warmstart)
         ct => JuMP.all_constraints(model, ct...) for
         ct in JuMP.list_of_constraint_types(model)
     )
+    try
+        JuMP.set_start_value.(JuMP.all_variables(model), warmstart.primal)
 
-    JuMP.set_start_value.(JuMP.all_variables(model), warmstart.primal)
-
-    for (ct, idx) in pairs(constraint_map)
-        JuMP.set_start_value.(idx, warmstart.slack[ct])
-        JuMP.set_dual_start_value.(idx, warmstart.dual[ct])
+        for (ct, idx) in pairs(constraint_map)
+            JuMP.set_start_value.(idx, warmstart.slack[ct])
+            JuMP.set_dual_start_value.(idx, warmstart.dual[ct])
+        end
+    catch e
+        @warn "Warmstarting was not succesfull!" e
     end
     return model
 end
@@ -28,11 +31,10 @@ function getwarmstart(model::JuMP.Model)
     slack = Dict(k => value.(v) for (k, v) in constraint_map)
     duals = Dict(k => JuMP.dual.(v) for (k, v) in constraint_map)
 
-    return (primal=primal, dual=duals, slack=slack)
+    return (primal = primal, dual = duals, slack = slack)
 end
 
-function solve(m::JuMP.Model, optimizer, warmstart=nothing)
-
+function solve(m::JuMP.Model, optimizer, warmstart = nothing)
     JuMP.set_optimizer(m, optimizer)
     MOIU.attach_optimizer(m)
 
@@ -45,8 +47,7 @@ function solve(m::JuMP.Model, optimizer, warmstart=nothing)
     return status, getwarmstart(m)
 end
 
-function solve(solverlog::String, m::JuMP.Model, optimizer, warmstart=nothing)
-
+function solve(solverlog::String, m::JuMP.Model, optimizer, warmstart = nothing)
     isdir(dirname(solverlog)) || mkpath(dirname(solverlog))
 
     Base.flush(Base.stdout)
@@ -55,7 +56,7 @@ function solve(solverlog::String, m::JuMP.Model, optimizer, warmstart=nothing)
         redirect_stdout(logfile) do
             status, warmstart = solve(m, optimizer, warmstart)
             Base.Libc.flush_cstdio()
-            status, warmstart
+            return status, warmstart
         end
     end
 
