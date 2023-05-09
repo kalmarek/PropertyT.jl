@@ -1,7 +1,7 @@
 name = "PropertyT"
 uuid = "03b72c93-0167-51e2-8a1e-eb4ff1fb940d"
 authors = ["Marek Kaluba <kalmar@amu.edu.pl>"]
-version = "0.4.0"
+version = "0.5.0"
 
 [deps]
 Groups = "5d8bd718-bd84-11e8-3b40-ad14f4a32557"
