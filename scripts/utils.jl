@@ -39,13 +39,14 @@ function solve_in_loop(model::JuMP.Model, args...; logdir, optimizer, data)
         nothing
     end
     old_lambda = 0.0
+    certified = false
     while status != JuMP.OPTIMAL
         date = now()
         log_file = joinpath(logdir, "solver_$date.log")
         @info "Current logfile is $log_file."
         isdir(dirname(log_file)) || mkpath(dirname(log_file))
 
-        λ, flag, certified_λ = let
+        certified, certified_λ = let
             # logstream = current_logger().logger.stream
             # v = @ccall setvbuf(logstream.handle::Ptr{Cvoid}, C_NULL::Ptr{Cvoid}, 1::Cint, 0::Cint)::Cint
             # @warn v
@@ -58,7 +59,7 @@ function solve_in_loop(model::JuMP.Model, args...; logdir, optimizer, data)
 
             solution[:warm] = warm
 
-            flag, λ_cert = open(log_file; append = true) do io
+            certified, λ_cert = open(log_file; append = true) do io
                 with_logger(SimpleLogger(io)) do
                     return PropertyT.certify_solution(
                         data.elt,
@@ -70,25 +71,27 @@ function solve_in_loop(model::JuMP.Model, args...; logdir, optimizer, data)
                 end
             end
 
-            solution[:λ], flag, λ_cert
+            certified, λ_cert
         end
 
-        if flag == true && certified_λ ≥ 0
+        if certified == true
             @info "Certification done with λ = $certified_λ" certified_λ status
-            return certified_λ
+        end
+
+        if status == JuMP.OPTIMAL
+            return certified, certified_λ
         else
             rel_change =
                 abs(certified_λ - old_lambda) /
                 (abs(certified_λ) + abs(old_lambda))
-            @info "Certification failed with λ = $λ" certified_λ rel_change status
+            @info "Relatie improement for λ" rel_change
             if rel_change < 1e-9
                 @info "No progress detected, breaking" certified_λ rel_change status
-                break
+                return certified, certified_λ
             end
         end
-
         old_lambda = certified_λ
     end
 
-    return status == JuMP.OPTIMAL ? old_lambda : NaN
+    return certified, old_lambda
 end
