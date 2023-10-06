@@ -70,6 +70,59 @@ function decompose(v::AbstractVector, invariant_vecs)
     return res, norm(current - v)
 end
 
+function sos_problem_dual(
+    elt::StarAlgebras.AlgebraElement,
+    order_unit::StarAlgebras.AlgebraElement,
+    wd::WedderburnDecomposition,
+    lower_bound = -Inf,
+    supp::AbstractVector{<:Integer} = axes(parent(elt).mstructure, 1),
+)
+    @assert parent(elt) == parent(order_unit)
+    inv_vecs = invariant_vectors(wd)
+
+    model = Model()
+    # 1 dual variable per orbit of G acting on basis
+    JuMP.@variable(model, y_orb[1:length(inv_vecs)])
+
+    # the value of y on order_unit is 1 (y is normalized)
+    let unit_orbit_cfs = decompose(order_unit, wd)
+        JuMP.@constraint(model, λ_dual, dot(unit_orbit_cfs, y_orb) == 1)
+    end
+
+    # here we reconstruct the original y;
+    # TODO: this is **BAD**; do something about it
+    # y = sum(y .* iv for (y, iv) in zip(y_orb, invariant_vectors(wd)))
+    y = let y = [JuMP.AffExpr() for _ in 1:length(first(invariant_vectors(wd)))]
+        for (y_o, iv) in zip(y_orb, invariant_vectors(wd))
+            for i in SparseArrays.nonzeroinds(iv)
+                JuMP.add_to_expression!(y[i], nnz(iv) * iv[i], y_o)
+            end
+        end
+        y
+    end
+    Ps = let mstr = parent(elt).mstructure, y = y
+        moment_matrix = [mstr[-i, j] for i in supp, j in supp]
+        # JuMP.@constraint(model, psd, y[moment_matrix] in PSDCone())
+        Ps = SymbolicWedderburn.diagonalize(y[moment_matrix], wd)
+        for P in Ps
+            JuMP.@constraint(model, P in PSDCone())
+        end
+        Ps
+    end
+
+    if !isinf(lower_bound)
+        throw("Not Implemented yet")
+        JuMP.@variable(model, λ_ub_dual)
+        # JuMP.@objective(model, Min, _dot(elt, y_orb, wd) + lower_bound * λ_ub_dual)
+    else
+        let elt_orbit_cfs = decompose(elt, wd)
+            JuMP.@objective(model, Min, dot(elt_orbit_cfs, y_orb, wd))
+        end
+    end
+
+    return model, Ps
+end
+
 """
     sos_problem_primal(X, [u = zero(X); upper_bound=Inf])
 Formulate sum of squares decomposition problem for `X - λ·u`.
