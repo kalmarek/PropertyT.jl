@@ -36,6 +36,40 @@ function sos_problem_dual(
     return model
 end
 
+function decompose(
+    elt::StarAlgebras.AlgebraElement,
+    wd::WedderburnDecomposition,
+)
+    v = StarAlgebras.coeffs(elt)
+    cfs, error = decompose(v, invariant_vectors(wd))
+    _eps = length(v) * eps(typeof(error))
+    error < _eps || @warn "elt does not seem to be invariant" error
+    return cfs
+end
+
+function decompose(v::AbstractVector, invariant_vecs)
+    # TODO: eltype for current, res ?
+    current = similar(v, Float64)
+    current .= 0.0
+    res = SparseArrays.spzeros(length(invariant_vecs))
+
+    _eps = length(current) * eps(eltype(res))
+    diff = zero(current)
+
+    for (i, iv) in enumerate(invariant_vecs)
+        cf = dot(v, iv) / dot(iv, iv)
+        if !iszero(cf)
+            res[i] = cf
+            current .+= cf .* iv
+            diff .= current .- v
+            if norm(diff) < _eps
+                break
+            end
+        end
+    end
+    return res, norm(current - v)
+end
+
 """
     sos_problem_primal(X, [u = zero(X); upper_bound=Inf])
 Formulate sum of squares decomposition problem for `X - λ·u`.
