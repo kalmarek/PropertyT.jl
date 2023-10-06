@@ -8,21 +8,22 @@ function sos_problem_dual(
     elt::StarAlgebras.AlgebraElement,
     order_unit::StarAlgebras.AlgebraElement = zero(elt);
     lower_bound = -Inf,
+    supp::AbstractVector{<:Integer} = axes(parent(elt).mstructure, 1),
 )
     @assert parent(elt) == parent(order_unit)
-    algebra = parent(elt)
-    moment_matrix = let m = algebra.mstructure
-        [m[-i, j] for i in axes(m, 1), j in axes(m, 2)]
-    end
+    A = parent(elt)
 
     # 1 variable for every primal constraint
     # 1 dual variable for every element of basis
     # Symmetrized:
     # 1 dual variable for every orbit of G acting on basis
     model = Model()
-    JuMP.@variable(model, y[1:length(basis(algebra))])
+    JuMP.@variable(model, y[1:length(basis(A))])
     JuMP.@constraint(model, λ_dual, dot(order_unit, y) == 1)
-    JuMP.@constraint(model, psd, y[moment_matrix] in PSDCone())
+    let mstr = A.mstructure
+        moment_matrix = [mstr[-i, j] for i in supp, j in supp]
+        JuMP.@constraint(model, psd, y[moment_matrix] in PSDCone())
+    end
 
     if !isinf(lower_bound)
         throw("Not Implemented yet")
