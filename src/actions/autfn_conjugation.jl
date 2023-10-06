@@ -2,7 +2,7 @@
 
 function _conj(
     t::Groups.Transvection,
-    σ::PermutationGroups.AbstractPerm,
+    σ::PermutationGroups.AbstractPermutation,
 )
     return Groups.Transvection(t.id, t.i^inv(σ), t.j^inv(σ), t.inv)
 end

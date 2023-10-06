@@ -2,7 +2,7 @@
 
 function _conj(
     s::MatrixGroups.ElementarySymplectic{N,T},
-    σ::PermutationGroups.AbstractPerm,
+    σ::PermutationGroups.AbstractPermutation,
 ) where {N,T}
     @assert iseven(N)
     @assert PermutationGroups.degree(σ) == N ÷ 2 "Got degree = $(PermutationGroups.degree(σ)); N = $N"

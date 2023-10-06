@@ -23,7 +23,7 @@ end
 
 function Base.:^(
     w::W,
-    p::PermutationGroups.AbstractPerm,
+    p::PermutationGroups.AbstractPermutation,
 ) where {W<:Groups.AbstractWord}
     return W([l^p for l in w])
 end

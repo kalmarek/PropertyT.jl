@@ -1,18 +1,30 @@
-import SymbolicWedderburn.PermutationGroups.AbstractPerm
+import PermutationGroups.AbstractPermutation
 
 # move to Groups
 Base.keys(a::Alphabet) = keys(1:length(a))
 
 ## the old 1812.03456 definitions
 
-isopposite(σ::AbstractPerm, τ::AbstractPerm, i=1, j=2) =
-    i^σ ≠ i^τ && i^σ ≠ j^τ && j^σ ≠ i^τ && j^σ ≠ j^τ
+function isopposite(
+    σ::AbstractPermutation,
+    τ::AbstractPermutation,
+    i = 1,
+    j = 2,
+)
+    return i^σ ≠ i^τ && i^σ ≠ j^τ && j^σ ≠ i^τ && j^σ ≠ j^τ
+end
 
-isadjacent(σ::AbstractPerm, τ::AbstractPerm, i=1, j=2) =
-    (i^σ == i^τ && j^σ ≠ j^τ) || # first equal, second differ
+function isadjacent(
+    σ::AbstractPermutation,
+    τ::AbstractPermutation,
+    i = 1,
+    j = 2,
+)
+    return (i^σ == i^τ && j^σ ≠ j^τ) || # first equal, second differ
     (j^σ == j^τ && i^σ ≠ i^τ) || # second equal, first differ
     (i^σ == j^τ && j^σ ≠ i^τ) || # first σ equal to second τ
     (j^σ == i^τ && i^σ ≠ j^τ)    # second σ equal to first τ
+end
 
 function _ncycle(start, length, n=start + length - 1)
     p = PermutationGroups.Perm(Int8(n))

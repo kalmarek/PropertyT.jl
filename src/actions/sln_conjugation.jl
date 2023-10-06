@@ -2,7 +2,7 @@
 
 function _conj(
     t::MatrixGroups.ElementaryMatrix{N},
-    σ::PermutationGroups.AbstractPerm,
+    σ::PermutationGroups.AbstractPermutation,
 ) where {N}
     return MatrixGroups.ElementaryMatrix{N}(t.i^inv(σ), t.j^inv(σ), t.val)
 end
