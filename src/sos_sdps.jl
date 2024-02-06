@@ -36,6 +36,31 @@ function sos_problem_dual(
     return model
 end
 
+function geometric_constraints!(
+    model::JuMP.Model,
+    elt::StarAlgebras.AlgebraElement,
+)
+    A = parent(elt)
+    G = parent(A)
+    mstr = A.mstructure
+    b = basis(A)
+    y = model[:y]
+    for g in gens(G)
+        for h in gens(G)
+            gh = mstr[b[g], b[h]]
+            if elt[gh] > 0
+                for γ in axes(mstr, 1)
+                    γgh = mstr[γ, gh]
+                    γg = mstr[γ, b[g]]
+                    γh = mstr[γ, b[h]]
+                    JuMP.@constraint model y[γgh] + y[γ] == y[γg] + y[γh]
+                end
+            end
+        end
+    end
+    return model
+end
+
 function decompose(
     elt::StarAlgebras.AlgebraElement,
     wd::WedderburnDecomposition,
@@ -68,6 +93,29 @@ function decompose(v::AbstractVector, invariant_vecs)
         end
     end
     return res, norm(current - v)
+end
+
+function _dot(elt::StarAlgebras.AlgebraElement, Y, wd::WedderburnDecomposition)
+    inv_vecs = invariant_vectors(wd)
+    v = StarAlgebras.coeffs(elt)
+    res, error = _dot(v, Y, inv_vecs)
+    _eps = length(v) * eps(typeof(error))
+    error < _eps || @warn "elt does not seem to be invariant" error
+    return res
+end
+
+function _dot(v::AbstractVector, Y::AbstractVector{<:JuMP.AbstractVariableRef})
+    @assert length(inv_vecs) == length(Y)
+    @assert length(v) == length(first(inv_vecs))
+    res = JuMP.AffExpr()
+
+    cfs, error = decompose(v, inv_vecs)
+
+    for i in SparseArrays.nonzeroinds(cfs)
+        (c, y) = cfs[i], Y[i]
+        JuMP.add_to_expression!(res, c, y)
+    end
+    return res, error
 end
 
 function sos_problem_dual(
@@ -123,6 +171,44 @@ function sos_problem_dual(
     return model, Ps
 end
 
+function __find_firstnz(i, inv_vecs)
+    for (idx, iv) in enumerate(inv_vecs)
+        iv[i] ≠ 0 && return idx
+    end
+    return nothing
+end
+
+function geometric_constraints!(
+    model::JuMP.Model,
+    elt::StarAlgebras.AlgebraElement,
+    wd::WedderburnDecomposition,
+)
+    A = parent(elt)
+    G = parent(A)
+    mstr = A.mstructure
+    b = basis(A)
+    y = model[:y_orb]
+    # cfs = PropertyT.decompose(elt, wd)
+    inv_vecs = invariant_vectors(wd)
+    for g in gens(G)
+        for h in gens(G)
+            gh = mstr[b[g], b[h]]
+            if elt[gh] > 0
+                for (γ, iv) in enumerate(inv_vecs)
+                    γ_basis_idx = first(SparseArrays.nonzeroinds(iv))
+                    γ_basis_idx > size(mstr, 1) && break
+
+                    γgh = __find_firstnz(mstr[γ_basis_idx, gh], inv_vecs)
+                    γg = __find_firstnz(mstr[γ_basis_idx, b[g]], inv_vecs)
+                    γh = __find_firstnz(mstr[γ_basis_idx, b[h]], inv_vecs)
+
+                    JuMP.@constraint model y[γgh] + y[γ] == y[γg] + y[γh]
+                end
+            end
+        end
+    end
+end
+
 """
     sos_problem_primal(X, [u = zero(X); upper_bound=Inf])
 Formulate sum of squares decomposition problem for `X - λ·u`.
@@ -147,10 +233,11 @@ function sos_problem_primal(
     upper_bound = Inf,
     augmented::Bool = iszero(StarAlgebras.aug(elt)) &&
                       iszero(StarAlgebras.aug(order_unit)),
+    support = 1:size(parent(elt).mstructure, 1),
 )
     @assert parent(elt) === parent(order_unit)
 
-    N = LinearAlgebra.checksquare(parent(elt).mstructure)
+    N = length(support)
     model = JuMP.Model()
     P = JuMP.@variable(model, P[1:N, 1:N], Symmetric)
     JuMP.@constraint(model, psd, P in PSDCone())
@@ -159,11 +246,11 @@ function sos_problem_primal(
         @warn "Setting `upper_bound` together with zero `order_unit` has no effect"
     end
 
-    A = constraints(parent(elt); augmented = augmented)
+    A = constraints(parent(elt), support; augmented = augmented)
 
     if !iszero(order_unit)
         λ = JuMP.@variable(model, λ)
-        if isfinite(upper_bound)
+        if !isfinite(upper_bound)
             JuMP.@constraint model λ <= upper_bound
         end
         JuMP.@objective(model, Max, λ)
@@ -282,9 +369,9 @@ function sos_problem_primal(
         end
     end
 
-    id_one = findfirst(invariant_vectors(wedderburn)) do v
-        b = basis(parent(elt))
-        return sparsevec([b[one(first(b))]], [1 // 1], length(v)) == v
+    id_one = let b = basis(parent(elt)), iv = invariant_vectors(wedderburn)
+        id_v = sparsevec([b[one(first(b))]], [1 // 1], length(first(iv)))
+        findfirst(==(id_v), iv)
     end
 
     prog = ProgressMeter.Progress(
@@ -303,12 +390,12 @@ function sos_problem_primal(
     if !feasibility_problem # add λ or not?
         λ = JuMP.@variable(model, λ)
         JuMP.@objective(model, Max, λ)
-
-        if isfinite(upper_bound)
-            JuMP.@constraint(model, λ <= upper_bound)
-            if feasibility_problem
-                @warn "setting `upper_bound` with zero `orderunit` has no effect"
-            end
+    end
+    if isfinite(upper_bound)
+        if feasibility_problem
+            @warn "setting `upper_bound` with zero `orderunit` has no effect"
+        else
+            JuMP.@constraint(model, ub, λ <= upper_bound)
         end
     end
 
