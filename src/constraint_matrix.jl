@@ -147,16 +147,22 @@ function LinearAlgebra.dot(cm::ConstraintMatrix, m::AbstractMatrix{T}) where {T}
     return convert(eltype(cm), cm.val) * (pos - neg)
 end
 
-function constraints(A::StarAlgebras.StarAlgebra; augmented::Bool)
-    return constraints(basis(A), A.mstructure; augmented = augmented)
+function constraints(
+    A::StarAlgebras.StarAlgebra,
+    support = axes(A.mstructure, 1);
+    augmented::Bool,
+)
+    return constraints(basis(A), support, A.mstructure; augmented = augmented)
 end
 
 function constraints(
     basis::StarAlgebras.AbstractBasis,
+    support,
     mstr::StarAlgebras.MultiplicativeStructure;
     augmented = false,
 )
     cnstrs = _constraints(
+        support,
         mstr;
         augmented = augmented,
         num_constraints = length(basis),
@@ -170,6 +176,7 @@ function constraints(
 end
 
 function _constraints(
+    support::AbstractVector{<:Integer},
     mstr::StarAlgebras.MultiplicativeStructure;
     augmented::Bool = false,
     num_constraints = maximum(mstr),
@@ -178,9 +185,11 @@ function _constraints(
     cnstrs = [signed(eltype(mstr))[] for _ in 1:num_constraints]
     LI = LinearIndices(size(mstr))
 
-    for ci in CartesianIndices(size(mstr))
-        k = LI[ci]
-        i, j = Tuple(ci)
+    l = length(support)
+    for ci in CartesianIndices((l, l))
+        i1, j1 = Tuple(ci)
+        i, j = support[i1], support[j1]
+        k = LI[CartesianIndex(i, j)]
         a_star_b = mstr[-i, j]
         push!(cnstrs[a_star_b], k)
         if augmented
@@ -192,4 +201,18 @@ function _constraints(
         end
     end
     return cnstrs
+end
+
+function SparseArrays.sparse(cm::ConstraintMatrix{Tv,Ti}) where {Tv,Ti}
+    I = Ti[]
+    J = Ti[]
+    V = Tv[]
+    CI = CartesianIndices(cm)
+    for (idx, v) in nzpairs(cm)
+        ci = CI[idx]
+        push!(I, ci[1])
+        push!(J, ci[2])
+        push!(V, v)
+    end
+    return SparseArrays.sparse(I, J, V, size(cm)...)
 end
