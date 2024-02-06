@@ -37,7 +37,15 @@ end
 
 function SymbolicWedderburn.action(
     act::AlphabetPermutation,
-    γ::Groups.GroupElement,
+    γ::PermutationGroups.Perms.AbstractPermutation,
+    w::Groups.AbstractWord,
+)
+    return w^(act.perms[γ])
+end
+
+function SymbolicWedderburn.action(
+    act::AlphabetPermutation,
+    γ::GroupsCore.GroupElement,
     w::Groups.AbstractWord,
 )
     return w^(act.perms[γ])
