@@ -25,6 +25,8 @@ include("gradings.jl")
 
 include("actions/actions.jl")
 
+include("orbit_basis.jl")
+
 function group_algebra(G::Groups.Group, S = gens(G); halfradius::Integer)
     S = union!(S, inv.(S))
     @info "generating wl-metric ball of radius $(2halfradius)"
