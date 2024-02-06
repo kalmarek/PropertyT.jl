@@ -27,13 +27,13 @@ function isadjacent(
 end
 
 function _ncycle(start, length, n=start + length - 1)
-    p = PermutationGroups.Perm(Int8(n))
+    p = collect(Int8.(1:n))
     @assert n ≥ start + length - 1
     for k in start:start+length-2
         p[k] = k + 1
     end
     p[start+length-1] = start
-    return p
+    return PermutationGroups.Perm(p)
 end
 
 alternating_group(n::Integer) = PermutationGroups.PermGroup([_ncycle(i, 3) for i in 1:n-2])
