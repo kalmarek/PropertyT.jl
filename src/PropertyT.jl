@@ -6,7 +6,7 @@ using SparseArrays
 using JuMP
 
 using Groups
-import Groups.GroupsCore
+import GroupsCore
 using SymbolicWedderburn
 import SymbolicWedderburn.StarAlgebras
 import SymbolicWedderburn.PermutationGroups
