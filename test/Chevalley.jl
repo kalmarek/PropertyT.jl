@@ -52,7 +52,7 @@ end
 
         a = F4[1]
         @test isapprox(PropertyT.Roots.ℓ₂length(a), sqrt(2))
-        b = F4[6]
+        b = F4[4]
         @test isapprox(PropertyT.Roots.ℓ₂length(b), sqrt(2))
         c = a + b
         @test isapprox(PropertyT.Roots.ℓ₂length(c), 2.0)
@@ -162,7 +162,6 @@ end
                 ])
                 @test Set(keys(counts)) == subtypes
                 d, r = divrem(counts[:A₂], 4)
-                @info d, r
                 @test r == 0 && d == 10
             end
         end
