@@ -114,10 +114,9 @@ end
                 SA.Basis{UInt16}(@view SA.basis(RSL)[1:sizes[2]]),
             )
 
-            @test length(invariant_vectors(wd)) == 247
-            @test SymbolicWedderburn.size.(direct_summands(wd), 1) ==
-                  [14, 9, 6, 14, 12]
-            @test all(issimple, direct_summands(wd))
+            @test length(SW.invariant_vectors(wd)) == 247
+            @test size.(SW.direct_summands(wd), 1) == [9, 6, 14, 14, 12]
+            @test all(SW.issimple, SW.direct_summands(wd))
         end
     end
 end
@@ -156,10 +155,9 @@ end
                 SA.Basis{UInt16}(@view SA.basis(RSAutFn)[1:sizes[1]]),
             )
 
-            @test length(invariant_vectors(wd)) == 93
-            @test SymbolicWedderburn.size.(direct_summands(wd), 1) ==
-                  [4, 8, 5, 4]
-            @test all(issimple, direct_summands(wd))
+            @test length(SW.invariant_vectors(wd)) == 93
+            @test size.(SW.direct_summands(wd), 1) == [5, 4, 8, 4]
+            @test all(SW.issimple, SW.direct_summands(wd))
         end
     end
 
@@ -194,10 +192,9 @@ end
                 SA.Basis{UInt16}(@view SA.basis(RSAutFn)[1:sizes[1]]),
             )
 
-            @test length(invariant_vectors(wd)) == 18
-            @test SymbolicWedderburn.size.(direct_summands(wd), 1) ==
-                  [1, 1, 2, 2, 1, 2, 2, 1]
-            @test all(issimple, direct_summands(wd))
+            @test length(SW.invariant_vectors(wd)) == 18
+            @test size.(SW.direct_summands(wd), 1) == [2, 1, 2, 1, 2, 1, 1, 2]
+            @test all(SW.issimple, SW.direct_summands(wd))
         end
     end
 end
