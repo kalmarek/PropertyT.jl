@@ -4,7 +4,7 @@
         p = 7
         halfradius = 3
         G = MatrixGroups.SpecialLinearGroup{N}(
-            SymbolicWedderburn.Characters.FiniteFields.GF{p},
+            SW.Characters.FiniteFields.GF{p},
         )
         RG, S, sizes = PropertyT.group_algebra(G; halfradius = 3)
 
@@ -51,18 +51,19 @@
         end
 
         @testset "Wedderburn decomposition" begin
-            P = PermGroup(perm"(1,2)", Perm(circshift(1:N, -1)))
-            Σ = PropertyT.Constructions.WreathProduct(PermGroup(perm"(1,2)"), P)
+            P = PG.PermGroup(PG.perm"(1,2)", PG.Perm(circshift(1:N, -1)))
+            Σ = Groups.Constructions.WreathProduct(
+                PG.PermGroup(PG.perm"(1,2)"),
+                P,
+            )
             act = PropertyT.action_by_conjugation(G, Σ)
 
-            wd = WedderburnDecomposition(
+            wd = SW.WedderburnDecomposition(
                 Float64,
                 Σ,
                 act,
-                basis(RG),
-                StarAlgebras.Basis{UInt16}(
-                    @view basis(RG)[1:sizes[halfradius]]
-                ),
+                SA.basis(RG),
+                SA.Basis{UInt16}(@view SA.basis(RG)[1:sizes[halfradius]]),
             )
 
             status, certified, λ_cert = check_positivity(

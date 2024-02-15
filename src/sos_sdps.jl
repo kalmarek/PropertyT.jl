@@ -5,8 +5,8 @@ Formulate the dual to the sum of squares decomposition problem for `X - λ·u`.
 See also [sos_problem_primal](@ref).
 """
 function sos_problem_dual(
-    elt::StarAlgebras.AlgebraElement,
-    order_unit::StarAlgebras.AlgebraElement = zero(elt);
+    elt::SA.AlgebraElement,
+    order_unit::SA.AlgebraElement = zero(elt);
     lower_bound = -Inf,
 )
     @assert parent(elt) == parent(order_unit)
@@ -20,7 +20,7 @@ function sos_problem_dual(
     # Symmetrized:
     # 1 dual variable for every orbit of G acting on basis
     model = Model()
-    JuMP.@variable(model, y[1:length(basis(algebra))])
+    JuMP.@variable(model, y[1:length(SA.basis(algebra))])
     JuMP.@constraint(model, λ_dual, dot(order_unit, y) == 1)
     JuMP.@constraint(model, psd, y[moment_matrix] in PSDCone())
 
@@ -54,11 +54,10 @@ be added to the model. This may improve the accuracy of the solution if
 The default `u = zero(X)` formulates a simple feasibility problem.
 """
 function sos_problem_primal(
-    elt::StarAlgebras.AlgebraElement,
-    order_unit::StarAlgebras.AlgebraElement = zero(elt);
+    elt::SA.AlgebraElement,
+    order_unit::SA.AlgebraElement = zero(elt);
     upper_bound = Inf,
-    augmented::Bool = iszero(StarAlgebras.aug(elt)) &&
-                      iszero(StarAlgebras.aug(order_unit)),
+    augmented::Bool = iszero(SA.aug(elt)) && iszero(SA.aug(order_unit)),
 )
     @assert parent(elt) === parent(order_unit)
 
@@ -80,11 +79,11 @@ function sos_problem_primal(
         end
         JuMP.@objective(model, Max, λ)
 
-        for b in basis(parent(elt))
+        for b in SA.basis(parent(elt))
             JuMP.@constraint(model, elt(b) - λ * order_unit(b) == dot(A[b], P))
         end
     else
-        for b in basis(parent(elt))
+        for b in SA.basis(parent(elt))
             JuMP.@constraint(model, elt(b) == dot(A[b], P))
         end
     end
@@ -94,7 +93,7 @@ end
 
 function invariant_constraint!(
     result::AbstractMatrix,
-    basis::StarAlgebras.AbstractBasis,
+    basis::SA.AbstractBasis,
     cnstrs::AbstractDict{K,<:ConstraintMatrix},
     invariant_vec::SparseVector,
 ) where {K}
@@ -128,14 +127,14 @@ function invariant_constraint(basis, cnstrs, invariant_vec)
     return sparse(I, J, V, size(_M)...)
 end
 
-function isorth_projection(ds::SymbolicWedderburn.DirectSummand)
-    U = SymbolicWedderburn.image_basis(ds)
+function isorth_projection(ds::SW.DirectSummand)
+    U = SW.image_basis(ds)
     return isapprox(U * U', I)
 end
 
 function sos_problem_primal(
-    elt::StarAlgebras.AlgebraElement,
-    wedderburn::WedderburnDecomposition;
+    elt::SA.AlgebraElement,
+    wedderburn::SW.WedderburnDecomposition;
     kwargs...,
 )
     return sos_problem_primal(elt, zero(elt), wedderburn; kwargs...)
@@ -176,31 +175,30 @@ import ProgressMeter
 __show_itrs(n, total) = () -> [(Symbol("constraint"), "$n/$total")]
 
 function sos_problem_primal(
-    elt::StarAlgebras.AlgebraElement,
-    orderunit::StarAlgebras.AlgebraElement,
-    wedderburn::WedderburnDecomposition;
+    elt::SA.AlgebraElement,
+    orderunit::SA.AlgebraElement,
+    wedderburn::SW.WedderburnDecomposition;
     upper_bound = Inf,
-    augmented = iszero(StarAlgebras.aug(elt)) &&
-        iszero(StarAlgebras.aug(orderunit)),
+    augmented = iszero(SA.aug(elt)) && iszero(SA.aug(orderunit)),
     check_orthogonality = true,
     show_progress = false,
 )
     @assert parent(elt) === parent(orderunit)
     if check_orthogonality
-        if any(!isorth_projection, direct_summands(wedderburn))
+        if any(!isorth_projection, SW.direct_summands(wedderburn))
             error(
                 "Wedderburn decomposition contains a non-orthogonal projection",
             )
         end
     end
 
-    id_one = findfirst(invariant_vectors(wedderburn)) do v
-        b = basis(parent(elt))
+    id_one = findfirst(SW.invariant_vectors(wedderburn)) do v
+        b = SA.basis(parent(elt))
         return sparsevec([b[one(first(b))]], [1 // 1], length(v)) == v
     end
 
     prog = ProgressMeter.Progress(
-        length(invariant_vectors(wedderburn));
+        length(SW.invariant_vectors(wedderburn));
         dt = 1,
         desc = "Adding constraints: ",
         enabled = show_progress,
@@ -225,7 +223,7 @@ function sos_problem_primal(
     end
 
     # semidefinite constraints as described by wedderburn
-    Ps = map(direct_summands(wedderburn)) do ds
+    Ps = map(SW.direct_summands(wedderburn)) do ds
         dim = size(ds, 1)
         P = JuMP.@variable(model, [1:dim, 1:dim], Symmetric)
         JuMP.@constraint(model, P in PSDCone())
@@ -238,14 +236,14 @@ function sos_problem_primal(
         _eps = 10 * eps(T) * max(size(parent(elt).mstructure)...)
     end
 
-    X = StarAlgebras.coeffs(elt)
-    U = StarAlgebras.coeffs(orderunit)
+    X = SA.coeffs(elt)
+    U = SA.coeffs(orderunit)
 
     # defining constraints based on the multiplicative structure
     cnstrs = constraints(parent(elt); augmented = augmented)
 
     # adding linear constraints: one per orbit
-    for (i, iv) in enumerate(invariant_vectors(wedderburn))
+    for (i, iv) in enumerate(SW.invariant_vectors(wedderburn))
         ProgressMeter.next!(prog; showvalues = __show_itrs(i, prog.n))
         augmented && i == id_one && continue
         # i == 500 && break
@@ -253,9 +251,9 @@ function sos_problem_primal(
         x = dot(X, iv)
         u = dot(U, iv)
 
-        spM_orb = invariant_constraint(basis(parent(elt)), cnstrs, iv)
+        spM_orb = invariant_constraint(SA.basis(parent(elt)), cnstrs, iv)
 
-        Ms = SymbolicWedderburn.diagonalize!(
+        Ms = SW.diagonalize!(
             Ms,
             spM_orb,
             wedderburn;

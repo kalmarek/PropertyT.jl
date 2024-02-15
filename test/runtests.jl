@@ -7,9 +7,9 @@ using Groups.GroupsCore
 import Groups.MatrixGroups
 
 using PropertyT
-using SymbolicWedderburn
-using SymbolicWedderburn.StarAlgebras
-using SymbolicWedderburn.PermutationGroups
+import SymbolicWedderburn as SW
+import StarAlgebras as SA
+import PermutationGroups as PG
 
 include("optimizers.jl")
 include("check_positivity.jl")

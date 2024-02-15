@@ -2,10 +2,10 @@
 
 function _conj(
     s::MatrixGroups.ElementarySymplectic{N,T},
-    σ::PermutationGroups.AbstractPerm,
+    σ::PG.AbstractPermutation,
 ) where {N,T}
     @assert iseven(N)
-    @assert PermutationGroups.degree(σ) == N ÷ 2 "Got degree = $(PermutationGroups.degree(σ)); N = $N"
+    @assert PG.degree(σ) ≤ N ÷ 2 "Got degree = $(PG.degree(σ)); N = $N"
     n = N ÷ 2
     @assert 1 ≤ s.i ≤ N
     @assert 1 ≤ s.j ≤ N
@@ -40,5 +40,9 @@ function _conj(
     return ifelse(just_one_flips, inv(s), s)
 end
 
-action_by_conjugation(sln::Groups.MatrixGroups.SymplecticGroup, Σ::Groups.Group) =
-    AlphabetPermutation(alphabet(sln), Σ, _conj)
+function action_by_conjugation(
+    sln::Groups.MatrixGroups.SymplecticGroup,
+    Σ::Groups.Group,
+)
+    return AlphabetPermutation(alphabet(sln), Σ, _conj)
+end

@@ -2,7 +2,7 @@
 
 function _conj(
     t::Groups.Transvection,
-    σ::PermutationGroups.AbstractPerm,
+    σ::PG.AbstractPermutation,
 )
     return Groups.Transvection(t.id, t.i^inv(σ), t.j^inv(σ), t.inv)
 end
@@ -22,5 +22,9 @@ function _conj(
     return _flip(t, x.elts[i])
 end
 
-action_by_conjugation(sautfn::Groups.AutomorphismGroup{<:Groups.FreeGroup}, Σ::Groups.Group) =
-    AlphabetPermutation(alphabet(sautfn), Σ, _conj)
+function action_by_conjugation(
+    sautfn::Groups.AutomorphismGroup{<:Groups.FreeGroup},
+    Σ::Groups.Group,
+)
+    return AlphabetPermutation(alphabet(sautfn), Σ, _conj)
+end

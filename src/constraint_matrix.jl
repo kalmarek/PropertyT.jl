@@ -147,13 +147,13 @@ function LinearAlgebra.dot(cm::ConstraintMatrix, m::AbstractMatrix{T}) where {T}
     return convert(eltype(cm), cm.val) * (pos - neg)
 end
 
-function constraints(A::StarAlgebras.StarAlgebra; augmented::Bool)
-    return constraints(basis(A), A.mstructure; augmented = augmented)
+function constraints(A::SA.StarAlgebra; augmented::Bool)
+    return constraints(SA.basis(A), A.mstructure; augmented = augmented)
 end
 
 function constraints(
-    basis::StarAlgebras.AbstractBasis,
-    mstr::StarAlgebras.MultiplicativeStructure;
+    basis::SA.AbstractBasis,
+    mstr::SA.MultiplicativeStructure;
     augmented = false,
 )
     cnstrs = _constraints(
@@ -170,7 +170,7 @@ function constraints(
 end
 
 function _constraints(
-    mstr::StarAlgebras.MultiplicativeStructure;
+    mstr::SA.MultiplicativeStructure;
     augmented::Bool = false,
     num_constraints = maximum(mstr),
     id,

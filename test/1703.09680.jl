@@ -33,7 +33,7 @@
     @testset "SL(3,F₅)" begin
         N = 3
         G = MatrixGroups.SpecialLinearGroup{N}(
-            SymbolicWedderburn.Characters.FiniteFields.GF{5},
+            SW.Characters.FiniteFields.GF{5},
         )
         RG, S, sizes = PropertyT.group_algebra(G; halfradius = 2)
 

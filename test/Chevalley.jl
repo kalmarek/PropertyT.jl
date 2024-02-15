@@ -20,8 +20,10 @@ end
 end
 
 @testset "Exceptional root systems" begin
+    Base.:^(t::NTuple{N}, p::PG.AbstractPermutation) where {N} =
+        ntuple(i -> t[i^p], N)
     @testset "F4" begin
-        F4 = let Σ = PermutationGroups.PermGroup(perm"(1,2,3,4)", perm"(1,2)")
+        F4 = let Σ = PG.PermGroup(PG.perm"(1,2,3,4)", PG.perm"(1,2)")
             long = let x = (1, 1, 0, 0) .// 1
                 PropertyT.Roots.Root.(
                     union(
@@ -90,9 +92,9 @@ end
 
     @testset "E6-7-8 exceptional root systems" begin
         E8 =
-            let Σ = PermutationGroups.PermGroup(
-                    perm"(1,2,3,4,5,6,7,8)",
-                    perm"(1,2)",
+            let Σ = PG.PermGroup(
+                    PG.perm"(1,2,3,4,5,6,7,8)",
+                    PG.perm"(1,2)",
                 )
                 long = let x = (1, 1, 0, 0, 0, 0, 0, 0) .// 1
                     PropertyT.Roots.Root.(

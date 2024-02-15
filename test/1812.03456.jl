@@ -8,11 +8,11 @@ using SparseArrays
     end
 
     @testset "unit tests" begin
-        @test PropertyT.isopposite(perm"(1,2,3)(4)", perm"(1,4,2)")
-        @test PropertyT.isadjacent(perm"(1,2,3)", perm"(1,2)(3)")
+        @test PropertyT.isopposite(PG.perm"(1,2,3)(4)", PG.perm"(1,4,2)")
+        @test PropertyT.isadjacent(PG.perm"(1,2,3)", PG.perm"(1,2)(3)")
 
-        @test !PropertyT.isopposite(perm"(1,2,3)", perm"(1,2)(3)")
-        @test !PropertyT.isadjacent(perm"(1,4)", perm"(2,3)(4)")
+        @test !PropertyT.isopposite(PG.perm"(1,2,3)", PG.perm"(1,2)(3)")
+        @test !PropertyT.isadjacent(PG.perm"(1,4)", PG.perm"(2,3)(4)")
 
         @test isconstant_on_orbit([1, 1, 1, 2, 2], [2, 3])
         @test !isconstant_on_orbit([1, 1, 1, 2, 2], [2, 3, 4])
@@ -29,19 +29,19 @@ using SparseArrays
             RG(length(S)) - sum(RG(s) for s in S)
         end
 
-        P = PermGroup(perm"(1,2)", Perm(circshift(1:N, -1)))
-        Σ = PropertyT.Constructions.WreathProduct(PermGroup(perm"(1,2)"), P)
+        P = PG.PermGroup(PG.perm"(1,2)", PG.Perm(circshift(1:N, -1)))
+        Σ = Groups.Constructions.WreathProduct(PG.PermGroup(PG.perm"(1,2)"), P)
         act = PropertyT.action_by_conjugation(G, Σ)
 
-        wd = WedderburnDecomposition(
+        wd = SW.WedderburnDecomposition(
             Float64,
             Σ,
             act,
-            basis(RG),
-            StarAlgebras.Basis{UInt16}(@view basis(RG)[1:sizes[2]]),
+            SA.basis(RG),
+            SA.Basis{UInt16}(@view SA.basis(RG)[1:sizes[2]]),
         )
         @info wd
-        ivs = SymbolicWedderburn.invariant_vectors(wd)
+        ivs = SW.invariant_vectors(wd)
 
         sq, adj, op = PropertyT.SqAdjOp(RG, N)
 
@@ -105,16 +105,16 @@ end
 
         Δ = RG(length(S)) - sum(RG(s) for s in S)
 
-        P = PermGroup(perm"(1,2)", Perm(circshift(1:n, -1)))
-        Σ = PropertyT.Constructions.WreathProduct(PermGroup(perm"(1,2)"), P)
+        P = PG.PermGroup(PG.perm"(1,2)", PG.Perm(circshift(1:n, -1)))
+        Σ = Groups.Constructions.WreathProduct(PG.PermGroup(PG.perm"(1,2)"), P)
         act = PropertyT.action_by_conjugation(G, Σ)
 
-        wd = SymbolicWedderburn.WedderburnDecomposition(
+        wd = SW.WedderburnDecomposition(
             Float64,
             Σ,
             act,
-            basis(RG),
-            StarAlgebras.Basis{UInt16}(@view basis(RG)[1:sizes[2]]),
+            SA.basis(RG),
+            SA.Basis{UInt16}(@view SA.basis(RG)[1:sizes[2]]),
         )
         @info wd
 
@@ -193,16 +193,16 @@ end
 
         Δ = RG(length(S)) - sum(RG(s) for s in S)
 
-        P = PermGroup(perm"(1,2)", Perm(circshift(1:n, -1)))
-        Σ = PropertyT.Constructions.WreathProduct(PermGroup(perm"(1,2)"), P)
+        P = PG.PermGroup(PG.perm"(1,2)", PG.Perm(circshift(1:n, -1)))
+        Σ = Groups.Constructions.WreathProduct(PG.PermGroup(PG.perm"(1,2)"), P)
         act = PropertyT.action_by_conjugation(G, Σ)
 
-        wd = SymbolicWedderburn.WedderburnDecomposition(
+        wd = SW.WedderburnDecomposition(
             Float64,
             Σ,
             act,
-            basis(RG),
-            StarAlgebras.Basis{UInt16}(@view basis(RG)[1:sizes[2]]),
+            SA.basis(RG),
+            SA.Basis{UInt16}(@view SA.basis(RG)[1:sizes[2]]),
         )
         @info wd
 
