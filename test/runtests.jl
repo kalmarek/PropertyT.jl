@@ -3,7 +3,6 @@ using LinearAlgebra
 using SparseArrays
 
 using Groups
-using Groups.GroupsCore
 import Groups.MatrixGroups
 
 using PropertyT
@@ -15,7 +14,7 @@ include("optimizers.jl")
 include("check_positivity.jl")
 include("quick_tests.jl")
 
-if haskey(ENV, "FULL_TEST") || haskey(ENV, "CI")
+if haskey(ENV, "CI")
     @testset "PropertyT" begin
         include("constratint_matrices.jl")
         include("actions.jl")
