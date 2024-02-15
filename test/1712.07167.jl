@@ -176,10 +176,10 @@
 
             status, _ = PropertyT.solve(
                 opt_problem,
-                scs_optimizer(;
+                cosmo_optimizer(;
                     eps = 1e-8,
                     max_iters = 20_000,
-                    accel = 0,
+                    accel = 50,
                     alpha = 1.9,
                 ),
             )

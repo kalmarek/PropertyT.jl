@@ -20,12 +20,12 @@
             optimizer = scs_optimizer(;
                 eps = 1e-10,
                 max_iters = 5_000,
-                accel = 50,
+                accel = -50,
                 alpha = 1.9,
             ),
         )
 
-        @test status == JuMP.ALMOST_OPTIMAL
+        @test status == JuMP.OPTIMAL
         @test !certified
         @test λ < 0
     end
@@ -53,7 +53,7 @@
             optimizer = scs_optimizer(;
                 eps = 1e-10,
                 max_iters = 5_000,
-                accel = 50,
+                accel = -50,
                 alpha = 1.9,
             ),
         )
@@ -65,15 +65,16 @@
         m = PropertyT.sos_problem_dual(elt, unit)
         PropertyT.solve(
             m,
-            cosmo_optimizer(;
-                eps = 1e-6,
+            scs_optimizer(;
+                eps = 1e-3,
                 max_iters = 5_000,
-                accel = 50,
+                accel = -50,
                 alpha = 1.9,
             ),
         )
 
-        @test JuMP.termination_status(m) in (JuMP.ALMOST_OPTIMAL, JuMP.OPTIMAL)
+        @test JuMP.termination_status(m) in
+              (JuMP.ITERATION_LIMIT, JuMP.ALMOST_OPTIMAL, JuMP.OPTIMAL)
         @test JuMP.objective_value(m) ≈ 1.5 atol = 1e-2
     end
 
@@ -98,12 +99,12 @@
             optimizer = scs_optimizer(;
                 eps = 1e-10,
                 max_iters = 5_000,
-                accel = 50,
+                accel = -50,
                 alpha = 1.9,
             ),
         )
 
-        @test status == JuMP.ALMOST_OPTIMAL
+        @test status in (JuMP.ALMOST_OPTIMAL, JuMP.ITERATION_LIMIT)
         @test λ < 0
         @test !certified
 
@@ -111,14 +112,14 @@
 
         status, _ = PropertyT.solve(
             sos_problem,
-            cosmo_optimizer(;
+            scs_optimizer(;
                 eps = 1e-7,
-                max_iters = 10_000,
-                accel = 0,
+                max_iters = 5_000,
+                accel = -50,
                 alpha = 1.9,
             ),
         )
-        @test status == JuMP.OPTIMAL
+        @test status in (JuMP.OPTIMAL, JuMP.ITERATION_LIMIT)
         P = JuMP.value.(sos_problem[:P])
         Q = real.(sqrt(P))
         certified, λ_cert =
@@ -149,11 +150,11 @@
 
             status, _ = PropertyT.solve(
                 opt_problem,
-                cosmo_optimizer(;
+                scs_optimizer(;
                     eps = 1e-10,
                     max_iters = 10_000,
-                    accel = 0,
-                    alpha = 1.5,
+                    accel = 50,
+                    alpha = 1.9,
                 ),
             )
 

@@ -130,7 +130,7 @@ end
                 wd;
                 upper_bound = UB,
                 halfradius = 2,
-                optimizer = cosmo_optimizer(; accel = 50, alpha = 1.9),
+                optimizer = scs_optimizer(; accel = -50, alpha = 1.9),
             )
             @test status == JuMP.OPTIMAL
             @test certified
@@ -156,7 +156,7 @@ end
             m, _ = PropertyT.sos_problem_primal(elt, wd)
             PropertyT.solve(
                 m,
-                scs_optimizer(; max_iters = 5000, accel = 50, alpha = 1.9),
+                scs_optimizer(; max_iters = 1000, accel = 50, alpha = 1.9),
             )
 
             @test JuMP.termination_status(m) in

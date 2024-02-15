@@ -22,11 +22,11 @@
                 unit;
                 upper_bound = ub,
                 halfradius = 2,
-                optimizer = cosmo_optimizer(;
-                    eps = 1e-7,
-                    max_iters = 5_000,
-                    accel = 50,
-                    alpha = 1.95,
+                optimizer = scs_optimizer(;
+                    eps = 1e-8,
+                    max_iters = 20_000,
+                    accel = -50,
+                    alpha = 1.9,
                 ),
             )
 
@@ -37,11 +37,11 @@
             m = PropertyT.sos_problem_dual(elt, unit)
             PropertyT.solve(
                 m,
-                cosmo_optimizer(;
-                    eps = 1e-7,
+                scs_optimizer(;
+                    eps = 1e-8,
                     max_iters = 10_000,
-                    accel = 50,
-                    alpha = 1.95,
+                    accel = -50,
+                    alpha = 1.9,
                 ),
             )
 
@@ -73,10 +73,10 @@
                 wd;
                 upper_bound = ub,
                 halfradius = 2,
-                optimizer = cosmo_optimizer(;
-                    eps = 1e-7,
+                optimizer = scs_optimizer(;
+                    eps = 1e-8,
                     max_iters = 10_000,
-                    accel = 50,
+                    accel = -50,
                     alpha = 1.9,
                 ),
             )
