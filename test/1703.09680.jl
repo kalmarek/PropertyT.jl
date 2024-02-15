@@ -173,7 +173,11 @@
             )
 
             @test certified
-            @test isapprox(λ_cert, λ, rtol = 1e-5)
+            @test isapprox(
+                PropertyT.IntervalArithmetic.inf(λ_cert),
+                λ,
+                rtol = 1e-5,
+            )
         end
 
         @testset "augmented formulation" begin
@@ -213,7 +217,11 @@
             )
 
             @test certified
-            @test isapprox(λ_cert, λ, rtol = 1e-5)
+            @test isapprox(
+                PropertyT.IntervalArithmetic.inf(λ_cert),
+                λ,
+                rtol = 1e-5,
+            )
             @test λ_cert > 2 // 10
         end
     end

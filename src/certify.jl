@@ -77,8 +77,10 @@ function sufficient_λ(residual::SA.AlgebraElement, λ; halfradius)
 
     info_strs = [
         "Numerical metrics of the obtained SOS:",
-        "ɛ(elt - λu - ∑ξᵢ*ξᵢ) $eq_sign $(StarAlgebras.aug(residual))",
-        "‖elt - λu - ∑ξᵢ*ξᵢ‖₁ $eq_sign $(L1_norm)",
+        "ɛ(elt - λu - ∑ξᵢ*ξᵢ) $eq_sign " *
+        sprint(show, SA.aug(residual); context = :compact => true),
+        "‖elt - λu - ∑ξᵢ*ξᵢ‖₁ $eq_sign " *
+        sprint(show, L1_norm; context = :compact => true),
         " λ $eq_sign $suff_λ",
     ]
     @info join(info_strs, "\n")
@@ -121,9 +123,9 @@ function certify_solution(
         return false, λ_flpoint
     end
 
-    λ_int = IntervalArithmetic.@interval(λ)
+    λ_int = IntervalArithmetic.interval(Float64, λ)
     Q_int = IntervalMatrices.IntervalMatrix([
-        IntervalArithmetic.@interval(q) for q in Q
+        IntervalArithmetic.interval(Float64, q) for q in Q
     ])
 
     check, sos_int = @time if should_we_augment

@@ -47,7 +47,8 @@
 
             @test JuMP.termination_status(m) in
                   (JuMP.ALMOST_OPTIMAL, JuMP.OPTIMAL)
-            @test JuMP.objective_value(m) ≈ λ_cert atol = 1e-2
+            @test JuMP.objective_value(m) ≈
+                  PropertyT.IntervalArithmetic.mid(λ_cert) atol = 1e-2
         end
 
         @testset "Wedderburn decomposition" begin
