@@ -123,10 +123,8 @@ function certify_solution(
         return false, λ_flpoint
     end
 
-    λ_int = IntervalArithmetic.interval(Float64, λ)
-    Q_int = IntervalMatrices.IntervalMatrix([
-        IntervalArithmetic.interval(Float64, q) for q in Q
-    ])
+    λ_int = IntervalArithmetic.interval(λ)
+    Q_int = IntervalMatrices.IntervalMatrix(IntervalArithmetic.interval.(Q))
 
     check, sos_int = @time if should_we_augment
         @info("Projecting columns of Q to the augmentation ideal...")
