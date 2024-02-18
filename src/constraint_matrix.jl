@@ -156,12 +156,8 @@ function constraints(
     mstr::StarAlgebras.MultiplicativeStructure;
     augmented = false,
 )
-    cnstrs = _constraints(
-        mstr;
-        augmented = augmented,
-        num_constraints = length(basis),
-        id = basis[one(first(basis))],
-    )
+    id = basis[one(first(basis))]
+    cnstrs = _constraints(mstr; augmented = augmented, id = mstr[id, id])
 
     return Dict(
         basis[i] => ConstraintMatrix(c, size(mstr)..., 1) for
@@ -172,11 +168,11 @@ end
 function _constraints(
     mstr::StarAlgebras.MultiplicativeStructure;
     augmented::Bool = false,
-    num_constraints = maximum(mstr),
     id,
 )
-    cnstrs = [signed(eltype(mstr))[] for _ in 1:num_constraints]
+    cnstrs = [signed(eltype(mstr))[] for _ in 1:maximum(mstr)]
     LI = LinearIndices(size(mstr))
+    id_ = mstr[id, id]
 
     for ci in CartesianIndices(size(mstr))
         k = LI[ci]
@@ -185,8 +181,8 @@ function _constraints(
         push!(cnstrs[a_star_b], k)
         if augmented
             # (1-a)'(1-b) = 1 - a' - b + a'b
-            push!(cnstrs[id], k)
-            a_star, b = mstr[-i, id], j
+            push!(cnstrs[id_], k)
+            a_star, b = mstr[-i, id], mstr[j, id]
             push!(cnstrs[a_star], -k)
             push!(cnstrs[b], -k)
         end

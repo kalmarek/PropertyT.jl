@@ -67,13 +67,3 @@ function Sq(rootsystem::AbstractDict)
         init = zero(first(values(rootsystem))),
     )
 end
-
-function level(rootsystem, level::Integer)
-    1 ≤ level ≤ 4 || throw("level is implemented only for i ∈{1,2,3,4}")
-    level == 1 && return Adj(rootsystem, :C₁) # always positive
-    level == 2 && return Adj(rootsystem, :A₁) +
-           Adj(rootsystem, Symbol("C₁×C₁")) +
-           Adj(rootsystem, :C₂) # C₂ is not positive
-    level == 3 && return Adj(rootsystem, :A₂) + Adj(rootsystem, Symbol("A₁×C₁"))
-    level == 4 && return Adj(rootsystem, Symbol("A₁×A₁")) # positive
-end

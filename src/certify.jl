@@ -112,7 +112,7 @@ function certify_solution(
         !augmented && StarAlgebras.aug(elt) == StarAlgebras.aug(orderunit) == 0
 
     Q = should_we_augment ? augment_columns!(Q) : Q
-    @time sos = compute_sos(parent(elt), Q; augmented = augmented)
+    sos = compute_sos(parent(elt), Q; augmented = augmented)
 
     @info "Checking in $(eltype(sos)) arithmetic with" λ
 
@@ -123,11 +123,9 @@ function certify_solution(
     end
 
     λ_int = IntervalArithmetic.@interval(λ)
-    Q_int = IntervalMatrices.IntervalMatrix([
-        IntervalArithmetic.@interval(q) for q in Q
-    ])
+    Q_int = IntervalMatrices.IntervalMatrix(IntervalArithmetic.Interval.(Q))
 
-    check, sos_int = @time if should_we_augment
+    check, sos_int = if should_we_augment
         @info("Projecting columns of Q to the augmentation ideal...")
         Q_int = augment_columns!(Q_int)
         @info "Checking that sum of every column contains 0.0..."
