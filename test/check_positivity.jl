@@ -29,7 +29,7 @@ function check_positivity(
     halfradius = 2,
     optimizer,
 )
-    @assert aug(elt) == aug(unit) == 0
+    @assert SA.aug(elt) == SA.aug(unit) == 0
     @time sos_problem, Ps =
         PropertyT.sos_problem_primal(elt, unit, wd; upper_bound = upper_bound)
 

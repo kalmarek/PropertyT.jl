@@ -6,10 +6,10 @@ using SparseArrays
 using JuMP
 
 using Groups
-import Groups.GroupsCore
-using SymbolicWedderburn
-import SymbolicWedderburn.StarAlgebras
-import SymbolicWedderburn.PermutationGroups
+import GroupsCore
+import PermutationGroups as PG
+import SymbolicWedderburn as SW
+import StarAlgebras as SA
 
 include("constraint_matrix.jl")
 include("sos_sdps.jl")
@@ -31,9 +31,9 @@ function group_algebra(G::Groups.Group, S = gens(G); halfradius::Integer)
     @time E, sizes = Groups.wlmetric_ball(S; radius = 2halfradius)
     @info "sizes = $(sizes)"
     @info "computing the *-algebra structure for G"
-    @time RG = StarAlgebras.StarAlgebra(
+    @time RG = SA.StarAlgebra(
         G,
-        StarAlgebras.Basis{UInt32}(E),
+        SA.Basis{UInt32}(E),
         (sizes[halfradius], sizes[halfradius]);
         precompute = false,
     )

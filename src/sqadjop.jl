@@ -1,30 +1,40 @@
-import SymbolicWedderburn.PermutationGroups.AbstractPerm
-
 # move to Groups
 Base.keys(a::Alphabet) = keys(1:length(a))
 
 ## the old 1812.03456 definitions
 
-isopposite(σ::AbstractPerm, τ::AbstractPerm, i=1, j=2) =
-    i^σ ≠ i^τ && i^σ ≠ j^τ && j^σ ≠ i^τ && j^σ ≠ j^τ
+function isopposite(
+    σ::PG.AbstractPermutation,
+    τ::PG.AbstractPermutation,
+    i = 1,
+    j = 2,
+)
+    return i^σ ≠ i^τ && i^σ ≠ j^τ && j^σ ≠ i^τ && j^σ ≠ j^τ
+end
 
-isadjacent(σ::AbstractPerm, τ::AbstractPerm, i=1, j=2) =
-    (i^σ == i^τ && j^σ ≠ j^τ) || # first equal, second differ
-    (j^σ == j^τ && i^σ ≠ i^τ) || # second equal, first differ
-    (i^σ == j^τ && j^σ ≠ i^τ) || # first σ equal to second τ
-    (j^σ == i^τ && i^σ ≠ j^τ)    # second σ equal to first τ
+function isadjacent(
+    σ::PG.AbstractPermutation,
+    τ::PG.AbstractPermutation,
+    i = 1,
+    j = 2,
+)
+    return (i^σ == i^τ && j^σ ≠ j^τ) || # first equal, second differ
+           (j^σ == j^τ && i^σ ≠ i^τ) || # second equal, first differ
+           (i^σ == j^τ && j^σ ≠ i^τ) || # first σ equal to second τ
+           (j^σ == i^τ && i^σ ≠ j^τ)    # second σ equal to first τ
+end
 
 function _ncycle(start, length, n=start + length - 1)
-    p = PermutationGroups.Perm(Int8(n))
+    p = Vector{UInt8}(1:n)
     @assert n ≥ start + length - 1
     for k in start:start+length-2
         p[k] = k + 1
     end
     p[start+length-1] = start
-    return p
+    return PG.Perm(p)
 end
 
-alternating_group(n::Integer) = PermutationGroups.PermGroup([_ncycle(i, 3) for i in 1:n-2])
+alternating_group(n::Integer) = PG.PermGroup([_ncycle(i, 3) for i in 1:n-2])
 
 function small_gens(G::MatrixGroups.SpecialLinearGroup)
     A = alphabet(G)
@@ -46,31 +56,31 @@ function small_gens(G::Groups.AutomorphismGroup{<:FreeGroup})
     return union!(S, inv.(S))
 end
 
-function small_laplacian(RG::StarAlgebras.StarAlgebra)
-    G = StarAlgebras.object(RG)
+function small_laplacian(RG::SA.StarAlgebra)
+    G = SA.object(RG)
     S₂ = small_gens(G)
     return length(S₂) * one(RG) - sum(RG(s) for s in S₂)
 end
 
-function SqAdjOp(A::StarAlgebras.StarAlgebra, n::Integer, Δ₂=small_laplacian(A))
+function SqAdjOp(A::SA.StarAlgebra, n::Integer, Δ₂ = small_laplacian(A))
     @assert parent(Δ₂) === A
 
     alt_n = alternating_group(n)
-    G = StarAlgebras.object(A)
+    G = SA.object(A)
     act = action_by_conjugation(G, alt_n)
 
-    Δ₂s = Dict(σ => SymbolicWedderburn.action(act, σ, Δ₂) for σ in alt_n)
+    Δ₂s = Dict(σ => SW.action(act, σ, Δ₂) for σ in alt_n)
 
     sq, adj, op = zero(A), zero(A), zero(A)
     tmp = zero(A)
 
     for σ in alt_n
-        StarAlgebras.add!(sq, sq, StarAlgebras.mul!(tmp, Δ₂s[σ], Δ₂s[σ]))
+        SA.add!(sq, sq, SA.mul!(tmp, Δ₂s[σ], Δ₂s[σ]))
         for τ in alt_n
             if isopposite(σ, τ)
-                StarAlgebras.add!(op, op, StarAlgebras.mul!(tmp, Δ₂s[σ], Δ₂s[τ]))
+                SA.add!(op, op, SA.mul!(tmp, Δ₂s[σ], Δ₂s[τ]))
             elseif isadjacent(σ, τ)
-                StarAlgebras.add!(adj, adj, StarAlgebras.mul!(tmp, Δ₂s[σ], Δ₂s[τ]))
+                SA.add!(adj, adj, SA.mul!(tmp, Δ₂s[σ], Δ₂s[τ]))
             end
         end
     end

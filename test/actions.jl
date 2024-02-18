@@ -1,5 +1,5 @@
 function test_action(basis, group, act)
-    action = SymbolicWedderburn.action
+    action = SW.action
     return @testset "action definition" begin
         @test all(basis) do b
             e = one(group)
@@ -22,7 +22,7 @@ function test_action(basis, group, act)
             g_h
         end
 
-        action = SymbolicWedderburn.action
+        action = SW.action
         @test action(act, g, a) in basis
         @test action(act, h, a) in basis
         @test action(act, h, action(act, g, a)) == action(act, g * h, a)
@@ -33,7 +33,7 @@ function test_action(basis, group, act)
             return x == y
         end
 
-        if act isa SymbolicWedderburn.ByPermutations
+        if act isa SW.ByPermutations
             @test all(basis) do b
                 return action(act, g, b) ∈ basis && action(act, h, b) ∈ basis
             end
@@ -50,75 +50,73 @@ end
     RSL, S, sizes = PropertyT.group_algebra(SL; halfradius = 2)
 
     @testset "Permutation action" begin
-        Γ = PermGroup(perm"(1,2)", Perm(circshift(1:n, -1)))
+        Γ = PG.PermGroup(PG.perm"(1,2)", PG.Perm(circshift(1:n, -1)))
         ΓpA = PropertyT.action_by_conjugation(SL, Γ)
 
-        test_action(basis(RSL), Γ, ΓpA)
+        test_action(SA.basis(RSL), Γ, ΓpA)
 
         @testset "mps is successful" begin
             charsΓ =
-                SymbolicWedderburn.Character{
+                SW.Character{
                     Rational{Int},
-                }.(SymbolicWedderburn.irreducible_characters(Γ))
+            }.(SW.irreducible_characters(Γ))
 
-            RΓ = SymbolicWedderburn._group_algebra(Γ)
+            RΓ = SW._group_algebra(Γ)
 
             @time mps, ranks =
-                SymbolicWedderburn.minimal_projection_system(charsΓ, RΓ)
+                SW.minimal_projection_system(charsΓ, RΓ)
             @test all(isone, ranks)
         end
 
         @testset "Wedderburn decomposition" begin
-            wd = SymbolicWedderburn.WedderburnDecomposition(
+            wd = SW.WedderburnDecomposition(
                 Rational{Int},
                 Γ,
                 ΓpA,
-                basis(RSL),
-                StarAlgebras.Basis{UInt16}(@view basis(RSL)[1:sizes[2]]),
+                SA.basis(RSL),
+                SA.Basis{UInt16}(@view SA.basis(RSL)[1:sizes[2]]),
             )
 
-            @test length(invariant_vectors(wd)) == 918
-            @test SymbolicWedderburn.size.(direct_summands(wd), 1) ==
-                  [40, 23, 18]
-            @test all(issimple, direct_summands(wd))
+            @test length(SW.invariant_vectors(wd)) == 918
+            @test size.(SW.direct_summands(wd), 1) == [23, 18, 40]
+            @test all(SW.issimple, SW.direct_summands(wd))
         end
     end
 
     @testset "Wreath action" begin
-        Γ = let P = PermGroup(perm"(1,2)", Perm(circshift(1:n, -1)))
-            PropertyT.Constructions.WreathProduct(PermGroup(perm"(1,2)"), P)
+        Γ = let P = PG.PermGroup(PG.perm"(1,2)", PG.Perm(circshift(1:n, -1)))
+            Groups.Constructions.WreathProduct(PG.PermGroup(PG.perm"(1,2)"), P)
         end
 
         ΓpA = PropertyT.action_by_conjugation(SL, Γ)
 
-        test_action(basis(RSL), Γ, ΓpA)
+        test_action(SA.basis(RSL), Γ, ΓpA)
 
         @testset "mps is successful" begin
             charsΓ =
-                SymbolicWedderburn.Character{
+                SW.Character{
                     Rational{Int},
-                }.(SymbolicWedderburn.irreducible_characters(Γ))
+            }.(SW.irreducible_characters(Γ))
 
-            RΓ = SymbolicWedderburn._group_algebra(Γ)
+            RΓ = SW._group_algebra(Γ)
 
             @time mps, ranks =
-                SymbolicWedderburn.minimal_projection_system(charsΓ, RΓ)
+                SW.minimal_projection_system(charsΓ, RΓ)
             @test all(isone, ranks)
         end
 
         @testset "Wedderburn decomposition" begin
-            wd = SymbolicWedderburn.WedderburnDecomposition(
+            wd = SW.WedderburnDecomposition(
                 Rational{Int},
                 Γ,
                 ΓpA,
-                basis(RSL),
-                StarAlgebras.Basis{UInt16}(@view basis(RSL)[1:sizes[2]]),
+                SA.basis(RSL),
+                SA.Basis{UInt16}(@view SA.basis(RSL)[1:sizes[2]]),
             )
 
-            @test length(invariant_vectors(wd)) == 247
-            @test SymbolicWedderburn.size.(direct_summands(wd), 1) ==
-                  [14, 9, 6, 14, 12]
-            @test all(issimple, direct_summands(wd))
+            @test length(SW.invariant_vectors(wd)) == 247
+            @test size.(SW.direct_summands(wd), 1) == [9, 6, 14, 14, 12]
+            @test all(SW.issimple, SW.direct_summands(wd))
         end
     end
 end
@@ -130,75 +128,73 @@ end
     RSAutFn, S, sizes = PropertyT.group_algebra(SAutFn; halfradius = 1)
 
     @testset "Permutation action" begin
-        Γ = PermGroup(perm"(1,2)", Perm(circshift(1:n, -1)))
+        Γ = PG.PermGroup(PG.perm"(1,2)", PG.Perm(circshift(1:n, -1)))
         ΓpA = PropertyT.action_by_conjugation(SAutFn, Γ)
 
-        test_action(basis(RSAutFn), Γ, ΓpA)
+        test_action(SA.basis(RSAutFn), Γ, ΓpA)
 
         @testset "mps is successful" begin
             charsΓ =
-                SymbolicWedderburn.Character{
+                SW.Character{
                     Rational{Int},
-                }.(SymbolicWedderburn.irreducible_characters(Γ))
+            }.(SW.irreducible_characters(Γ))
 
-            RΓ = SymbolicWedderburn._group_algebra(Γ)
+            RΓ = SW._group_algebra(Γ)
 
             @time mps, ranks =
-                SymbolicWedderburn.minimal_projection_system(charsΓ, RΓ)
+                SW.minimal_projection_system(charsΓ, RΓ)
             @test all(isone, ranks)
         end
 
         @testset "Wedderburn decomposition" begin
-            wd = SymbolicWedderburn.WedderburnDecomposition(
+            wd = SW.WedderburnDecomposition(
                 Rational{Int},
                 Γ,
                 ΓpA,
-                basis(RSAutFn),
-                StarAlgebras.Basis{UInt16}(@view basis(RSAutFn)[1:sizes[1]]),
+                SA.basis(RSAutFn),
+                SA.Basis{UInt16}(@view SA.basis(RSAutFn)[1:sizes[1]]),
             )
 
-            @test length(invariant_vectors(wd)) == 93
-            @test SymbolicWedderburn.size.(direct_summands(wd), 1) ==
-                  [4, 8, 5, 4]
-            @test all(issimple, direct_summands(wd))
+            @test length(SW.invariant_vectors(wd)) == 93
+            @test size.(SW.direct_summands(wd), 1) == [5, 4, 8, 4]
+            @test all(SW.issimple, SW.direct_summands(wd))
         end
     end
 
     @testset "Wreath action" begin
-        Γ = let P = PermGroup(perm"(1,2)", Perm(circshift(1:n, -1)))
-            PropertyT.Constructions.WreathProduct(PermGroup(perm"(1,2)"), P)
+        Γ = let P = PG.PermGroup(PG.perm"(1,2)", PG.Perm(circshift(1:n, -1)))
+            Groups.Constructions.WreathProduct(PG.PermGroup(PG.perm"(1,2)"), P)
         end
 
         ΓpA = PropertyT.action_by_conjugation(SAutFn, Γ)
 
-        test_action(basis(RSAutFn), Γ, ΓpA)
+        test_action(SA.basis(RSAutFn), Γ, ΓpA)
 
         @testset "mps is successful" begin
             charsΓ =
-                SymbolicWedderburn.Character{
+                SW.Character{
                     Rational{Int},
-                }.(SymbolicWedderburn.irreducible_characters(Γ))
+            }.(SW.irreducible_characters(Γ))
 
-            RΓ = SymbolicWedderburn._group_algebra(Γ)
+            RΓ = SW._group_algebra(Γ)
 
             @time mps, ranks =
-                SymbolicWedderburn.minimal_projection_system(charsΓ, RΓ)
+                SW.minimal_projection_system(charsΓ, RΓ)
             @test all(isone, ranks)
         end
 
         @testset "Wedderburn decomposition" begin
-            wd = SymbolicWedderburn.WedderburnDecomposition(
+            wd = SW.WedderburnDecomposition(
                 Rational{Int},
                 Γ,
                 ΓpA,
-                basis(RSAutFn),
-                StarAlgebras.Basis{UInt16}(@view basis(RSAutFn)[1:sizes[1]]),
+                SA.basis(RSAutFn),
+                SA.Basis{UInt16}(@view SA.basis(RSAutFn)[1:sizes[1]]),
             )
 
-            @test length(invariant_vectors(wd)) == 18
-            @test SymbolicWedderburn.size.(direct_summands(wd), 1) ==
-                  [1, 1, 2, 2, 1, 2, 2, 1]
-            @test all(issimple, direct_summands(wd))
+            @test length(SW.invariant_vectors(wd)) == 18
+            @test size.(SW.direct_summands(wd), 1) == [2, 1, 2, 1, 2, 1, 1, 2]
+            @test all(SW.issimple, SW.direct_summands(wd))
         end
     end
 end

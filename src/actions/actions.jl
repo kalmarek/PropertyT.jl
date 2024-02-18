@@ -1,29 +1,24 @@
-import SymbolicWedderburn.action
-
 include("alphabet_permutation.jl")
 
 include("sln_conjugation.jl")
 include("spn_conjugation.jl")
 include("autfn_conjugation.jl")
 
-function SymbolicWedderburn.action(
-    act::SymbolicWedderburn.ByPermutations,
+function SW.action(
+    act::SW.ByPermutations,
     g::Groups.GroupElement,
-    α::StarAlgebras.AlgebraElement,
+    α::SA.AlgebraElement,
 )
-    res = StarAlgebras.zero!(similar(α))
-    B = basis(parent(α))
-    for (idx, val) in StarAlgebras._nzpairs(StarAlgebras.coeffs(α))
+    res = SA.zero!(similar(α))
+    B = SA.basis(parent(α))
+    for (idx, val) in SA._nzpairs(SA.coeffs(α))
         a = B[idx]
-        a_g = SymbolicWedderburn.action(act, g, a)
+        a_g = SW.action(act, g, a)
         res[a_g] += val
     end
     return res
 end
 
-function Base.:^(
-    w::W,
-    p::PermutationGroups.AbstractPerm,
-) where {W<:Groups.AbstractWord}
+function Base.:^(w::W, p::PG.AbstractPermutation) where {W<:Groups.AbstractWord}
     return W([l^p for l in w])
 end

@@ -37,7 +37,7 @@ function _groupby(keys::AbstractVector{K}, vals::AbstractVector{V}) where {K,V}
     return d
 end
 
-function laplacians(RG::StarAlgebras.StarAlgebra, S, grading)
+function laplacians(RG::SA.StarAlgebra, S, grading)
     d = _groupby(grading, S)
     Δs = Dict(α => RG(length(Sα)) - sum(RG(s) for s in Sα) for (α, Sα) in d)
     return Δs

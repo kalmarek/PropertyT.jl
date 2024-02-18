@@ -2,7 +2,7 @@
 
 function _conj(
     t::MatrixGroups.ElementaryMatrix{N},
-    σ::PermutationGroups.AbstractPerm,
+    σ::PG.AbstractPermutation,
 ) where {N}
     return MatrixGroups.ElementaryMatrix{N}(t.i^inv(σ), t.j^inv(σ), t.val)
 end
@@ -16,5 +16,9 @@ function _conj(
     return ifelse(just_one_flips, inv(t), t)
 end
 
-action_by_conjugation(sln::Groups.MatrixGroups.SpecialLinearGroup, Σ::Groups.Group) =
-    AlphabetPermutation(alphabet(sln), Σ, _conj)
+function action_by_conjugation(
+    sln::Groups.MatrixGroups.SpecialLinearGroup,
+    Σ::Groups.Group,
+)
+    return AlphabetPermutation(alphabet(sln), Σ, _conj)
+end

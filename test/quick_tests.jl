@@ -4,7 +4,7 @@
         p = 7
         halfradius = 3
         G = MatrixGroups.SpecialLinearGroup{N}(
-            SymbolicWedderburn.Characters.FiniteFields.GF{p},
+            SW.Characters.FiniteFields.GF{p},
         )
         RG, S, sizes = PropertyT.group_algebra(G; halfradius = 3)
 
@@ -22,11 +22,11 @@
                 unit;
                 upper_bound = ub,
                 halfradius = 2,
-                optimizer = cosmo_optimizer(;
-                    eps = 1e-7,
-                    max_iters = 5_000,
-                    accel = 50,
-                    alpha = 1.95,
+                optimizer = scs_optimizer(;
+                    eps = 1e-8,
+                    max_iters = 20_000,
+                    accel = -50,
+                    alpha = 1.9,
                 ),
             )
 
@@ -37,32 +37,34 @@
             m = PropertyT.sos_problem_dual(elt, unit)
             PropertyT.solve(
                 m,
-                cosmo_optimizer(;
-                    eps = 1e-7,
+                scs_optimizer(;
+                    eps = 1e-8,
                     max_iters = 10_000,
-                    accel = 50,
-                    alpha = 1.95,
+                    accel = -50,
+                    alpha = 1.9,
                 ),
             )
 
             @test JuMP.termination_status(m) in
                   (JuMP.ALMOST_OPTIMAL, JuMP.OPTIMAL)
-            @test JuMP.objective_value(m) ≈ λ_cert atol = 1e-2
+            @test JuMP.objective_value(m) ≈
+                  PropertyT.IntervalArithmetic.mid(λ_cert) atol = 1e-2
         end
 
         @testset "Wedderburn decomposition" begin
-            P = PermGroup(perm"(1,2)", Perm(circshift(1:N, -1)))
-            Σ = PropertyT.Constructions.WreathProduct(PermGroup(perm"(1,2)"), P)
+            P = PG.PermGroup(PG.perm"(1,2)", PG.Perm(circshift(1:N, -1)))
+            Σ = Groups.Constructions.WreathProduct(
+                PG.PermGroup(PG.perm"(1,2)"),
+                P,
+            )
             act = PropertyT.action_by_conjugation(G, Σ)
 
-            wd = WedderburnDecomposition(
+            wd = SW.WedderburnDecomposition(
                 Float64,
                 Σ,
                 act,
-                basis(RG),
-                StarAlgebras.Basis{UInt16}(
-                    @view basis(RG)[1:sizes[halfradius]]
-                ),
+                SA.basis(RG),
+                SA.Basis{UInt16}(@view SA.basis(RG)[1:sizes[halfradius]]),
             )
 
             status, certified, λ_cert = check_positivity(
@@ -71,10 +73,10 @@
                 wd;
                 upper_bound = ub,
                 halfradius = 2,
-                optimizer = cosmo_optimizer(;
-                    eps = 1e-7,
+                optimizer = scs_optimizer(;
+                    eps = 1e-8,
                     max_iters = 10_000,
-                    accel = 50,
+                    accel = -50,
                     alpha = 1.9,
                 ),
             )

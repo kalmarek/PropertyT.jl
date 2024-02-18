@@ -9,16 +9,16 @@ function augment_columns!(Q::AbstractMatrix)
 end
 
 function __sos_via_sqr!(
-    res::StarAlgebras.AlgebraElement,
+    res::SA.AlgebraElement,
     P::AbstractMatrix;
     augmented::Bool,
-    id = (b = basis(parent(res)); b[one(first(b))]),
+    id = (b = SA.basis(parent(res)); b[one(first(b))]),
 )
     A = parent(res)
     mstr = A.mstructure
     @assert size(mstr) == size(P)
 
-    StarAlgebras.zero!(res)
+    SA.zero!(res)
     for j in axes(mstr, 2)
         for i in axes(mstr, 1)
             p = P[i, j]
@@ -39,11 +39,11 @@ function __sos_via_sqr!(
 end
 
 function __sos_via_cnstr!(
-    res::StarAlgebras.AlgebraElement,
+    res::SA.AlgebraElement,
     Q²::AbstractMatrix,
     cnstrs,
 )
-    StarAlgebras.zero!(res)
+    SA.zero!(res)
     for (g, A_g) in cnstrs
         res[g] = dot(A_g, Q²)
     end
@@ -51,17 +51,17 @@ function __sos_via_cnstr!(
 end
 
 function compute_sos(
-    A::StarAlgebras.StarAlgebra,
+    A::SA.StarAlgebra,
     Q::AbstractMatrix;
     augmented::Bool,
 )
     Q² = Q' * Q
-    res = StarAlgebras.AlgebraElement(zeros(eltype(Q²), length(basis(A))), A)
+    res = SA.AlgebraElement(zeros(eltype(Q²), length(SA.basis(A))), A)
     res = __sos_via_sqr!(res, Q²; augmented = augmented)
     return res
 end
 
-function sufficient_λ(residual::StarAlgebras.AlgebraElement, λ; halfradius)
+function sufficient_λ(residual::SA.AlgebraElement, λ; halfradius)
     L1_norm = norm(residual, 1)
     suff_λ = λ - 2.0^(2ceil(log2(halfradius))) * L1_norm
 
@@ -77,8 +77,10 @@ function sufficient_λ(residual::StarAlgebras.AlgebraElement, λ; halfradius)
 
     info_strs = [
         "Numerical metrics of the obtained SOS:",
-        "ɛ(elt - λu - ∑ξᵢ*ξᵢ) $eq_sign $(StarAlgebras.aug(residual))",
-        "‖elt - λu - ∑ξᵢ*ξᵢ‖₁ $eq_sign $(L1_norm)",
+        "ɛ(elt - λu - ∑ξᵢ*ξᵢ) $eq_sign " *
+        sprint(show, SA.aug(residual); context = :compact => true),
+        "‖elt - λu - ∑ξᵢ*ξᵢ‖₁ $eq_sign " *
+        sprint(show, L1_norm; context = :compact => true),
         " λ $eq_sign $suff_λ",
     ]
     @info join(info_strs, "\n")
@@ -87,10 +89,10 @@ function sufficient_λ(residual::StarAlgebras.AlgebraElement, λ; halfradius)
 end
 
 function sufficient_λ(
-    elt::StarAlgebras.AlgebraElement,
-    order_unit::StarAlgebras.AlgebraElement,
+    elt::SA.AlgebraElement,
+    order_unit::SA.AlgebraElement,
     λ,
-    sos::StarAlgebras.AlgebraElement;
+    sos::SA.AlgebraElement;
     halfradius,
 )
     @assert parent(elt) === parent(order_unit) == parent(sos)
@@ -100,16 +102,15 @@ function sufficient_λ(
 end
 
 function certify_solution(
-    elt::StarAlgebras.AlgebraElement,
-    orderunit::StarAlgebras.AlgebraElement,
+    elt::SA.AlgebraElement,
+    orderunit::SA.AlgebraElement,
     λ,
     Q::AbstractMatrix{<:AbstractFloat};
     halfradius,
-    augmented = iszero(StarAlgebras.aug(elt)) &&
-        iszero(StarAlgebras.aug(orderunit)),
+    augmented = iszero(SA.aug(elt)) && iszero(SA.aug(orderunit)),
 )
     should_we_augment =
-        !augmented && StarAlgebras.aug(elt) == StarAlgebras.aug(orderunit) == 0
+        !augmented && SA.aug(elt) == SA.aug(orderunit) == 0
 
     Q = should_we_augment ? augment_columns!(Q) : Q
     @time sos = compute_sos(parent(elt), Q; augmented = augmented)
@@ -122,10 +123,8 @@ function certify_solution(
         return false, λ_flpoint
     end
 
-    λ_int = IntervalArithmetic.@interval(λ)
-    Q_int = IntervalMatrices.IntervalMatrix([
-        IntervalArithmetic.@interval(q) for q in Q
-    ])
+    λ_int = IntervalArithmetic.interval(λ)
+    Q_int = IntervalMatrices.IntervalMatrix(IntervalArithmetic.interval.(Q))
 
     check, sos_int = @time if should_we_augment
         @info("Projecting columns of Q to the augmentation ideal...")
