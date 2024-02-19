@@ -1,18 +1,17 @@
 using LinearAlgebra
-using MKL_jll
 BLAS.set_num_threads(4)
-
 ENV["OMP_NUM_THREADS"] = 4
+include(joinpath(@__DIR__, "../test/optimizers.jl"))
+using SCS_MKL_jll
 
 using Groups
 import Groups.MatrixGroups
 
-include(joinpath(@__DIR__, "../test/optimizers.jl"))
 using PropertyT
 
-using PropertyT.SymbolicWedderburn
-using PropertyT.PermutationGroups
-using PropertyT.StarAlgebras
+import PropertyT.SW as SW
+using PropertyT.PG
+using PropertyT.SA
 
 include(joinpath(@__DIR__, "argparse.jl"))
 include(joinpath(@__DIR__, "utils.jl"))
@@ -36,7 +35,7 @@ wd = let RG = RG, N = N
     Σ = Groups.Constructions.WreathProduct(PermGroup(perm"(1,2)"), P)
     act = PropertyT.action_by_conjugation(G, Σ)
 
-    wdfl = @time SymbolicWedderburn.WedderburnDecomposition(
+    wdfl = @time SW.WedderburnDecomposition(
         Float64,
         Σ,
         act,

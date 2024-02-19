@@ -1,17 +1,17 @@
 using LinearAlgebra
-BLAS.set_num_threads(8)
-using MKL_jll
+BLAS.set_num_threads(4)
 ENV["OMP_NUM_THREADS"] = 4
+include(joinpath(@__DIR__, "../test/optimizers.jl"))
+using SCS_MKL_jll
 
 using Groups
 import Groups.MatrixGroups
 
-include(joinpath(@__DIR__, "../test/optimizers.jl"))
 using PropertyT
 
-using PropertyT.SymbolicWedderburn
-using PropertyT.PermutationGroups
-using PropertyT.StarAlgebras
+import PropertyT.SW as SW
+using PropertyT.PG
+using PropertyT.SA
 
 include(joinpath(@__DIR__, "argparse.jl"))
 include(joinpath(@__DIR__, "utils.jl"))
@@ -31,10 +31,10 @@ RG, S, sizes = @time PropertyT.group_algebra(G, halfradius = HALFRADIUS)
 @info "computing WedderburnDecomposition"
 wd = let Σ = Weyl, RG = RG
     act = PropertyT.AlphabetPermutation{eltype(Σ),Int64}(
-        Dict(g => PermutationGroups.perm(g) for g in Σ),
+        Dict(g => PermutationGroups.AP.perm(g) for g in Σ),
     )
 
-    @time SymbolicWedderburn.WedderburnDecomposition(
+    @time SW.WedderburnDecomposition(
         Float64,
         Σ,
         act,
