@@ -8,7 +8,7 @@ function augment_columns!(Q::AbstractMatrix)
     return Q
 end
 
-function __sos_via_sqr!(
+function __sos_via_square!(
     res::SA.AlgebraElement,
     P::AbstractMatrix;
     augmented::Bool,
@@ -50,14 +50,19 @@ function __sos_via_cnstr!(
     return res
 end
 
+__square(Q::AbstractMatrix) = Q' * Q
+function __square(Q::IntervalMatrices.IntervalMatrix)
+    return *(IntervalMatrices.MultiplicationType{:fast}(), Q', Q)
+end
+
 function compute_sos(
     A::SA.StarAlgebra,
     Q::AbstractMatrix;
     augmented::Bool,
 )
-    Q² = Q' * Q
+    Q² = __square(Q)
     res = SA.AlgebraElement(zeros(eltype(Q²), length(SA.basis(A))), A)
-    res = __sos_via_sqr!(res, Q²; augmented = augmented)
+    res = __sos_via_square!(res, Q²; augmented = augmented)
     return res
 end
 
