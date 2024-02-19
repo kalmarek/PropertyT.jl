@@ -118,9 +118,8 @@ function certify_solution(
         !augmented && SA.aug(elt) == SA.aug(orderunit) == 0
 
     Q = should_we_augment ? augment_columns!(Q) : Q
+    @info "Checking in $(eltype(Q)) arithmetic with" λ
     @time sos = compute_sos(parent(elt), Q; augmented = augmented)
-
-    @info "Checking in $(eltype(sos)) arithmetic with" λ
 
     λ_flpoint = sufficient_λ(elt, orderunit, λ, sos; halfradius = halfradius)
 
@@ -130,6 +129,7 @@ function certify_solution(
 
     λ_int = IntervalArithmetic.interval(λ)
     Q_int = IntervalMatrices.IntervalMatrix(IntervalArithmetic.interval.(Q))
+    @info "Checking in $(eltype(Q_int)) arithmetic with" λ_int
 
     check, sos_int = @time if should_we_augment
         @info("Projecting columns of Q to the augmentation ideal...")
@@ -144,8 +144,6 @@ function certify_solution(
     else
         true, compute_sos(parent(elt), Q_int; augmented = augmented)
     end
-
-    @info "Checking in $(eltype(sos_int)) arithmetic with" λ_int
 
     λ_certified =
         sufficient_λ(elt, orderunit, λ_int, sos_int; halfradius = halfradius)
