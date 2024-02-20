@@ -5,7 +5,6 @@ function _conj(
     σ::PG.AbstractPermutation,
 ) where {N,T}
     @assert iseven(N)
-    @assert PG.degree(σ) ≤ N ÷ 2 "Got degree = $(PG.degree(σ)); N = $N"
     n = N ÷ 2
     @assert 1 ≤ s.i ≤ N
     @assert 1 ≤ s.j ≤ N

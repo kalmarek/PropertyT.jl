@@ -30,17 +30,20 @@ end
 function solve_in_loop(model::JuMP.Model, args...; logdir, optimizer, data)
     @info "logging to $logdir"
     status = JuMP.UNKNOWN_RESULT_STATUS
-    warm = try
-        solution = deserialize(joinpath(logdir, "solution.sjl"))
-        warm = solution[:warm]
-        @info "trying to warm-start model with λ=$(solution[:λ])..."
-        warm
-    catch
-        nothing
-    end
     old_lambda = 0.0
     certified = false
     while status != JuMP.OPTIMAL
+
+        warm = try
+            solution = deserialize(joinpath(logdir, "solution.sjl"))
+            warm = solution[:warm]
+            @info "trying to warm-start model with λ=$(solution[:λ])..."
+            warm
+        catch e
+            @info "could not find warmstart or \"solution.sjl\" does not exist in $logdir:" e
+            nothing
+        end
+
         date = now()
         log_file = joinpath(logdir, "solver_$date.log")
         @info "Current logfile is $log_file."
@@ -54,10 +57,10 @@ function solve_in_loop(model::JuMP.Model, args...; logdir, optimizer, data)
                 @time PropertyT.solve(log_file, model, optimizer, warm)
 
             solution = get_solution(model, args...)
+            solution[:warm] = warm
+
             serialize(joinpath(logdir, "solution_$date.sjl"), solution)
             serialize(joinpath(logdir, "solution.sjl"), solution)
-
-            solution[:warm] = warm
 
             certified, λ_cert = open(log_file; append = true) do io
                 with_logger(SimpleLogger(io)) do
@@ -84,7 +87,7 @@ function solve_in_loop(model::JuMP.Model, args...; logdir, optimizer, data)
             rel_change =
                 abs(certified_λ - old_lambda) /
                 (abs(certified_λ) + abs(old_lambda))
-            @info "Relatie improement for λ" rel_change
+            @info "Relative improvement for λ" rel_change
             if rel_change < 1e-9
                 @info "No progress detected, breaking" certified_λ rel_change status
                 return certified, certified_λ

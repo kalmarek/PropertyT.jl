@@ -20,7 +20,7 @@ const HALFRADIUS = parsed_args["halfradius"]
 const UPPER_BOUND = parsed_args["upper_bound"]
 
 G = MatrixGroups.SpecialLinearGroup{N}(Int8)
-@info "Running Δ² - λ·Δ sum of squares decomposition for " G
+@info "Running Adj - λ·Δ sum of squares decomposition for " G
 
 @info "computing group algebra structure"
 RG, S, sizes = @time PropertyT.group_algebra(G, halfradius = HALFRADIUS)
@@ -43,7 +43,10 @@ end
 @info wd
 
 Δ = RG(length(S)) - sum(RG(s) for s in S)
-elt = Δ^2
+Δs = let ψ = identity
+    PropertyT.laplacians(RG, S, x -> (gx = PropertyT.grading(ψ(x)); Set([gx, -gx])))
+end
+elt = PropertyT.Adj(Δs, :A₂)
 unit = Δ
 warm = nothing
 
@@ -55,21 +58,21 @@ warm = nothing
     upper_bound = UPPER_BOUND,
     augmented = true,
 )
+
 begin
     @time status, warm = PropertyT.solve(
         model,
         scs_optimizer(;
-            linear_solver = SCS.MKLDirectSolver,
-            eps = 1e-9,
-            max_iters = 30_000,
-            accel = -50,
+            eps = 1e-10,
+            max_iters = 20_000,
+            accel = 50,
             alpha = 1.95,
         ),
         warm,
     )
 
     @info "reconstructing the solution"
-    Q = @time let wd = wd, Ps = [JuMP.value.(P) for P in varP]
+    Q = let wd = wd, Ps = [JuMP.value.(P) for P in varP]
         Qs = real.(sqrt.(Ps))
         PropertyT.reconstruct(Qs, wd)
     end

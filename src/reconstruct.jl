@@ -12,10 +12,9 @@ function reconstruct(
     wbdec::SW.WedderburnDecomposition,
 )
     n = __outer_dim(wbdec)
-    res = sum(zip(Ms, SW.direct_summands(wbdec))) do (M, ds)
-        res = similar(M, n, n)
+    res = zeros(eltype(first(Ms)), n, n)
+    for (M, ds) in zip(Ms, SW.direct_summands(wbdec))
         res = _reconstruct!(res, M, ds)
-        return res
     end
     res = average!(zero(res), res, __group_of(wbdec), wbdec.hom)
     return res
@@ -26,11 +25,10 @@ function _reconstruct!(
     M::AbstractMatrix,
     ds::SW.DirectSummand,
 )
-    res .= zero(eltype(res))
     if !iszero(M)
         U = SW.image_basis(ds)
         d = SW.degree(ds)
-        res = (U' * M * U) .* d
+        res .+= (U' * M * U) .* d
     end
     return res
 end
