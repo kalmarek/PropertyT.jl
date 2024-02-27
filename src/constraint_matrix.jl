@@ -177,16 +177,17 @@ function _constraints(
 )
     cnstrs = [signed(eltype(mstr))[] for _ in 1:num_constraints]
     LI = LinearIndices(size(mstr))
+    star_of = [mstr.basis[SA.star(mstr.basis[i])] for i in 1:size(mstr, 1)]
 
     for ci in CartesianIndices(size(mstr))
         k = LI[ci]
         i, j = Tuple(ci)
-        a_star_b = mstr[-i, j]
+        a_star_b = mstr[star_of[i], j]
         push!(cnstrs[a_star_b], k)
         if augmented
             # (1-a)'(1-b) = 1 - a' - b + a'b
             push!(cnstrs[id], k)
-            a_star, b = mstr[-i, id], j
+            a_star, b = mstr[star_of[i], id], j
             push!(cnstrs[a_star], -k)
             push!(cnstrs[b], -k)
         end
